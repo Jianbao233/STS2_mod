@@ -20,8 +20,24 @@ public static class RichPingMod
     #region 运行时状态
 
     private static bool _useCustomPing = true;
+    private static bool _useAlivePing = true;
+    private static bool _useDeadPing = true;
     private static bool _randomPick = true;
     private static bool _useStages = true;
+    private static bool _useCharacterSpecific = true;
+    private static HashSet<string> _excludedPhrases = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>角色「存活时」文本是否启用。未配置则默认 true。</summary>
+    private static readonly Dictionary<string, bool> _characterAliveEnabled = new()
+    {
+        ["IRONCLAD"] = true, ["THE_SILENT"] = true, ["DEFECT"] = true,
+        ["WATCHER"] = true, ["THE_HIEROPHANT"] = true, ["THE_REGENT"] = true, ["THE_NECROBINDER"] = true,
+    };
+    /// <summary>角色「死亡后」文本是否启用。未配置则默认 true。</summary>
+    private static readonly Dictionary<string, bool> _characterDeadEnabled = new()
+    {
+        ["IRONCLAD"] = true, ["THE_SILENT"] = true, ["DEFECT"] = true,
+        ["WATCHER"] = true, ["THE_HIEROPHANT"] = true, ["THE_REGENT"] = true, ["THE_NECROBINDER"] = true,
+    };
     private static List<string> _messages = new();
     private static Dictionary<int, List<string>> _stageMessages = new();
     private static List<string> _deadMessages = new();
@@ -43,13 +59,20 @@ public static class RichPingMod
 
     #region Mod 生命周期
 
-    public static void ModLoaded()
+
+    private static bool _initialized;
+    internal static void EnsureInitialized()
     {
-        Log.Info("[RichPing] Mod 加载中...");
+        if (_initialized) return;
+        _initialized = true;
         LoadConfig();
         ModConfigIntegration.Register();
-        HarmonyPatcher.Apply();
-        Log.Info("[RichPing] 已加载");
+    }
+
+    /// <summary>由 ModInitializer 调用（若被识别）；否则由 EndTurnPingPrefix 静态构造的 2 帧延迟调度</summary>
+    public static void ModLoaded()
+    {
+        EnsureInitialized();
     }
 
     /// <summary>
@@ -233,7 +256,10 @@ public static class RichPingMod
     /// <param name="isDead">是否已死亡</param>
     public static string GetCustomPingText(string characterId, int actIndex, bool isDead)
     {
+        EnsureInitialized();
         if (!_useCustomPing) return null;
+        if (isDead && !_useDeadPing) return null;
+        if (!isDead && !_useAlivePing) return null;
 
         // 1. 外部提供者（第三方 Mod 角色）
         foreach (var p in _externalProviders)
@@ -241,24 +267,27 @@ public static class RichPingMod
             if (p.SupportedCharacterIds.Count == 0 || p.SupportedCharacterIds.Contains(characterId))
             {
                 var text = p.GetPingText(characterId, actIndex, isDead);
-                if (!string.IsNullOrEmpty(text)) return text;
+                if (!string.IsNullOrEmpty(text) && !IsExcluded(text)) return text;
             }
         }
 
         // 2. 解析别名，兼容不同命名
         var resolvedId = ResolveCharacterId(characterId);
+        // 存活/死亡分别检查对应开关；未配置角色默认 true
+        var useCharAlive = _useCharacterSpecific && (!_characterAliveEnabled.TryGetValue(resolvedId, out var aliveOk) || aliveOk);
+        var useCharDead = _useCharacterSpecific && (!_characterDeadEnabled.TryGetValue(resolvedId, out var deadOk) || deadOk);
 
-        // 3. 角色专属配置
+        // 3. 角色专属配置（当该状态下角色专属已开启时）
         if (_characterConfigs.TryGetValue(resolvedId, out var charCfg))
         {
-            if (isDead)
+            if (isDead && useCharDead)
             {
                 if (_useStages && charCfg.DeadStages.TryGetValue(actIndex, out var deadStageList) && deadStageList.Count > 0)
                     return Pick(deadStageList);
                 if (charCfg.Dead.Count > 0)
                     return Pick(charCfg.Dead);
             }
-            else
+            else if (!isDead && useCharAlive)
             {
                 if (_useStages && charCfg.Stages.TryGetValue(actIndex, out var stageList) && stageList.Count > 0)
                     return Pick(stageList);
@@ -284,6 +313,15 @@ public static class RichPingMod
         return null;
     }
 
+    private static bool IsExcluded(string text)
+    {
+        if (_excludedPhrases.Count == 0 || string.IsNullOrEmpty(text)) return false;
+        foreach (var p in _excludedPhrases)
+            if (text.Contains(p, StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
+
     /// <summary>将游戏可能返回的别名映射为配置中使用的 key</summary>
     private static string ResolveCharacterId(string characterId)
     {
@@ -291,15 +329,19 @@ public static class RichPingMod
         return CharacterIdAliases.TryGetValue(characterId, out var canonical) ? canonical : characterId;
     }
 
-    /// <summary>从列表中选取一条：随机 或 顺序轮转</summary>
+    /// <summary>从列表中选取一条：随机 或 顺序轮转，排除被禁用的文本</summary>
     private static string Pick(List<string> list)
     {
         if (list == null || list.Count == 0) return null;
+        var candidates = _excludedPhrases.Count > 0
+            ? list.FindAll(t => !IsExcluded(t))
+            : list;
+        if (candidates.Count == 0) return null;
         if (_randomPick)
-            return list[(int)(GD.Randi() % list.Count)];
-        var idx = _sequentialIndex % list.Count;
+            return candidates[(int)(GD.Randi() % candidates.Count)];
+        var idx = _sequentialIndex % candidates.Count;
         _sequentialIndex++;
-        return list[idx];
+        return candidates[idx];
     }
 
     #endregion
@@ -308,12 +350,38 @@ public static class RichPingMod
 
     public static void ReloadConfig() => LoadConfig();
 
-    /// <summary>由 ModConfig 开关变更时调用，更新运行时选项</summary>
-    public static void UpdateFromModConfig(bool? useCustom, bool? randomPick, bool? useStages)
+    /// <summary>由 ModConfig 开关变更时调用，按 key 更新运行时选项</summary>
+    public static void UpdateFromModConfig(string key, object value)
     {
-        if (useCustom.HasValue) _useCustomPing = useCustom.Value;
-        if (randomPick.HasValue) _randomPick = randomPick.Value;
-        if (useStages.HasValue) _useStages = useStages.Value;
+        switch (key)
+        {
+            case "use_custom_ping": _useCustomPing = Convert.ToBoolean(value); break;
+            case "use_alive_ping": _useAlivePing = Convert.ToBoolean(value); break;
+            case "use_dead_ping": _useDeadPing = Convert.ToBoolean(value); break;
+            case "random_pick": _randomPick = Convert.ToBoolean(value); break;
+            case "use_stages": _useStages = Convert.ToBoolean(value); break;
+            case "use_character_specific": _useCharacterSpecific = Convert.ToBoolean(value); break;
+            case "excluded_messages":
+                _excludedPhrases.Clear();
+                var s = (value?.ToString() ?? "").Trim();
+                if (s.Length > 0)
+                    foreach (var p in s.Split(',', '；', ';'))
+                        if (!string.IsNullOrWhiteSpace(p))
+                            _excludedPhrases.Add(p.Trim());
+                break;
+            case "char_ironclad_alive": _characterAliveEnabled["IRONCLAD"] = Convert.ToBoolean(value); break;
+            case "char_ironclad_dead": _characterDeadEnabled["IRONCLAD"] = Convert.ToBoolean(value); break;
+            case "char_silent_alive": _characterAliveEnabled["THE_SILENT"] = Convert.ToBoolean(value); break;
+            case "char_silent_dead": _characterDeadEnabled["THE_SILENT"] = Convert.ToBoolean(value); break;
+            case "char_defect_alive": _characterAliveEnabled["DEFECT"] = Convert.ToBoolean(value); break;
+            case "char_defect_dead": _characterDeadEnabled["DEFECT"] = Convert.ToBoolean(value); break;
+            case "char_watcher_alive": _characterAliveEnabled["WATCHER"] = _characterAliveEnabled["THE_HIEROPHANT"] = Convert.ToBoolean(value); break;
+            case "char_watcher_dead": _characterDeadEnabled["WATCHER"] = _characterDeadEnabled["THE_HIEROPHANT"] = Convert.ToBoolean(value); break;
+            case "char_regent_alive": _characterAliveEnabled["THE_REGENT"] = Convert.ToBoolean(value); break;
+            case "char_regent_dead": _characterDeadEnabled["THE_REGENT"] = Convert.ToBoolean(value); break;
+            case "char_necrobinder_alive": _characterAliveEnabled["THE_NECROBINDER"] = Convert.ToBoolean(value); break;
+            case "char_necrobinder_dead": _characterDeadEnabled["THE_NECROBINDER"] = Convert.ToBoolean(value); break;
+        }
     }
 
     #endregion

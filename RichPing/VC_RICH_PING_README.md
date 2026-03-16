@@ -35,7 +35,8 @@ RichPing/
 
 - Godot 4.5.1 Mono
 - .NET 9 SDK（与游戏 sts2.dll 依赖一致，需单独安装）
-- 从游戏 `data_sts2_windows_x86_64\` 目录复制 `sts2.dll` 到 RichPing 项目根目录
+
+**sts2.dll**：执行 `.\build.ps1` 会自动从游戏目录复制；或手动从 `data_sts2_windows_x86_64\` 复制到项目根。
 
 ### 2. 编辑自定义消息
 
@@ -65,12 +66,13 @@ RichPing/
 
 ## 导出与安装
 
-1. Godot：Build Project → 生成 `RichPing.dll`
-2. Project → Export → 勾选 `mod_manifest.json`、`ping_messages.json`、`mod_image.png`（若有）→ 导出 `RichPing.pck`
-3. 将 `RichPing.dll` 和 `RichPing.pck` 放入：
-   ```
-   <游戏目录>/mods/RichPing/
-   ```
+**推荐**：在项目根目录执行 `.\build.ps1`，自动完成：复制 sts2.dll → Godot 构建 → 导出 PCK → 复制到 `mods/RichPing/`。
+
+或手动：
+1. 将游戏 `data_sts2_windows_x86_64\sts2.dll` 复制到项目根
+2. Godot：Build Project → 生成 `RichPing.dll`
+3. Project → Export → 选择 "Windows Desktop" → 导出 `RichPing.pck`
+4. 将 `RichPing.dll` 和 `RichPing.pck` 放入 `<游戏目录>/mods/RichPing/`
 
 ---
 

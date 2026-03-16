@@ -1,30 +1,30 @@
 {
   "format": 1,
   "restore": {
-    "K:\\杀戮尖塔mod制作\\RichPing\\RichPing.csproj": {}
+    "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\RichPing.csproj": {}
   },
   "projects": {
-    "K:\\杀戮尖塔mod制作\\RichPing\\RichPing.csproj": {
+    "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\RichPing.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "K:\\杀戮尖塔mod制作\\RichPing\\RichPing.csproj",
+        "projectUniqueName": "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\RichPing.csproj",
         "projectName": "RichPing",
-        "projectPath": "K:\\杀戮尖塔mod制作\\RichPing\\RichPing.csproj",
+        "projectPath": "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\RichPing.csproj",
         "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-        "outputPath": "K:\\杀戮尖塔mod制作\\RichPing\\.godot\\mono\\temp\\obj\\",
+        "outputPath": "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\.godot\\mono\\temp\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net9.0"
+          "net8.0"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
+          "net8.0": {
+            "targetAlias": "net8.0",
             "projectReferences": {}
           }
         },
@@ -37,12 +37,11 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
+        "net8.0": {
+          "targetAlias": "net8.0",
           "dependencies": {
             "Godot.SourceGenerators": {
               "target": "Package",
@@ -50,11 +49,6 @@
               "autoReferenced": true
             },
             "GodotSharp": {
-              "target": "Package",
-              "version": "[4.5.1, )",
-              "autoReferenced": true
-            },
-            "GodotSharpEditor": {
               "target": "Package",
               "version": "[4.5.1, )",
               "autoReferenced": true
@@ -75,12 +69,31 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[8.0.25, 8.0.25]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[8.0.25, 8.0.25]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[8.0.25, 8.0.25]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.419/PortableRuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
         }
       }
     }

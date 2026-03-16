@@ -1,3 +1,4 @@
+using Godot;
 using HarmonyLib;
 using System;
 using System.Reflection;
@@ -5,61 +6,120 @@ using System.Reflection;
 namespace RichPing;
 
 /// <summary>
-/// Harmony 补丁：拦截游戏显示 Ping 气泡时获取的 endTurnPing 文本。
-/// 游戏在 FlavorSynchronizer.CreateEndTurnPingDialogueIfNecessary 中通过
-/// LocString("characters", "{角色}.banter.{alive|dead}.endTurnPing").GetFormattedText()
-/// 获取默认角色台词。本补丁在 LocString.GetFormattedText 处拦截，
-/// 当检测到 endTurnPing 键时改用 RichPing 提供的自定义文本。
+/// ModManager.Initialize 完成后立即调度 RichPing 初始化（LoadConfig + ModConfig 注册）。
+/// 保证打开游戏主菜单后即可在模组配置中看到 RichPing，无需进入对局或使用 Ping。
 /// </summary>
-internal static class HarmonyPatcher
+[HarmonyPatch]
+internal static class ModManagerInitPostfix
 {
-    private static Harmony _harmony;
-
-    public static void Apply()
+    static MethodBase TargetMethod()
     {
-        _harmony = new Harmony("net.richping");
-        TryPatchLocStringGetFormattedText();
+        var t = AccessTools.TypeByName("MegaCrit.Sts2.Core.Modding.ModManager")
+            ?? AccessTools.TypeByName("ModManager");
+        return t?.GetMethod("Initialize", BindingFlags.Public | BindingFlags.Static);
     }
 
-    /// <summary>对 LocString.GetFormattedText 打 Prefix 补丁</summary>
-    private static void TryPatchLocStringGetFormattedText()
+    static void Postfix()
     {
-        var locStringType = Type.GetType("MegaCrit.Sts2.Core.Localization.LocString, sts2")
-            ?? FindTypeInLoadedAssemblies("MegaCrit.Sts2.Core.Localization.LocString");
-
-        var targetMethod = locStringType?.GetMethod(
-            "GetFormattedText",
-            BindingFlags.Public | BindingFlags.Instance,
-            null,
-            Type.EmptyTypes,
-            null);
-
-        if (targetMethod != null)
+        try
         {
-            var prefix = typeof(EndTurnPingPrefix).GetMethod(nameof(EndTurnPingPrefix.Prefix));
-            _harmony.Patch(targetMethod, prefix: new HarmonyMethod(prefix));
+            var tree = Engine.GetMainLoop() as SceneTree;
+            if (tree != null)
+            {
+                tree.ProcessFrame += OnInitFrame1;
+            }
         }
+        catch { }
     }
 
-    private static Type FindTypeInLoadedAssemblies(string fullName)
+    private static void OnInitFrame1()
     {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            var t = asm.GetType(fullName);
-            if (t != null) return t;
-        }
-        return null;
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree != null) { tree.ProcessFrame -= OnInitFrame1; tree.ProcessFrame += OnInitFrame2; }
+    }
+
+    private static void OnInitFrame2()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree != null) { tree.ProcessFrame -= OnInitFrame2; RichPingMod.EnsureInitialized(); }
     }
 }
 
 /// <summary>
-/// Prefix 补丁：当 LocString 为 characters 表的 *.banter.(alive|dead).endTurnPing 时，
-/// 返回 RichPing 自定义文本并跳过原方法。
+/// Harmony 补丁：拦截 LocString.GetFormattedText。
+/// 游戏在 FlavorSynchronizer.CreateEndTurnPingDialogueIfNecessary 中通过
+/// LocString("characters", "{角色}.banter.{alive|dead}.endTurnPing").GetFormattedText() 获取 Ping 文本。
+/// 使用 [HarmonyPatch] 让 ModManager.PatchAll 自动发现，因 Sts2Stubs 的 ModInitializer 不被游戏识别。
 /// </summary>
+[HarmonyPatch]
 internal static class EndTurnPingPrefix
 {
+    private static bool _initScheduled;
+
+    /// <summary>PatchAll 加载本类时运行，调度延迟初始化（LoadConfig + ModConfig 注册）</summary>
+    static EndTurnPingPrefix()
+    {
+        try
+        {
+            var tree = Engine.GetMainLoop() as SceneTree;
+            if (tree == null) return;
+            _initScheduled = true;
+            tree.ProcessFrame += OnInitFrame1;
+        }
+        catch { /* 静默忽略，避免影响 PatchAll */ }
+    }
+
+    /// <summary>首次 Patch 调用时若尚未调度，则尝试调度（应对静态构造时 tree 为 null 的情况）</summary>
+    private static void TryScheduleInit()
+    {
+        if (_initScheduled) return;
+        try
+        {
+            var tree = Engine.GetMainLoop() as SceneTree;
+            if (tree == null) return;
+            _initScheduled = true;
+            tree.ProcessFrame += OnInitFrame1;
+        }
+        catch { }
+    }
+
+    private static void OnInitFrame1()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree != null) { tree.ProcessFrame -= OnInitFrame1; tree.ProcessFrame += OnInitFrame2; }
+    }
+
+    private static void OnInitFrame2()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree != null) { tree.ProcessFrame -= OnInitFrame2; RichPingMod.EnsureInitialized(); }
+    }
+
+    static MethodBase TargetMethod()
+    {
+        // AccessTools.TypeByName 跨程序集查找，比 Type.GetType(..., assembly) 更稳健
+        var locStringType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Localization.LocString")
+            ?? FindTypeByFullName("MegaCrit.Sts2.Core.Localization.LocString");
+        return locStringType?.GetMethod("GetFormattedText", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+    }
+
+    private static Type FindTypeByFullName(string fullName)
+    {
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            try
+            {
+                var t = asm.GetType(fullName);
+                if (t != null) return t;
+            }
+            catch { /* 忽略无法加载的程序集 */ }
+        }
+        return null;
+    }
+
     public static bool Prefix(object __instance, ref string __result)
     {
+        TryScheduleInit();
         if (__instance == null) return true;
 
         var locTable = __instance.GetType()
@@ -104,11 +164,8 @@ internal static class EndTurnPingPrefix
     {
         try
         {
-            var runManagerType = Type.GetType("MegaCrit.Sts2.Core.Runs.RunManager, sts2");
-            if (runManagerType == null)
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                    if ((runManagerType = asm.GetType("MegaCrit.Sts2.Core.Runs.RunManager")) != null)
-                        break;
+            var runManagerType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager")
+                ?? FindTypeByFullName("MegaCrit.Sts2.Core.Runs.RunManager");
 
             var instance = runManagerType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
             if (instance == null) return 0;

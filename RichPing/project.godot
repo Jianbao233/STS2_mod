@@ -1,13 +1,17 @@
-; RichPing Mod - 丰富战斗 Ping 文本
-; 依赖: ModConfig（可选）、sts2
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
 [application]
 
 config/name="RichPing"
-run/main_scene=""
-config/features=PackedStringArray("4.5")
+config/features=PackedStringArray("4.5", "C#")
 
 [dotnet]
 

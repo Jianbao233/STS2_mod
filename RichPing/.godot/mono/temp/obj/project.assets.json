@@ -1,7 +1,7 @@
 {
   "version": 3,
   "targets": {
-    "net9.0": {
+    "net8.0": {
       "Godot.SourceGenerators/4.5.1": {
         "type": "package",
         "build": {
@@ -17,22 +17,6 @@
         },
         "runtime": {
           "lib/net8.0/GodotSharp.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "GodotSharpEditor/4.5.1": {
-        "type": "package",
-        "dependencies": {
-          "GodotSharp": "4.5.1"
-        },
-        "compile": {
-          "lib/net8.0/GodotSharpEditor.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/GodotSharpEditor.dll": {
             "related": ".xml"
           }
         }
@@ -94,6 +78,78 @@
           "buildTransitive/net6.0/System.Text.Json.targets": {}
         }
       }
+    },
+    "net8.0/win-x64": {
+      "Godot.SourceGenerators/4.5.1": {
+        "type": "package",
+        "build": {
+          "build/Godot.SourceGenerators.props": {}
+        }
+      },
+      "GodotSharp/4.5.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/GodotSharp.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/GodotSharp.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Lib.Harmony/2.3.3": {
+        "type": "package",
+        "dependencies": {
+          "System.Text.Json": "8.0.1"
+        },
+        "compile": {
+          "lib/net8.0/0Harmony.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/0Harmony.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "System.Text.Encodings.Web/8.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/System.Text.Encodings.Web.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/System.Text.Encodings.Web.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net6.0/_._": {}
+        }
+      },
+      "System.Text.Json/8.0.1": {
+        "type": "package",
+        "dependencies": {
+          "System.Text.Encodings.Web": "8.0.0"
+        },
+        "compile": {
+          "lib/net8.0/System.Text.Json.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/System.Text.Json.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net6.0/System.Text.Json.targets": {}
+        }
+      }
     }
   },
   "libraries": {
@@ -121,19 +177,6 @@
         "godotsharp.nuspec",
         "lib/net8.0/GodotSharp.dll",
         "lib/net8.0/GodotSharp.xml"
-      ]
-    },
-    "GodotSharpEditor/4.5.1": {
-      "sha512": "8CM49047b0Us3qPJo6L7kdldreOvR7JCoXlKoSHzpA0TQP6+Qnoxz/26GZ1ONg2wW4vV9uzor0AHXSGUFP9XSw==",
-      "type": "package",
-      "path": "godotsharpeditor/4.5.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "godotsharpeditor.4.5.1.nupkg.sha512",
-        "godotsharpeditor.nuspec",
-        "lib/net8.0/GodotSharpEditor.dll",
-        "lib/net8.0/GodotSharpEditor.xml"
       ]
     },
     "Lib.Harmony/2.3.3": {
@@ -291,10 +334,9 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net9.0": [
+    "net8.0": [
       "Godot.SourceGenerators >= 4.5.1",
       "GodotSharp >= 4.5.1",
-      "GodotSharpEditor >= 4.5.1",
       "Lib.Harmony >= 2.3.3"
     ]
   },
@@ -304,24 +346,24 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "K:\\杀戮尖塔mod制作\\RichPing\\RichPing.csproj",
+      "projectUniqueName": "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\RichPing.csproj",
       "projectName": "RichPing",
-      "projectPath": "K:\\杀戮尖塔mod制作\\RichPing\\RichPing.csproj",
+      "projectPath": "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\RichPing.csproj",
       "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-      "outputPath": "K:\\杀戮尖塔mod制作\\RichPing\\.godot\\mono\\temp\\obj\\",
+      "outputPath": "K:\\杀戮尖塔mod制作\\STS2_mod\\RichPing\\.godot\\mono\\temp\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
-        "net9.0"
+        "net8.0"
       ],
       "sources": {
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
+        "net8.0": {
+          "targetAlias": "net8.0",
           "projectReferences": {}
         }
       },
@@ -334,12 +376,11 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      },
-      "SdkAnalysisLevel": "9.0.300"
+      }
     },
     "frameworks": {
-      "net9.0": {
-        "targetAlias": "net9.0",
+      "net8.0": {
+        "targetAlias": "net8.0",
         "dependencies": {
           "Godot.SourceGenerators": {
             "target": "Package",
@@ -347,11 +388,6 @@
             "autoReferenced": true
           },
           "GodotSharp": {
-            "target": "Package",
-            "version": "[4.5.1, )",
-            "autoReferenced": true
-          },
-          "GodotSharpEditor": {
             "target": "Package",
             "version": "[4.5.1, )",
             "autoReferenced": true
@@ -372,12 +408,31 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+            "version": "[8.0.25, 8.0.25]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Runtime.win-x64",
+            "version": "[8.0.25, 8.0.25]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+            "version": "[8.0.25, 8.0.25]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.419/PortableRuntimeIdentifierGraph.json"
+      }
+    },
+    "runtimes": {
+      "win-x64": {
+        "#import": []
       }
     }
   }
