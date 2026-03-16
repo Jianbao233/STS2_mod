@@ -1,0 +1,7 @@
+{
+  "pck_name": "ControlPanel",
+  "name": "控制面板 / Dev Control Panel",
+  "author": "VC",
+  "description": "F7 快速开关。自定义卡牌、药水（按作用分类）、战斗遭遇等快捷生成。\nF7 toggle. Quick spawn cards, potions (by effect), encounters.",
+  "version": "0.1.0"
+}

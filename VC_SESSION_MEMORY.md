@@ -60,6 +60,9 @@
 | 2025-03-17 | 配置分大类、逐条解释、控件列举 | 创建 VC_MODCONFIG_CONTROLS.md 控件清单；ModConfig 分 5 组（Header+Separator）；每项加 Description/Descriptions |
 | 2025-03-17 | 角色不同文本单独列出是否使用、大类区分、调控目标解释、开发者指南、登记记忆 | 角色存活/死亡分别开关（char_*_alive、char_*_dead）；6 大类（全局开关、全局文本类别、选取行为、过滤、角色存活、角色死亡）；每项加「调控目标」解释；重写 VC_RICHPING_DEVELOPER_GUIDE |
 | 2025-03-17 | 脱离 richping 项目，把记忆文本往父一级挪；解析控制台指令并总结文档 | VC_SESSION_MEMORY 移至 STS2_mod；创建 VC_STS2_CONSOLE_GUIDE.md |
+| 2025-03-17 | 查找游戏内各类卡牌药水遗物等 ID，整合文档；战斗内外指令、多人联机 | 创建 VC_STS2_IDS_AND_COMMANDS_REFERENCE.md |
+| 2025-03-17 | 罗列所有省略的大型数组（卡牌/药水/遗物/能力/附魔/强化）、附中文、多人玩家与敌方 ID | 创建 VC_STS2_FULL_ID_LISTS.md；记录完整药水(63)、附魔(21)、强化(6)及多人 NetId/CombatId 说明 |
+| 2025-03-17 | 完整列表脚本爬取、官方中文汉化来源、解包提取 | **extract_sts2_ids.py** 从 Models 爬取卡(576)/药(63)/遗(289)/能(260)/附(22)/强(6)；GodotPckTool 解包 SlayTheSpire2.pck 获取 res://localization/zhs；**VC_STS2_FULL_ID_LISTS.md** 已更新完整 ID+官方翻译(约 97.8%)；**extract_localization_from_pck.md** 解包说明 |
 
 ---
 
@@ -153,3 +156,15 @@
 
 - 「继续 RichPing」：在 RichPing 文件夹内施工
 - 「我遇到了 [报错特征]」：可引用报错速查表
+- 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
+
+---
+
+## ID 文档与多人联机记忆
+
+| 文档 | 内容 |
+|------|------|
+| VC_STS2_IDS_AND_COMMANDS_REFERENCE.md | ID 分类、target-index、指令场景、IsNetworked |
+| VC_STS2_FULL_ID_LISTS.md | **完整 ID 列表**：卡(576)、药(63)、遗(289)、能(260)、附(22)、强(6) + 官方中文；**多人 NetId/CombatId** 说明；由 extract_sts2_ids.py 生成 |
+| extract_sts2_ids.py | 从 Models 爬取 ID；自动合并 %APPDATA%\localization_override\zhs 或解包后的 zhs；输出 JSON + MD |
+| Tools\extract_localization_from_pck.md | GodotPckTool 解包、用户覆盖、Weblate 等官方中文获取方式 |

@@ -1,0 +1,6094 @@
+{
+  "Cards": [
+    {
+      "Id": "ABRASIVE",
+      "ClassName": "Abrasive",
+      "Zhs": "磨蚀"
+    },
+    {
+      "Id": "ACCELERANT",
+      "ClassName": "Accelerant",
+      "Zhs": "触媒"
+    },
+    {
+      "Id": "ACCURACY",
+      "ClassName": "Accuracy",
+      "Zhs": "精准"
+    },
+    {
+      "Id": "ACROBATICS",
+      "ClassName": "Acrobatics",
+      "Zhs": "杂技"
+    },
+    {
+      "Id": "ADAPTIVE_STRIKE",
+      "ClassName": "AdaptiveStrike",
+      "Zhs": "适应打击"
+    },
+    {
+      "Id": "ADRENALINE",
+      "ClassName": "Adrenaline",
+      "Zhs": "肾上腺素"
+    },
+    {
+      "Id": "AFTERIMAGE",
+      "ClassName": "Afterimage",
+      "Zhs": "余像"
+    },
+    {
+      "Id": "AFTERLIFE",
+      "ClassName": "Afterlife",
+      "Zhs": "来生"
+    },
+    {
+      "Id": "AGGRESSION",
+      "ClassName": "Aggression",
+      "Zhs": "好勇斗狠"
+    },
+    {
+      "Id": "ALCHEMIZE",
+      "ClassName": "Alchemize",
+      "Zhs": "炼制药水"
+    },
+    {
+      "Id": "ALIGNMENT",
+      "ClassName": "Alignment",
+      "Zhs": "星位序列"
+    },
+    {
+      "Id": "ALL_FOR_ONE",
+      "ClassName": "AllForOne",
+      "Zhs": "万物一心"
+    },
+    {
+      "Id": "ANGER",
+      "ClassName": "Anger",
+      "Zhs": "愤怒"
+    },
+    {
+      "Id": "ANOINTED",
+      "ClassName": "Anointed",
+      "Zhs": "天选"
+    },
+    {
+      "Id": "ANTICIPATE",
+      "ClassName": "Anticipate",
+      "Zhs": "预判"
+    },
+    {
+      "Id": "APOTHEOSIS",
+      "ClassName": "Apotheosis",
+      "Zhs": "神化"
+    },
+    {
+      "Id": "APPARITION",
+      "ClassName": "Apparition",
+      "Zhs": "灵体"
+    },
+    {
+      "Id": "ARMAMENTS",
+      "ClassName": "Armaments",
+      "Zhs": "武装"
+    },
+    {
+      "Id": "ARSENAL",
+      "ClassName": "Arsenal",
+      "Zhs": "武器库"
+    },
+    {
+      "Id": "ASCENDERS_BANE",
+      "ClassName": "AscendersBane",
+      "Zhs": "进阶之灾"
+    },
+    {
+      "Id": "ASHEN_STRIKE",
+      "ClassName": "AshenStrike",
+      "Zhs": "灰烬打击"
+    },
+    {
+      "Id": "ASSASSINATE",
+      "ClassName": "Assassinate",
+      "Zhs": "刺杀"
+    },
+    {
+      "Id": "ASTRAL_PULSE",
+      "ClassName": "AstralPulse",
+      "Zhs": "星界脉冲"
+    },
+    {
+      "Id": "AUTOMATION",
+      "ClassName": "Automation",
+      "Zhs": "自动化"
+    },
+    {
+      "Id": "BACKFLIP",
+      "ClassName": "Backflip",
+      "Zhs": "后空翻"
+    },
+    {
+      "Id": "BACKSTAB",
+      "ClassName": "Backstab",
+      "Zhs": "背刺"
+    },
+    {
+      "Id": "BAD_LUCK",
+      "ClassName": "BadLuck",
+      "Zhs": "霉运"
+    },
+    {
+      "Id": "BALL_LIGHTNING",
+      "ClassName": "BallLightning",
+      "Zhs": "球状闪电"
+    },
+    {
+      "Id": "BANSHEES_CRY",
+      "ClassName": "BansheesCry",
+      "Zhs": "女妖之嚎"
+    },
+    {
+      "Id": "BARRAGE",
+      "ClassName": "Barrage",
+      "Zhs": "弹幕齐射"
+    },
+    {
+      "Id": "BARRICADE",
+      "ClassName": "Barricade",
+      "Zhs": "壁垒"
+    },
+    {
+      "Id": "BASH",
+      "ClassName": "Bash",
+      "Zhs": "痛击"
+    },
+    {
+      "Id": "BATTLE_TRANCE",
+      "ClassName": "BattleTrance",
+      "Zhs": "战斗专注"
+    },
+    {
+      "Id": "BEACON_OF_HOPE",
+      "ClassName": "BeaconOfHope",
+      "Zhs": "希望灯塔"
+    },
+    {
+      "Id": "BEAM_CELL",
+      "ClassName": "BeamCell",
+      "Zhs": "光束射线"
+    },
+    {
+      "Id": "BEAT_DOWN",
+      "ClassName": "BeatDown",
+      "Zhs": "狠揍"
+    },
+    {
+      "Id": "BEAT_INTO_SHAPE",
+      "ClassName": "BeatIntoShape",
+      "Zhs": "锻打成型"
+    },
+    {
+      "Id": "BECKON",
+      "ClassName": "Beckon",
+      "Zhs": "呼唤"
+    },
+    {
+      "Id": "BEGONE",
+      "ClassName": "Begone",
+      "Zhs": "下去！"
+    },
+    {
+      "Id": "BELIEVE_IN_YOU",
+      "ClassName": "BelieveInYou",
+      "Zhs": "相信着你"
+    },
+    {
+      "Id": "BIASED_COGNITION",
+      "ClassName": "BiasedCognition",
+      "Zhs": "偏差认知"
+    },
+    {
+      "Id": "BIG_BANG",
+      "ClassName": "BigBang",
+      "Zhs": "大爆炸"
+    },
+    {
+      "Id": "BLACK_HOLE",
+      "ClassName": "BlackHole",
+      "Zhs": "黑洞"
+    },
+    {
+      "Id": "BLADE_DANCE",
+      "ClassName": "BladeDance",
+      "Zhs": "刀刃之舞"
+    },
+    {
+      "Id": "BLADE_OF_INK",
+      "ClassName": "BladeOfInk",
+      "Zhs": "墨之刃"
+    },
+    {
+      "Id": "BLIGHT_STRIKE",
+      "ClassName": "BlightStrike",
+      "Zhs": "荒疫打击"
+    },
+    {
+      "Id": "BLOODLETTING",
+      "ClassName": "Bloodletting",
+      "Zhs": "放血"
+    },
+    {
+      "Id": "BLOOD_WALL",
+      "ClassName": "BloodWall",
+      "Zhs": "血墙"
+    },
+    {
+      "Id": "BLUDGEON",
+      "ClassName": "Bludgeon",
+      "Zhs": "重锤"
+    },
+    {
+      "Id": "BLUR",
+      "ClassName": "Blur",
+      "Zhs": "残影"
+    },
+    {
+      "Id": "BODYGUARD",
+      "ClassName": "Bodyguard",
+      "Zhs": "护卫"
+    },
+    {
+      "Id": "BODY_SLAM",
+      "ClassName": "BodySlam",
+      "Zhs": "全身撞击"
+    },
+    {
+      "Id": "BOLAS",
+      "ClassName": "Bolas",
+      "Zhs": "流星锤"
+    },
+    {
+      "Id": "BOMBARDMENT",
+      "ClassName": "Bombardment",
+      "Zhs": "轰击"
+    },
+    {
+      "Id": "BONE_SHARDS",
+      "ClassName": "BoneShards",
+      "Zhs": "碎骨"
+    },
+    {
+      "Id": "BOOST_AWAY",
+      "ClassName": "BoostAway",
+      "Zhs": "高速脱离"
+    },
+    {
+      "Id": "BOOT_SEQUENCE",
+      "ClassName": "BootSequence",
+      "Zhs": "启动流程"
+    },
+    {
+      "Id": "BORROWED_TIME",
+      "ClassName": "BorrowedTime",
+      "Zhs": "预借时间"
+    },
+    {
+      "Id": "BOUNCING_FLASK",
+      "ClassName": "BouncingFlask",
+      "Zhs": "弹跳药瓶"
+    },
+    {
+      "Id": "BRAND",
+      "ClassName": "Brand",
+      "Zhs": "烙印"
+    },
+    {
+      "Id": "BREAK",
+      "ClassName": "Break",
+      "Zhs": "破击"
+    },
+    {
+      "Id": "BREAKTHROUGH",
+      "ClassName": "Breakthrough",
+      "Zhs": "突破"
+    },
+    {
+      "Id": "BRIGHTEST_FLAME",
+      "ClassName": "BrightestFlame",
+      "Zhs": "至亮之焰"
+    },
+    {
+      "Id": "BUBBLE_BUBBLE",
+      "ClassName": "BubbleBubble",
+      "Zhs": "咕嘟冒泡"
+    },
+    {
+      "Id": "BUFFER",
+      "ClassName": "Buffer",
+      "Zhs": "缓冲"
+    },
+    {
+      "Id": "BULK_UP",
+      "ClassName": "BulkUp",
+      "Zhs": "暴涨"
+    },
+    {
+      "Id": "BULLET_TIME",
+      "ClassName": "BulletTime",
+      "Zhs": "子弹时间"
+    },
+    {
+      "Id": "BULLY",
+      "ClassName": "Bully",
+      "Zhs": "欺凌"
+    },
+    {
+      "Id": "BULWARK",
+      "ClassName": "Bulwark",
+      "Zhs": "铸墙"
+    },
+    {
+      "Id": "BUNDLE_OF_JOY",
+      "ClassName": "BundleOfJoy",
+      "Zhs": "新生之喜"
+    },
+    {
+      "Id": "BURN",
+      "ClassName": "Burn",
+      "Zhs": "灼伤"
+    },
+    {
+      "Id": "BURNING_PACT",
+      "ClassName": "BurningPact",
+      "Zhs": "燃烧契约"
+    },
+    {
+      "Id": "BURST",
+      "ClassName": "Burst",
+      "Zhs": "爆发"
+    },
+    {
+      "Id": "BURY",
+      "ClassName": "Bury",
+      "Zhs": "埋葬"
+    },
+    {
+      "Id": "BYRDONIS_EGG",
+      "ClassName": "ByrdonisEgg",
+      "Zhs": "多尼斯异鸟蛋"
+    },
+    {
+      "Id": "BYRD_SWOOP",
+      "ClassName": "ByrdSwoop",
+      "Zhs": "异鸟扑击"
+    },
+    {
+      "Id": "CALAMITY",
+      "ClassName": "Calamity",
+      "Zhs": "灾祸"
+    },
+    {
+      "Id": "CALCIFY",
+      "ClassName": "Calcify",
+      "Zhs": "钙化"
+    },
+    {
+      "Id": "CALCULATED_GAMBLE",
+      "ClassName": "CalculatedGamble",
+      "Zhs": "计算下注"
+    },
+    {
+      "Id": "CALL_OF_THE_VOID",
+      "ClassName": "CallOfTheVoid",
+      "Zhs": "虚空之唤"
+    },
+    {
+      "Id": "CALTROPS",
+      "ClassName": "Caltrops",
+      "Zhs": "铁蒺藜"
+    },
+    {
+      "Id": "CAPACITOR",
+      "ClassName": "Capacitor",
+      "Zhs": "扩容"
+    },
+    {
+      "Id": "CAPTURE_SPIRIT",
+      "ClassName": "CaptureSpirit",
+      "Zhs": "捕捉灵魂"
+    },
+    {
+      "Id": "CASCADE",
+      "ClassName": "Cascade",
+      "Zhs": "倾泻"
+    },
+    {
+      "Id": "CATASTROPHE",
+      "ClassName": "Catastrophe",
+      "Zhs": "横祸"
+    },
+    {
+      "Id": "CELESTIAL_MIGHT",
+      "ClassName": "CelestialMight",
+      "Zhs": "天穹之力"
+    },
+    {
+      "Id": "CHAOS",
+      "ClassName": "Chaos",
+      "Zhs": "混沌"
+    },
+    {
+      "Id": "CHARGE",
+      "ClassName": "Charge",
+      "Zhs": "冲锋！！"
+    },
+    {
+      "Id": "CHARGE_BATTERY",
+      "ClassName": "ChargeBattery",
+      "Zhs": "充电"
+    },
+    {
+      "Id": "CHILD_OF_THE_STARS",
+      "ClassName": "ChildOfTheStars",
+      "Zhs": "群星之子"
+    },
+    {
+      "Id": "CHILL",
+      "ClassName": "Chill",
+      "Zhs": "冰寒"
+    },
+    {
+      "Id": "CINDER",
+      "ClassName": "Cinder",
+      "Zhs": "余烬"
+    },
+    {
+      "Id": "CLASH",
+      "ClassName": "Clash",
+      "Zhs": "交锋"
+    },
+    {
+      "Id": "CLAW",
+      "ClassName": "Claw",
+      "Zhs": "爪击"
+    },
+    {
+      "Id": "CLEANSE",
+      "ClassName": "Cleanse",
+      "Zhs": "洁净"
+    },
+    {
+      "Id": "CLOAK_AND_DAGGER",
+      "ClassName": "CloakAndDagger",
+      "Zhs": "斗篷与匕首"
+    },
+    {
+      "Id": "CLOAK_OF_STARS",
+      "ClassName": "CloakOfStars",
+      "Zhs": "群星斗篷"
+    },
+    {
+      "Id": "CLUMSY",
+      "ClassName": "Clumsy",
+      "Zhs": "笨拙"
+    },
+    {
+      "Id": "COLD_SNAP",
+      "ClassName": "ColdSnap",
+      "Zhs": "寒流"
+    },
+    {
+      "Id": "COLLISION_COURSE",
+      "ClassName": "CollisionCourse",
+      "Zhs": "碰撞轨迹"
+    },
+    {
+      "Id": "COLOSSUS",
+      "ClassName": "Colossus",
+      "Zhs": "巨像"
+    },
+    {
+      "Id": "COMET",
+      "ClassName": "Comet",
+      "Zhs": "彗星"
+    },
+    {
+      "Id": "COMPACT",
+      "ClassName": "Compact",
+      "Zhs": "压缩"
+    },
+    {
+      "Id": "COMPILE_DRIVER",
+      "ClassName": "CompileDriver",
+      "Zhs": "编译冲击"
+    },
+    {
+      "Id": "CONFLAGRATION",
+      "ClassName": "Conflagration",
+      "Zhs": "焚烧"
+    },
+    {
+      "Id": "CONQUEROR",
+      "ClassName": "Conqueror",
+      "Zhs": "征服者"
+    },
+    {
+      "Id": "CONSUMING_SHADOW",
+      "ClassName": "ConsumingShadow",
+      "Zhs": "吞噬暗影"
+    },
+    {
+      "Id": "CONVERGENCE",
+      "ClassName": "Convergence",
+      "Zhs": "汇流"
+    },
+    {
+      "Id": "COOLANT",
+      "ClassName": "Coolant",
+      "Zhs": "冷却剂"
+    },
+    {
+      "Id": "COOLHEADED",
+      "ClassName": "Coolheaded",
+      "Zhs": "冷静头脑"
+    },
+    {
+      "Id": "COORDINATE",
+      "ClassName": "Coordinate",
+      "Zhs": "协同配合"
+    },
+    {
+      "Id": "CORROSIVE_WAVE",
+      "ClassName": "CorrosiveWave",
+      "Zhs": "腐蚀波"
+    },
+    {
+      "Id": "CORRUPTION",
+      "ClassName": "Corruption",
+      "Zhs": "腐化"
+    },
+    {
+      "Id": "COSMIC_INDIFFERENCE",
+      "ClassName": "CosmicIndifference",
+      "Zhs": "宇宙冷漠"
+    },
+    {
+      "Id": "COUNTDOWN",
+      "ClassName": "Countdown",
+      "Zhs": "倒数计时"
+    },
+    {
+      "Id": "CRASH_LANDING",
+      "ClassName": "CrashLanding",
+      "Zhs": "迫降"
+    },
+    {
+      "Id": "CREATIVE_AI",
+      "ClassName": "CreativeAi",
+      "Zhs": "创造性AI"
+    },
+    {
+      "Id": "CRESCENT_SPEAR",
+      "ClassName": "CrescentSpear",
+      "Zhs": "新月长矛"
+    },
+    {
+      "Id": "CRIMSON_MANTLE",
+      "ClassName": "CrimsonMantle",
+      "Zhs": "绯红披风"
+    },
+    {
+      "Id": "CRUELTY",
+      "ClassName": "Cruelty",
+      "Zhs": "残酷"
+    },
+    {
+      "Id": "CRUSH_UNDER",
+      "ClassName": "CrushUnder",
+      "Zhs": "下砸"
+    },
+    {
+      "Id": "CURSE_OF_THE_BELL",
+      "ClassName": "CurseOfTheBell",
+      "Zhs": "铃铛的诅咒"
+    },
+    {
+      "Id": "DAGGER_SPRAY",
+      "ClassName": "DaggerSpray",
+      "Zhs": "匕首雨"
+    },
+    {
+      "Id": "DAGGER_THROW",
+      "ClassName": "DaggerThrow",
+      "Zhs": "投掷匕首"
+    },
+    {
+      "Id": "DANSE_MACABRE",
+      "ClassName": "DanseMacabre",
+      "Zhs": "死亡之舞"
+    },
+    {
+      "Id": "DARKNESS",
+      "ClassName": "Darkness",
+      "Zhs": "漆黑"
+    },
+    {
+      "Id": "DARK_EMBRACE",
+      "ClassName": "DarkEmbrace",
+      "Zhs": "黑暗之拥"
+    },
+    {
+      "Id": "DARK_SHACKLES",
+      "ClassName": "DarkShackles",
+      "Zhs": "黑暗镣铐"
+    },
+    {
+      "Id": "DASH",
+      "ClassName": "Dash",
+      "Zhs": "冲刺"
+    },
+    {
+      "Id": "DAZED",
+      "ClassName": "Dazed",
+      "Zhs": "晕眩"
+    },
+    {
+      "Id": "DEADLY_POISON",
+      "ClassName": "DeadlyPoison",
+      "Zhs": "致命毒药"
+    },
+    {
+      "Id": "DEATHBRINGER",
+      "ClassName": "Deathbringer",
+      "Zhs": "死亡使者"
+    },
+    {
+      "Id": "DEATHS_DOOR",
+      "ClassName": "DeathsDoor",
+      "Zhs": "死亡之门"
+    },
+    {
+      "Id": "DEATH_MARCH",
+      "ClassName": "DeathMarch",
+      "Zhs": "死亡行军"
+    },
+    {
+      "Id": "DEBILITATE",
+      "ClassName": "Debilitate",
+      "Zhs": "摧残"
+    },
+    {
+      "Id": "DEBRIS",
+      "ClassName": "Debris",
+      "Zhs": "碎屑"
+    },
+    {
+      "Id": "DEBT",
+      "ClassName": "Debt",
+      "Zhs": "债务"
+    },
+    {
+      "Id": "DECAY",
+      "ClassName": "Decay",
+      "Zhs": "腐朽"
+    },
+    {
+      "Id": "DECISIONS_DECISIONS",
+      "ClassName": "DecisionsDecisions",
+      "Zhs": "抉择，抉择"
+    },
+    {
+      "Id": "DEFEND_DEFECT",
+      "ClassName": "DefendDefect",
+      "Zhs": "防御"
+    },
+    {
+      "Id": "DEFEND_IRONCLAD",
+      "ClassName": "DefendIronclad",
+      "Zhs": "防御"
+    },
+    {
+      "Id": "DEFEND_NECROBINDER",
+      "ClassName": "DefendNecrobinder",
+      "Zhs": "防御"
+    },
+    {
+      "Id": "DEFEND_REGENT",
+      "ClassName": "DefendRegent",
+      "Zhs": "防御"
+    },
+    {
+      "Id": "DEFEND_SILENT",
+      "ClassName": "DefendSilent",
+      "Zhs": "防御"
+    },
+    {
+      "Id": "DEFILE",
+      "ClassName": "Defile",
+      "Zhs": "玷污"
+    },
+    {
+      "Id": "DEFLECT",
+      "ClassName": "Deflect",
+      "Zhs": "偏折"
+    },
+    {
+      "Id": "DEFRAGMENT",
+      "ClassName": "Defragment",
+      "Zhs": "碎片整理"
+    },
+    {
+      "Id": "DEFY",
+      "ClassName": "Defy",
+      "Zhs": "违逆"
+    },
+    {
+      "Id": "DELAY",
+      "ClassName": "Delay",
+      "Zhs": "拖延"
+    },
+    {
+      "Id": "DEMESNE",
+      "ClassName": "Demesne",
+      "Zhs": "领域"
+    },
+    {
+      "Id": "DEMONIC_SHIELD",
+      "ClassName": "DemonicShield",
+      "Zhs": "恶魔护盾"
+    },
+    {
+      "Id": "DEMON_FORM",
+      "ClassName": "DemonForm",
+      "Zhs": "恶魔形态"
+    },
+    {
+      "Id": "DEVASTATE",
+      "ClassName": "Devastate",
+      "Zhs": "葬送"
+    },
+    {
+      "Id": "DEVOUR_LIFE",
+      "ClassName": "DevourLife",
+      "Zhs": "吞噬生命"
+    },
+    {
+      "Id": "DIRGE",
+      "ClassName": "Dirge",
+      "Zhs": "挽歌"
+    },
+    {
+      "Id": "DISCOVERY",
+      "ClassName": "Discovery",
+      "Zhs": "发现"
+    },
+    {
+      "Id": "DISINTEGRATION",
+      "ClassName": "Disintegration",
+      "Zhs": "瓦解"
+    },
+    {
+      "Id": "DISMANTLE",
+      "ClassName": "Dismantle",
+      "Zhs": "拆卸"
+    },
+    {
+      "Id": "DISTRACTION",
+      "ClassName": "Distraction",
+      "Zhs": "声东击西"
+    },
+    {
+      "Id": "DODGE_AND_ROLL",
+      "ClassName": "DodgeAndRoll",
+      "Zhs": "闪躲翻滚"
+    },
+    {
+      "Id": "DOMINATE",
+      "ClassName": "Dominate",
+      "Zhs": "主宰"
+    },
+    {
+      "Id": "DOUBLE_ENERGY",
+      "ClassName": "DoubleEnergy",
+      "Zhs": "双倍能量"
+    },
+    {
+      "Id": "DOUBT",
+      "ClassName": "Doubt",
+      "Zhs": "疑虑"
+    },
+    {
+      "Id": "DRAIN_POWER",
+      "ClassName": "DrainPower",
+      "Zhs": "能量汲取"
+    },
+    {
+      "Id": "DRAMATIC_ENTRANCE",
+      "ClassName": "DramaticEntrance",
+      "Zhs": "闪亮登场"
+    },
+    {
+      "Id": "DREDGE",
+      "ClassName": "Dredge",
+      "Zhs": "清淤"
+    },
+    {
+      "Id": "DRUM_OF_BATTLE",
+      "ClassName": "DrumOfBattle",
+      "Zhs": "战鼓"
+    },
+    {
+      "Id": "DUALCAST",
+      "ClassName": "Dualcast",
+      "Zhs": "双重释放"
+    },
+    {
+      "Id": "DUAL_WIELD",
+      "ClassName": "DualWield",
+      "Zhs": "双持"
+    },
+    {
+      "Id": "DYING_STAR",
+      "ClassName": "DyingStar",
+      "Zhs": "星灭"
+    },
+    {
+      "Id": "ECHOING_SLASH",
+      "ClassName": "EchoingSlash",
+      "Zhs": "回响斩击"
+    },
+    {
+      "Id": "ECHO_FORM",
+      "ClassName": "EchoForm",
+      "Zhs": "回响形态"
+    },
+    {
+      "Id": "EIDOLON",
+      "ClassName": "Eidolon",
+      "Zhs": "幻景"
+    },
+    {
+      "Id": "END_OF_DAYS",
+      "ClassName": "EndOfDays",
+      "Zhs": "末日降临"
+    },
+    {
+      "Id": "ENERGY_SURGE",
+      "ClassName": "EnergySurge",
+      "Zhs": "能量涌动"
+    },
+    {
+      "Id": "ENFEEBLING_TOUCH",
+      "ClassName": "EnfeeblingTouch",
+      "Zhs": "弱化之触"
+    },
+    {
+      "Id": "ENLIGHTENMENT",
+      "ClassName": "Enlightenment",
+      "Zhs": "开悟"
+    },
+    {
+      "Id": "ENTHRALLED",
+      "ClassName": "Enthralled",
+      "Zhs": "执迷"
+    },
+    {
+      "Id": "ENTRENCH",
+      "ClassName": "Entrench",
+      "Zhs": "巩固"
+    },
+    {
+      "Id": "ENTROPY",
+      "ClassName": "Entropy",
+      "Zhs": "熵"
+    },
+    {
+      "Id": "ENVENOM",
+      "ClassName": "Envenom",
+      "Zhs": "涂毒"
+    },
+    {
+      "Id": "EQUILIBRIUM",
+      "ClassName": "Equilibrium",
+      "Zhs": "均衡"
+    },
+    {
+      "Id": "ERADICATE",
+      "ClassName": "Eradicate",
+      "Zhs": "根除"
+    },
+    {
+      "Id": "ESCAPE_PLAN",
+      "ClassName": "EscapePlan",
+      "Zhs": "逃脱计划"
+    },
+    {
+      "Id": "ETERNAL_ARMOR",
+      "ClassName": "EternalArmor",
+      "Zhs": "永恒铠甲"
+    },
+    {
+      "Id": "EVIL_EYE",
+      "ClassName": "EvilEye",
+      "Zhs": "邪眼"
+    },
+    {
+      "Id": "EXPECT_AFIGHT",
+      "ClassName": "ExpectAFight",
+      "Zhs": ""
+    },
+    {
+      "Id": "EXPERTISE",
+      "ClassName": "Expertise",
+      "Zhs": "独门绝技"
+    },
+    {
+      "Id": "EXPOSE",
+      "ClassName": "Expose",
+      "Zhs": "暴露"
+    },
+    {
+      "Id": "EXTERMINATE",
+      "ClassName": "Exterminate",
+      "Zhs": "杀灭"
+    },
+    {
+      "Id": "FALLING_STAR",
+      "ClassName": "FallingStar",
+      "Zhs": "陨星"
+    },
+    {
+      "Id": "FAN_OF_KNIVES",
+      "ClassName": "FanOfKnives",
+      "Zhs": "刀扇"
+    },
+    {
+      "Id": "FASTEN",
+      "ClassName": "Fasten",
+      "Zhs": "勒紧"
+    },
+    {
+      "Id": "FEAR",
+      "ClassName": "Fear",
+      "Zhs": "恐惧"
+    },
+    {
+      "Id": "FEED",
+      "ClassName": "Feed",
+      "Zhs": "狂宴"
+    },
+    {
+      "Id": "FEEDING_FRENZY",
+      "ClassName": "FeedingFrenzy",
+      "Zhs": "疯狂进食"
+    },
+    {
+      "Id": "FEEL_NO_PAIN",
+      "ClassName": "FeelNoPain",
+      "Zhs": "无惧疼痛"
+    },
+    {
+      "Id": "FERAL",
+      "ClassName": "Feral",
+      "Zhs": "野性"
+    },
+    {
+      "Id": "FETCH",
+      "ClassName": "Fetch",
+      "Zhs": "取回"
+    },
+    {
+      "Id": "FIEND_FIRE",
+      "ClassName": "FiendFire",
+      "Zhs": "恶魔之焰"
+    },
+    {
+      "Id": "FIGHT_ME",
+      "ClassName": "FightMe",
+      "Zhs": "与我一战！"
+    },
+    {
+      "Id": "FIGHT_THROUGH",
+      "ClassName": "FightThrough",
+      "Zhs": "强撑"
+    },
+    {
+      "Id": "FINESSE",
+      "ClassName": "Finesse",
+      "Zhs": "妙计"
+    },
+    {
+      "Id": "FINISHER",
+      "ClassName": "Finisher",
+      "Zhs": "终结技"
+    },
+    {
+      "Id": "FISTICUFFS",
+      "ClassName": "Fisticuffs",
+      "Zhs": "拳斗"
+    },
+    {
+      "Id": "FLAK_CANNON",
+      "ClassName": "FlakCannon",
+      "Zhs": "散射炮"
+    },
+    {
+      "Id": "FLAME_BARRIER",
+      "ClassName": "FlameBarrier",
+      "Zhs": "火焰屏障"
+    },
+    {
+      "Id": "FLANKING",
+      "ClassName": "Flanking",
+      "Zhs": "夹击"
+    },
+    {
+      "Id": "FLASH_OF_STEEL",
+      "ClassName": "FlashOfSteel",
+      "Zhs": "亮剑"
+    },
+    {
+      "Id": "FLATTEN",
+      "ClassName": "Flatten",
+      "Zhs": "重压"
+    },
+    {
+      "Id": "FLECHETTES",
+      "ClassName": "Flechettes",
+      "Zhs": "飞镖"
+    },
+    {
+      "Id": "FLICK_FLACK",
+      "ClassName": "FlickFlack",
+      "Zhs": "翻越撑击"
+    },
+    {
+      "Id": "FOCUSED_STRIKE",
+      "ClassName": "FocusedStrike",
+      "Zhs": "集中打击"
+    },
+    {
+      "Id": "FOLLOW_THROUGH",
+      "ClassName": "FollowThrough",
+      "Zhs": "跟进"
+    },
+    {
+      "Id": "FOLLY",
+      "ClassName": "Folly",
+      "Zhs": "愚行"
+    },
+    {
+      "Id": "FOOTWORK",
+      "ClassName": "Footwork",
+      "Zhs": "灵动步法"
+    },
+    {
+      "Id": "FORBIDDEN_GRIMOIRE",
+      "ClassName": "ForbiddenGrimoire",
+      "Zhs": "禁忌魔典"
+    },
+    {
+      "Id": "FOREGONE_CONCLUSION",
+      "ClassName": "ForegoneConclusion",
+      "Zhs": "既定事项"
+    },
+    {
+      "Id": "FORGOTTEN_RITUAL",
+      "ClassName": "ForgottenRitual",
+      "Zhs": "被遗忘的仪式"
+    },
+    {
+      "Id": "FRANTIC_ESCAPE",
+      "ClassName": "FranticEscape",
+      "Zhs": "狂乱逃离"
+    },
+    {
+      "Id": "FRIENDSHIP",
+      "ClassName": "Friendship",
+      "Zhs": "友谊"
+    },
+    {
+      "Id": "FTL",
+      "ClassName": "Ftl",
+      "Zhs": "超越光速"
+    },
+    {
+      "Id": "FUEL",
+      "ClassName": "Fuel",
+      "Zhs": "燃料"
+    },
+    {
+      "Id": "FURNACE",
+      "ClassName": "Furnace",
+      "Zhs": "熔炉"
+    },
+    {
+      "Id": "FUSION",
+      "ClassName": "Fusion",
+      "Zhs": "聚变"
+    },
+    {
+      "Id": "GAMMA_BLAST",
+      "ClassName": "GammaBlast",
+      "Zhs": "伽马爆破"
+    },
+    {
+      "Id": "GANG_UP",
+      "ClassName": "GangUp",
+      "Zhs": "群起攻之"
+    },
+    {
+      "Id": "GATHER_LIGHT",
+      "ClassName": "GatherLight",
+      "Zhs": "收集光辉"
+    },
+    {
+      "Id": "GENESIS",
+      "ClassName": "Genesis",
+      "Zhs": "创世纪"
+    },
+    {
+      "Id": "GENETIC_ALGORITHM",
+      "ClassName": "GeneticAlgorithm",
+      "Zhs": "遗传算法"
+    },
+    {
+      "Id": "GIANT_ROCK",
+      "ClassName": "GiantRock",
+      "Zhs": "巨石"
+    },
+    {
+      "Id": "GLACIER",
+      "ClassName": "Glacier",
+      "Zhs": "冰川"
+    },
+    {
+      "Id": "GLASSWORK",
+      "ClassName": "Glasswork",
+      "Zhs": "玻璃工艺"
+    },
+    {
+      "Id": "GLIMMER",
+      "ClassName": "Glimmer",
+      "Zhs": "微光"
+    },
+    {
+      "Id": "GLIMPSE_BEYOND",
+      "ClassName": "GlimpseBeyond",
+      "Zhs": "彼岸一瞥"
+    },
+    {
+      "Id": "GLITTERSTREAM",
+      "ClassName": "Glitterstream",
+      "Zhs": "流光溢彩"
+    },
+    {
+      "Id": "GLOW",
+      "ClassName": "Glow",
+      "Zhs": "辉光"
+    },
+    {
+      "Id": "GOLD_AXE",
+      "ClassName": "GoldAxe",
+      "Zhs": "金斧"
+    },
+    {
+      "Id": "GO_FOR_THE_EYES",
+      "ClassName": "GoForTheEyes",
+      "Zhs": "眼部攻击"
+    },
+    {
+      "Id": "GRAND_FINALE",
+      "ClassName": "GrandFinale",
+      "Zhs": "华丽收场"
+    },
+    {
+      "Id": "GRAPPLE",
+      "ClassName": "Grapple",
+      "Zhs": "擒拿"
+    },
+    {
+      "Id": "GRAVEBLAST",
+      "ClassName": "Graveblast",
+      "Zhs": "坟冢爆射"
+    },
+    {
+      "Id": "GRAVE_WARDEN",
+      "ClassName": "GraveWarden",
+      "Zhs": "守墓人"
+    },
+    {
+      "Id": "GREED",
+      "ClassName": "Greed",
+      "Zhs": "贪婪"
+    },
+    {
+      "Id": "GUARDS",
+      "ClassName": "Guards",
+      "Zhs": "护驾！！！"
+    },
+    {
+      "Id": "GUIDING_STAR",
+      "ClassName": "GuidingStar",
+      "Zhs": "引导之星"
+    },
+    {
+      "Id": "GUILTY",
+      "ClassName": "Guilty",
+      "Zhs": "愧疚"
+    },
+    {
+      "Id": "GUNK_UP",
+      "ClassName": "GunkUp",
+      "Zhs": "污秽攻击"
+    },
+    {
+      "Id": "HAILSTORM",
+      "ClassName": "Hailstorm",
+      "Zhs": "冰雹风暴"
+    },
+    {
+      "Id": "HAMMER_TIME",
+      "ClassName": "HammerTime",
+      "Zhs": "锤子时间"
+    },
+    {
+      "Id": "HAND_OF_GREED",
+      "ClassName": "HandOfGreed",
+      "Zhs": "贪婪之手"
+    },
+    {
+      "Id": "HAND_TRICK",
+      "ClassName": "HandTrick",
+      "Zhs": "手上技法"
+    },
+    {
+      "Id": "HANG",
+      "ClassName": "Hang",
+      "Zhs": "吊杀"
+    },
+    {
+      "Id": "HAUNT",
+      "ClassName": "Haunt",
+      "Zhs": "纠缠"
+    },
+    {
+      "Id": "HAVOC",
+      "ClassName": "Havoc",
+      "Zhs": "破灭"
+    },
+    {
+      "Id": "HAZE",
+      "ClassName": "Haze",
+      "Zhs": "迷雾"
+    },
+    {
+      "Id": "HEADBUTT",
+      "ClassName": "Headbutt",
+      "Zhs": "头槌"
+    },
+    {
+      "Id": "HEAVENLY_DRILL",
+      "ClassName": "HeavenlyDrill",
+      "Zhs": "天际钻头"
+    },
+    {
+      "Id": "HEGEMONY",
+      "ClassName": "Hegemony",
+      "Zhs": "霸权"
+    },
+    {
+      "Id": "HEIRLOOM_HAMMER",
+      "ClassName": "HeirloomHammer",
+      "Zhs": "传承之锤"
+    },
+    {
+      "Id": "HELIX_DRILL",
+      "ClassName": "HelixDrill",
+      "Zhs": "螺旋钻击"
+    },
+    {
+      "Id": "HELLO_WORLD",
+      "ClassName": "HelloWorld",
+      "Zhs": "你好世界"
+    },
+    {
+      "Id": "HELLRAISER",
+      "ClassName": "Hellraiser",
+      "Zhs": "地狱狂徒"
+    },
+    {
+      "Id": "HEMOKINESIS",
+      "ClassName": "Hemokinesis",
+      "Zhs": "御血术"
+    },
+    {
+      "Id": "HIDDEN_CACHE",
+      "ClassName": "HiddenCache",
+      "Zhs": "隐秘藏品"
+    },
+    {
+      "Id": "HIDDEN_DAGGERS",
+      "ClassName": "HiddenDaggers",
+      "Zhs": "隐秘匕首"
+    },
+    {
+      "Id": "HIDDEN_GEM",
+      "ClassName": "HiddenGem",
+      "Zhs": "未掘宝石"
+    },
+    {
+      "Id": "HIGH_FIVE",
+      "ClassName": "HighFive",
+      "Zhs": "击掌"
+    },
+    {
+      "Id": "HOLOGRAM",
+      "ClassName": "Hologram",
+      "Zhs": "全息影像"
+    },
+    {
+      "Id": "HOTFIX",
+      "ClassName": "Hotfix",
+      "Zhs": "热修复"
+    },
+    {
+      "Id": "HOWL_FROM_BEYOND",
+      "ClassName": "HowlFromBeyond",
+      "Zhs": "彼岸咆哮"
+    },
+    {
+      "Id": "HUDDLE_UP",
+      "ClassName": "HuddleUp",
+      "Zhs": "抱团"
+    },
+    {
+      "Id": "HYPERBEAM",
+      "ClassName": "Hyperbeam",
+      "Zhs": "超能光束"
+    },
+    {
+      "Id": "ICE_LANCE",
+      "ClassName": "IceLance",
+      "Zhs": "冰之长枪"
+    },
+    {
+      "Id": "IGNITION",
+      "ClassName": "Ignition",
+      "Zhs": "引火"
+    },
+    {
+      "Id": "IMPATIENCE",
+      "ClassName": "Impatience",
+      "Zhs": "急躁"
+    },
+    {
+      "Id": "IMPERVIOUS",
+      "ClassName": "Impervious",
+      "Zhs": "岿然不动"
+    },
+    {
+      "Id": "INFECTION",
+      "ClassName": "Infection",
+      "Zhs": "感染"
+    },
+    {
+      "Id": "INFERNAL_BLADE",
+      "ClassName": "InfernalBlade",
+      "Zhs": "地狱之刃"
+    },
+    {
+      "Id": "INFERNO",
+      "ClassName": "Inferno",
+      "Zhs": "狱火"
+    },
+    {
+      "Id": "INFINITE_BLADES",
+      "ClassName": "InfiniteBlades",
+      "Zhs": "无尽刀刃"
+    },
+    {
+      "Id": "INFLAME",
+      "ClassName": "Inflame",
+      "Zhs": "燃烧"
+    },
+    {
+      "Id": "INJURY",
+      "ClassName": "Injury",
+      "Zhs": "受伤"
+    },
+    {
+      "Id": "INTERCEPT",
+      "ClassName": "Intercept",
+      "Zhs": "拦截"
+    },
+    {
+      "Id": "INVOKE",
+      "ClassName": "Invoke",
+      "Zhs": "唤起"
+    },
+    {
+      "Id": "IRON_WAVE",
+      "ClassName": "IronWave",
+      "Zhs": "铁斩波"
+    },
+    {
+      "Id": "ITERATION",
+      "ClassName": "Iteration",
+      "Zhs": "迭代"
+    },
+    {
+      "Id": "I_AM_INVINCIBLE",
+      "ClassName": "IAmInvincible",
+      "Zhs": "所向无敌"
+    },
+    {
+      "Id": "JACKPOT",
+      "ClassName": "Jackpot",
+      "Zhs": "大奖"
+    },
+    {
+      "Id": "JACK_OF_ALL_TRADES",
+      "ClassName": "JackOfAllTrades",
+      "Zhs": "花样百出"
+    },
+    {
+      "Id": "JUGGERNAUT",
+      "ClassName": "Juggernaut",
+      "Zhs": "势不可当"
+    },
+    {
+      "Id": "JUGGLING",
+      "ClassName": "Juggling",
+      "Zhs": "杂耍"
+    },
+    {
+      "Id": "KINGLY_KICK",
+      "ClassName": "KinglyKick",
+      "Zhs": "王者之踢"
+    },
+    {
+      "Id": "KINGLY_PUNCH",
+      "ClassName": "KinglyPunch",
+      "Zhs": "王者之拳"
+    },
+    {
+      "Id": "KNIFE_TRAP",
+      "ClassName": "KnifeTrap",
+      "Zhs": "刀刃陷阱"
+    },
+    {
+      "Id": "KNOCKDOWN",
+      "ClassName": "Knockdown",
+      "Zhs": "击倒"
+    },
+    {
+      "Id": "KNOCKOUT_BLOW",
+      "ClassName": "KnockoutBlow",
+      "Zhs": "决胜一击"
+    },
+    {
+      "Id": "KNOW_THY_PLACE",
+      "ClassName": "KnowThyPlace",
+      "Zhs": "何人僭越"
+    },
+    {
+      "Id": "LANTERN_KEY",
+      "ClassName": "LanternKey",
+      "Zhs": "灯火钥匙"
+    },
+    {
+      "Id": "LARGESSE",
+      "ClassName": "Largesse",
+      "Zhs": "慷慨捐助"
+    },
+    {
+      "Id": "LEADING_STRIKE",
+      "ClassName": "LeadingStrike",
+      "Zhs": "先制打击"
+    },
+    {
+      "Id": "LEAP",
+      "ClassName": "Leap",
+      "Zhs": "飞跃"
+    },
+    {
+      "Id": "LEGION_OF_BONE",
+      "ClassName": "LegionOfBone",
+      "Zhs": "骸骨军团"
+    },
+    {
+      "Id": "LEG_SWEEP",
+      "ClassName": "LegSweep",
+      "Zhs": "扫腿"
+    },
+    {
+      "Id": "LETHALITY",
+      "ClassName": "Lethality",
+      "Zhs": "致死性"
+    },
+    {
+      "Id": "LIFT",
+      "ClassName": "Lift",
+      "Zhs": "托举"
+    },
+    {
+      "Id": "LIGHTNING_ROD",
+      "ClassName": "LightningRod",
+      "Zhs": "引雷针"
+    },
+    {
+      "Id": "LOOP",
+      "ClassName": "Loop",
+      "Zhs": "循环"
+    },
+    {
+      "Id": "LUMINESCE",
+      "ClassName": "Luminesce",
+      "Zhs": "冷光"
+    },
+    {
+      "Id": "LUNAR_BLAST",
+      "ClassName": "LunarBlast",
+      "Zhs": "月面射击"
+    },
+    {
+      "Id": "MACHINE_LEARNING",
+      "ClassName": "MachineLearning",
+      "Zhs": "机器学习"
+    },
+    {
+      "Id": "MAD_SCIENCE",
+      "ClassName": "MadScience",
+      "Zhs": "疯狂科学"
+    },
+    {
+      "Id": "MAKE_IT_SO",
+      "ClassName": "MakeItSo",
+      "Zhs": "如此甚好"
+    },
+    {
+      "Id": "MALAISE",
+      "ClassName": "Malaise",
+      "Zhs": "萎靡"
+    },
+    {
+      "Id": "MANGLE",
+      "ClassName": "Mangle",
+      "Zhs": "凌虐"
+    },
+    {
+      "Id": "MANIFEST_AUTHORITY",
+      "ClassName": "ManifestAuthority",
+      "Zhs": "君权自授"
+    },
+    {
+      "Id": "MASTER_OF_STRATEGY",
+      "ClassName": "MasterOfStrategy",
+      "Zhs": "战略大师"
+    },
+    {
+      "Id": "MASTER_PLANNER",
+      "ClassName": "MasterPlanner",
+      "Zhs": "谋划专家"
+    },
+    {
+      "Id": "MAUL",
+      "ClassName": "Maul",
+      "Zhs": "撕咬"
+    },
+    {
+      "Id": "MAYHEM",
+      "ClassName": "Mayhem",
+      "Zhs": "乱战"
+    },
+    {
+      "Id": "MELANCHOLY",
+      "ClassName": "Melancholy",
+      "Zhs": "忧郁"
+    },
+    {
+      "Id": "MEMENTO_MORI",
+      "ClassName": "MementoMori",
+      "Zhs": "铭记死亡"
+    },
+    {
+      "Id": "METAMORPHOSIS",
+      "ClassName": "Metamorphosis",
+      "Zhs": "羽化"
+    },
+    {
+      "Id": "METEOR_SHOWER",
+      "ClassName": "MeteorShower",
+      "Zhs": "流星雨"
+    },
+    {
+      "Id": "METEOR_STRIKE",
+      "ClassName": "MeteorStrike",
+      "Zhs": "陨石打击"
+    },
+    {
+      "Id": "MIMIC",
+      "ClassName": "Mimic",
+      "Zhs": "拟态"
+    },
+    {
+      "Id": "MIND_BLAST",
+      "ClassName": "MindBlast",
+      "Zhs": "心灵震慑"
+    },
+    {
+      "Id": "MIND_ROT",
+      "ClassName": "MindRot",
+      "Zhs": "心灵腐化"
+    },
+    {
+      "Id": "MINION_DIVE_BOMB",
+      "ClassName": "MinionDiveBomb",
+      "Zhs": "仆从俯冲"
+    },
+    {
+      "Id": "MINION_SACRIFICE",
+      "ClassName": "MinionSacrifice",
+      "Zhs": "仆从捐躯"
+    },
+    {
+      "Id": "MINION_STRIKE",
+      "ClassName": "MinionStrike",
+      "Zhs": "仆从打击"
+    },
+    {
+      "Id": "MIRAGE",
+      "ClassName": "Mirage",
+      "Zhs": "蜃景"
+    },
+    {
+      "Id": "MISERY",
+      "ClassName": "Misery",
+      "Zhs": "苦难"
+    },
+    {
+      "Id": "MODDED",
+      "ClassName": "Modded",
+      "Zhs": "模组改造"
+    },
+    {
+      "Id": "MOLTEN_FIST",
+      "ClassName": "MoltenFist",
+      "Zhs": "熔融之拳"
+    },
+    {
+      "Id": "MOMENTUM_STRIKE",
+      "ClassName": "MomentumStrike",
+      "Zhs": "趁势打击"
+    },
+    {
+      "Id": "MONARCHS_GAZE",
+      "ClassName": "MonarchsGaze",
+      "Zhs": "王之凝视"
+    },
+    {
+      "Id": "MONOLOGUE",
+      "ClassName": "Monologue",
+      "Zhs": "独白"
+    },
+    {
+      "Id": "MULTI_CAST",
+      "ClassName": "MultiCast",
+      "Zhs": "多重释放"
+    },
+    {
+      "Id": "MURDER",
+      "ClassName": "Murder",
+      "Zhs": "谋杀"
+    },
+    {
+      "Id": "NECRO_MASTERY",
+      "ClassName": "NecroMastery",
+      "Zhs": "亡灵精通"
+    },
+    {
+      "Id": "NEGATIVE_PULSE",
+      "ClassName": "NegativePulse",
+      "Zhs": "负能量脉冲"
+    },
+    {
+      "Id": "NEOWS_FURY",
+      "ClassName": "NeowsFury",
+      "Zhs": "涅奥之怒"
+    },
+    {
+      "Id": "NEUROSURGE",
+      "ClassName": "Neurosurge",
+      "Zhs": "精神过载"
+    },
+    {
+      "Id": "NEUTRALIZE",
+      "ClassName": "Neutralize",
+      "Zhs": "中和"
+    },
+    {
+      "Id": "NEUTRON_AEGIS",
+      "ClassName": "NeutronAegis",
+      "Zhs": "中子护盾"
+    },
+    {
+      "Id": "NIGHTMARE",
+      "ClassName": "Nightmare",
+      "Zhs": "夜魇"
+    },
+    {
+      "Id": "NORMALITY",
+      "ClassName": "Normality",
+      "Zhs": "凡庸"
+    },
+    {
+      "Id": "NOSTALGIA",
+      "ClassName": "Nostalgia",
+      "Zhs": "怀旧"
+    },
+    {
+      "Id": "NOXIOUS_FUMES",
+      "ClassName": "NoxiousFumes",
+      "Zhs": "毒雾"
+    },
+    {
+      "Id": "NO_ESCAPE",
+      "ClassName": "NoEscape",
+      "Zhs": "无处可逃"
+    },
+    {
+      "Id": "NULL",
+      "ClassName": "Null",
+      "Zhs": "空无"
+    },
+    {
+      "Id": "OBLIVION",
+      "ClassName": "Oblivion",
+      "Zhs": "湮灭"
+    },
+    {
+      "Id": "OFFERING",
+      "ClassName": "Offering",
+      "Zhs": "祭品"
+    },
+    {
+      "Id": "OMNISLICE",
+      "ClassName": "Omnislice",
+      "Zhs": "万向斩"
+    },
+    {
+      "Id": "ONE_TWO_PUNCH",
+      "ClassName": "OneTwoPunch",
+      "Zhs": "连环拳"
+    },
+    {
+      "Id": "ORBIT",
+      "ClassName": "Orbit",
+      "Zhs": "环绕轨道"
+    },
+    {
+      "Id": "OUTBREAK",
+      "ClassName": "Outbreak",
+      "Zhs": "毒性爆发"
+    },
+    {
+      "Id": "OUTMANEUVER",
+      "ClassName": "Outmaneuver",
+      "Zhs": "抢占先机"
+    },
+    {
+      "Id": "OVERCLOCK",
+      "ClassName": "Overclock",
+      "Zhs": "超频"
+    },
+    {
+      "Id": "PACTS_END",
+      "ClassName": "PactsEnd",
+      "Zhs": "契约终结"
+    },
+    {
+      "Id": "PAGESTORM",
+      "ClassName": "Pagestorm",
+      "Zhs": "书页风暴"
+    },
+    {
+      "Id": "PALE_BLUE_DOT",
+      "ClassName": "PaleBlueDot",
+      "Zhs": "暗淡蓝点"
+    },
+    {
+      "Id": "PANACHE",
+      "ClassName": "Panache",
+      "Zhs": "神气制胜"
+    },
+    {
+      "Id": "PANIC_BUTTON",
+      "ClassName": "PanicButton",
+      "Zhs": "应急按钮"
+    },
+    {
+      "Id": "PARRY",
+      "ClassName": "Parry",
+      "Zhs": "招架"
+    },
+    {
+      "Id": "PARSE",
+      "ClassName": "Parse",
+      "Zhs": "领会"
+    },
+    {
+      "Id": "PARTICLE_WALL",
+      "ClassName": "ParticleWall",
+      "Zhs": "粒子墙"
+    },
+    {
+      "Id": "PATTER",
+      "ClassName": "Patter",
+      "Zhs": "星星点点"
+    },
+    {
+      "Id": "PECK",
+      "ClassName": "Peck",
+      "Zhs": "啄击"
+    },
+    {
+      "Id": "PERFECTED_STRIKE",
+      "ClassName": "PerfectedStrike",
+      "Zhs": "完美打击"
+    },
+    {
+      "Id": "PHANTOM_BLADES",
+      "ClassName": "PhantomBlades",
+      "Zhs": "幻影之刃"
+    },
+    {
+      "Id": "PHOTON_CUT",
+      "ClassName": "PhotonCut",
+      "Zhs": "光子切割"
+    },
+    {
+      "Id": "PIERCING_WAIL",
+      "ClassName": "PiercingWail",
+      "Zhs": "尖啸"
+    },
+    {
+      "Id": "PILLAGE",
+      "ClassName": "Pillage",
+      "Zhs": "劫掠"
+    },
+    {
+      "Id": "PILLAR_OF_CREATION",
+      "ClassName": "PillarOfCreation",
+      "Zhs": "创世之柱"
+    },
+    {
+      "Id": "PINPOINT",
+      "ClassName": "Pinpoint",
+      "Zhs": "精密瞄准"
+    },
+    {
+      "Id": "POISONED_STAB",
+      "ClassName": "PoisonedStab",
+      "Zhs": "带毒刺击"
+    },
+    {
+      "Id": "POKE",
+      "ClassName": "Poke",
+      "Zhs": "戳击"
+    },
+    {
+      "Id": "POMMEL_STRIKE",
+      "ClassName": "PommelStrike",
+      "Zhs": "剑柄打击"
+    },
+    {
+      "Id": "POOR_SLEEP",
+      "ClassName": "PoorSleep",
+      "Zhs": "睡眠不佳"
+    },
+    {
+      "Id": "POUNCE",
+      "ClassName": "Pounce",
+      "Zhs": "猛扑"
+    },
+    {
+      "Id": "PRECISE_CUT",
+      "ClassName": "PreciseCut",
+      "Zhs": "精确切击"
+    },
+    {
+      "Id": "PREDATOR",
+      "ClassName": "Predator",
+      "Zhs": "猎杀者"
+    },
+    {
+      "Id": "PREPARED",
+      "ClassName": "Prepared",
+      "Zhs": "早有准备"
+    },
+    {
+      "Id": "PREP_TIME",
+      "ClassName": "PrepTime",
+      "Zhs": "准备时间"
+    },
+    {
+      "Id": "PRIMAL_FORCE",
+      "ClassName": "PrimalForce",
+      "Zhs": "原始力量"
+    },
+    {
+      "Id": "PRODUCTION",
+      "ClassName": "Production",
+      "Zhs": "生产制造"
+    },
+    {
+      "Id": "PROLONG",
+      "ClassName": "Prolong",
+      "Zhs": "延伸"
+    },
+    {
+      "Id": "PROPHESIZE",
+      "ClassName": "Prophesize",
+      "Zhs": "预言"
+    },
+    {
+      "Id": "PROTECTOR",
+      "ClassName": "Protector",
+      "Zhs": "守护者"
+    },
+    {
+      "Id": "PROWESS",
+      "ClassName": "Prowess",
+      "Zhs": "非凡技艺"
+    },
+    {
+      "Id": "PULL_AGGRO",
+      "ClassName": "PullAggro",
+      "Zhs": "吸引仇恨"
+    },
+    {
+      "Id": "PULL_FROM_BELOW",
+      "ClassName": "PullFromBelow",
+      "Zhs": "亡魂牵引"
+    },
+    {
+      "Id": "PURITY",
+      "ClassName": "Purity",
+      "Zhs": "净化"
+    },
+    {
+      "Id": "PUTREFY",
+      "ClassName": "Putrefy",
+      "Zhs": "腐败"
+    },
+    {
+      "Id": "PYRE",
+      "ClassName": "Pyre",
+      "Zhs": "薪火之源"
+    },
+    {
+      "Id": "QUADCAST",
+      "ClassName": "Quadcast",
+      "Zhs": "四重释放"
+    },
+    {
+      "Id": "QUASAR",
+      "ClassName": "Quasar",
+      "Zhs": "类星体"
+    },
+    {
+      "Id": "RADIATE",
+      "ClassName": "Radiate",
+      "Zhs": "辐射"
+    },
+    {
+      "Id": "RAGE",
+      "ClassName": "Rage",
+      "Zhs": "狂怒"
+    },
+    {
+      "Id": "RAINBOW",
+      "ClassName": "Rainbow",
+      "Zhs": "彩虹"
+    },
+    {
+      "Id": "RALLY",
+      "ClassName": "Rally",
+      "Zhs": "集结"
+    },
+    {
+      "Id": "RAMPAGE",
+      "ClassName": "Rampage",
+      "Zhs": "暴走"
+    },
+    {
+      "Id": "RATTLE",
+      "ClassName": "Rattle",
+      "Zhs": "猛晃"
+    },
+    {
+      "Id": "REANIMATE",
+      "ClassName": "Reanimate",
+      "Zhs": "死者苏生"
+    },
+    {
+      "Id": "REAP",
+      "ClassName": "Reap",
+      "Zhs": "收割"
+    },
+    {
+      "Id": "REAPER_FORM",
+      "ClassName": "ReaperForm",
+      "Zhs": "死神形态"
+    },
+    {
+      "Id": "REAVE",
+      "ClassName": "Reave",
+      "Zhs": "剥夺"
+    },
+    {
+      "Id": "REBOOT",
+      "ClassName": "Reboot",
+      "Zhs": "重启"
+    },
+    {
+      "Id": "REBOUND",
+      "ClassName": "Rebound",
+      "Zhs": "弹回"
+    },
+    {
+      "Id": "REFINE_BLADE",
+      "ClassName": "RefineBlade",
+      "Zhs": "淬炼刀刃"
+    },
+    {
+      "Id": "REFLECT",
+      "ClassName": "Reflect",
+      "Zhs": "倒映"
+    },
+    {
+      "Id": "REFLEX",
+      "ClassName": "Reflex",
+      "Zhs": "本能反应"
+    },
+    {
+      "Id": "REFRACT",
+      "ClassName": "Refract",
+      "Zhs": "折射"
+    },
+    {
+      "Id": "REGRET",
+      "ClassName": "Regret",
+      "Zhs": "悔恨"
+    },
+    {
+      "Id": "RELAX",
+      "ClassName": "Relax",
+      "Zhs": "放松"
+    },
+    {
+      "Id": "REND",
+      "ClassName": "Rend",
+      "Zhs": "撕碎"
+    },
+    {
+      "Id": "RESONANCE",
+      "ClassName": "Resonance",
+      "Zhs": "共鸣"
+    },
+    {
+      "Id": "RESTLESSNESS",
+      "ClassName": "Restlessness",
+      "Zhs": "心神不宁"
+    },
+    {
+      "Id": "RICOCHET",
+      "ClassName": "Ricochet",
+      "Zhs": "连续反弹"
+    },
+    {
+      "Id": "RIGHT_HAND_HAND",
+      "ClassName": "RightHandHand",
+      "Zhs": "得力助手"
+    },
+    {
+      "Id": "RIP_AND_TEAR",
+      "ClassName": "RipAndTear",
+      "Zhs": "狂乱撕扯"
+    },
+    {
+      "Id": "ROCKET_PUNCH",
+      "ClassName": "RocketPunch",
+      "Zhs": "火箭飞拳"
+    },
+    {
+      "Id": "ROLLING_BOULDER",
+      "ClassName": "RollingBoulder",
+      "Zhs": "滚石"
+    },
+    {
+      "Id": "ROYALTIES",
+      "ClassName": "Royalties",
+      "Zhs": "王国资产"
+    },
+    {
+      "Id": "ROYAL_GAMBLE",
+      "ClassName": "RoyalGamble",
+      "Zhs": "胜券在王"
+    },
+    {
+      "Id": "RUPTURE",
+      "ClassName": "Rupture",
+      "Zhs": "撕裂"
+    },
+    {
+      "Id": "SACRIFICE",
+      "ClassName": "Sacrifice",
+      "Zhs": "牺牲"
+    },
+    {
+      "Id": "SALVO",
+      "ClassName": "Salvo",
+      "Zhs": "箭雨"
+    },
+    {
+      "Id": "SCAVENGE",
+      "ClassName": "Scavenge",
+      "Zhs": "再利用"
+    },
+    {
+      "Id": "SCOURGE",
+      "ClassName": "Scourge",
+      "Zhs": "鞭打"
+    },
+    {
+      "Id": "SCRAPE",
+      "ClassName": "Scrape",
+      "Zhs": "刮削"
+    },
+    {
+      "Id": "SCRAWL",
+      "ClassName": "Scrawl",
+      "Zhs": "潦草急就"
+    },
+    {
+      "Id": "SCULPTING_STRIKE",
+      "ClassName": "SculptingStrike",
+      "Zhs": "雕琢打击"
+    },
+    {
+      "Id": "SEANCE",
+      "ClassName": "Seance",
+      "Zhs": "降灵"
+    },
+    {
+      "Id": "SECOND_WIND",
+      "ClassName": "SecondWind",
+      "Zhs": "重振精神"
+    },
+    {
+      "Id": "SECRET_TECHNIQUE",
+      "ClassName": "SecretTechnique",
+      "Zhs": "秘密技法"
+    },
+    {
+      "Id": "SECRET_WEAPON",
+      "ClassName": "SecretWeapon",
+      "Zhs": "秘密武器"
+    },
+    {
+      "Id": "SEEKER_STRIKE",
+      "ClassName": "SeekerStrike",
+      "Zhs": "探寻打击"
+    },
+    {
+      "Id": "SEEKING_EDGE",
+      "ClassName": "SeekingEdge",
+      "Zhs": "追踪之刃"
+    },
+    {
+      "Id": "SENTRY_MODE",
+      "ClassName": "SentryMode",
+      "Zhs": "哨卫模式"
+    },
+    {
+      "Id": "SERPENT_FORM",
+      "ClassName": "SerpentForm",
+      "Zhs": "群蛇形态"
+    },
+    {
+      "Id": "SETUP_STRIKE",
+      "ClassName": "SetupStrike",
+      "Zhs": "预备打击"
+    },
+    {
+      "Id": "SEVEN_STARS",
+      "ClassName": "SevenStars",
+      "Zhs": "七星"
+    },
+    {
+      "Id": "SEVERANCE",
+      "ClassName": "Severance",
+      "Zhs": "切断"
+    },
+    {
+      "Id": "SHADOWMELD",
+      "ClassName": "Shadowmeld",
+      "Zhs": "融入暗影"
+    },
+    {
+      "Id": "SHADOW_SHIELD",
+      "ClassName": "ShadowShield",
+      "Zhs": "暗影之盾"
+    },
+    {
+      "Id": "SHADOW_STEP",
+      "ClassName": "ShadowStep",
+      "Zhs": "暗影步"
+    },
+    {
+      "Id": "SHAME",
+      "ClassName": "Shame",
+      "Zhs": "羞耻"
+    },
+    {
+      "Id": "SHARED_FATE",
+      "ClassName": "SharedFate",
+      "Zhs": "命运同担"
+    },
+    {
+      "Id": "SHATTER",
+      "ClassName": "Shatter",
+      "Zhs": "打碎"
+    },
+    {
+      "Id": "SHINING_STRIKE",
+      "ClassName": "ShiningStrike",
+      "Zhs": "明耀打击"
+    },
+    {
+      "Id": "SHIV",
+      "ClassName": "Shiv",
+      "Zhs": "小刀"
+    },
+    {
+      "Id": "SHOCKWAVE",
+      "ClassName": "Shockwave",
+      "Zhs": "震荡波"
+    },
+    {
+      "Id": "SHROUD",
+      "ClassName": "Shroud",
+      "Zhs": "厄运之衣"
+    },
+    {
+      "Id": "SHRUG_IT_OFF",
+      "ClassName": "ShrugItOff",
+      "Zhs": "耸肩无视"
+    },
+    {
+      "Id": "SIC_EM",
+      "ClassName": "SicEm",
+      "Zhs": "紧追不放"
+    },
+    {
+      "Id": "SIGNAL_BOOST",
+      "ClassName": "SignalBoost",
+      "Zhs": "信号增强"
+    },
+    {
+      "Id": "SKEWER",
+      "ClassName": "Skewer",
+      "Zhs": "串刺"
+    },
+    {
+      "Id": "SKIM",
+      "ClassName": "Skim",
+      "Zhs": "快速检索"
+    },
+    {
+      "Id": "SLEIGHT_OF_FLESH",
+      "ClassName": "SleightOfFlesh",
+      "Zhs": "血肉戏法"
+    },
+    {
+      "Id": "SLICE",
+      "ClassName": "Slice",
+      "Zhs": "切割"
+    },
+    {
+      "Id": "SLIMED",
+      "ClassName": "Slimed",
+      "Zhs": "黏液"
+    },
+    {
+      "Id": "SLOTH",
+      "ClassName": "Sloth",
+      "Zhs": "懒惰"
+    },
+    {
+      "Id": "SMOKESTACK",
+      "ClassName": "Smokestack",
+      "Zhs": "烟囱"
+    },
+    {
+      "Id": "SNAKEBITE",
+      "ClassName": "Snakebite",
+      "Zhs": "蛇咬"
+    },
+    {
+      "Id": "SNAP",
+      "ClassName": "Snap",
+      "Zhs": "抓取"
+    },
+    {
+      "Id": "SNEAKY",
+      "ClassName": "Sneaky",
+      "Zhs": "鬼祟"
+    },
+    {
+      "Id": "SOLAR_STRIKE",
+      "ClassName": "SolarStrike",
+      "Zhs": "太阳打击"
+    },
+    {
+      "Id": "SOOT",
+      "ClassName": "Soot",
+      "Zhs": "煤灰"
+    },
+    {
+      "Id": "SOUL",
+      "ClassName": "Soul",
+      "Zhs": "灵魂"
+    },
+    {
+      "Id": "SOUL_STORM",
+      "ClassName": "SoulStorm",
+      "Zhs": "灵魂风暴"
+    },
+    {
+      "Id": "SOVEREIGN_BLADE",
+      "ClassName": "SovereignBlade",
+      "Zhs": "君王之剑"
+    },
+    {
+      "Id": "SOW",
+      "ClassName": "Sow",
+      "Zhs": "播种"
+    },
+    {
+      "Id": "SPECTRUM_SHIFT",
+      "ClassName": "SpectrumShift",
+      "Zhs": "光谱偏移"
+    },
+    {
+      "Id": "SPEEDSTER",
+      "ClassName": "Speedster",
+      "Zhs": "速行者"
+    },
+    {
+      "Id": "SPINNER",
+      "ClassName": "Spinner",
+      "Zhs": "旋转工艺"
+    },
+    {
+      "Id": "SPIRIT_OF_ASH",
+      "ClassName": "SpiritOfAsh",
+      "Zhs": "灰烬之灵"
+    },
+    {
+      "Id": "SPITE",
+      "ClassName": "Spite",
+      "Zhs": "怨恨"
+    },
+    {
+      "Id": "SPLASH",
+      "ClassName": "Splash",
+      "Zhs": "飞溅"
+    },
+    {
+      "Id": "SPOILS_MAP",
+      "ClassName": "SpoilsMap",
+      "Zhs": "藏宝图"
+    },
+    {
+      "Id": "SPOILS_OF_BATTLE",
+      "ClassName": "SpoilsOfBattle",
+      "Zhs": "战利品"
+    },
+    {
+      "Id": "SPORE_MIND",
+      "ClassName": "SporeMind",
+      "Zhs": "孢子心灵"
+    },
+    {
+      "Id": "SPUR",
+      "ClassName": "Spur",
+      "Zhs": "增生"
+    },
+    {
+      "Id": "SQUASH",
+      "ClassName": "Squash",
+      "Zhs": "压扁"
+    },
+    {
+      "Id": "SQUEEZE",
+      "ClassName": "Squeeze",
+      "Zhs": "榨取"
+    },
+    {
+      "Id": "STACK",
+      "ClassName": "Stack",
+      "Zhs": "堆栈"
+    },
+    {
+      "Id": "STAMPEDE",
+      "ClassName": "Stampede",
+      "Zhs": "惊逃"
+    },
+    {
+      "Id": "STARDUST",
+      "ClassName": "Stardust",
+      "Zhs": "星尘"
+    },
+    {
+      "Id": "STOKE",
+      "ClassName": "Stoke",
+      "Zhs": "添柴"
+    },
+    {
+      "Id": "STOMP",
+      "ClassName": "Stomp",
+      "Zhs": "踩踏"
+    },
+    {
+      "Id": "STONE_ARMOR",
+      "ClassName": "StoneArmor",
+      "Zhs": "岩石铠甲"
+    },
+    {
+      "Id": "STORM",
+      "ClassName": "Storm",
+      "Zhs": "雷暴"
+    },
+    {
+      "Id": "STORM_OF_STEEL",
+      "ClassName": "StormOfSteel",
+      "Zhs": "钢铁风暴"
+    },
+    {
+      "Id": "STRANGLE",
+      "ClassName": "Strangle",
+      "Zhs": "紧勒"
+    },
+    {
+      "Id": "STRATAGEM",
+      "ClassName": "Stratagem",
+      "Zhs": "计策"
+    },
+    {
+      "Id": "STRIKE_DEFECT",
+      "ClassName": "StrikeDefect",
+      "Zhs": "打击"
+    },
+    {
+      "Id": "STRIKE_IRONCLAD",
+      "ClassName": "StrikeIronclad",
+      "Zhs": "打击"
+    },
+    {
+      "Id": "STRIKE_NECROBINDER",
+      "ClassName": "StrikeNecrobinder",
+      "Zhs": "打击"
+    },
+    {
+      "Id": "STRIKE_REGENT",
+      "ClassName": "StrikeRegent",
+      "Zhs": "打击"
+    },
+    {
+      "Id": "STRIKE_SILENT",
+      "ClassName": "StrikeSilent",
+      "Zhs": "打击"
+    },
+    {
+      "Id": "SUBROUTINE",
+      "ClassName": "Subroutine",
+      "Zhs": "子程序"
+    },
+    {
+      "Id": "SUCKER_PUNCH",
+      "ClassName": "SuckerPunch",
+      "Zhs": "突然一拳"
+    },
+    {
+      "Id": "SUMMON_FORTH",
+      "ClassName": "SummonForth",
+      "Zhs": "征召上前"
+    },
+    {
+      "Id": "SUNDER",
+      "ClassName": "Sunder",
+      "Zhs": "分离"
+    },
+    {
+      "Id": "SUPERCRITICAL",
+      "ClassName": "Supercritical",
+      "Zhs": "超临界态"
+    },
+    {
+      "Id": "SUPERMASSIVE",
+      "ClassName": "Supermassive",
+      "Zhs": "超质量体"
+    },
+    {
+      "Id": "SUPPRESS",
+      "ClassName": "Suppress",
+      "Zhs": "压制"
+    },
+    {
+      "Id": "SURVIVOR",
+      "ClassName": "Survivor",
+      "Zhs": "生存者"
+    },
+    {
+      "Id": "SWEEPING_BEAM",
+      "ClassName": "SweepingBeam",
+      "Zhs": "扫荡射线"
+    },
+    {
+      "Id": "SWEEPING_GAZE",
+      "ClassName": "SweepingGaze",
+      "Zhs": "扫荡凝视"
+    },
+    {
+      "Id": "SWORD_BOOMERANG",
+      "ClassName": "SwordBoomerang",
+      "Zhs": "飞剑回旋镖"
+    },
+    {
+      "Id": "SWORD_SAGE",
+      "ClassName": "SwordSage",
+      "Zhs": "剑圣"
+    },
+    {
+      "Id": "SYNCHRONIZE",
+      "ClassName": "Synchronize",
+      "Zhs": "同步"
+    },
+    {
+      "Id": "SYNTHESIS",
+      "ClassName": "Synthesis",
+      "Zhs": "人工合成"
+    },
+    {
+      "Id": "TACTICIAN",
+      "ClassName": "Tactician",
+      "Zhs": "战术大师"
+    },
+    {
+      "Id": "TAG_TEAM",
+      "ClassName": "TagTeam",
+      "Zhs": "双打组合"
+    },
+    {
+      "Id": "TANK",
+      "ClassName": "Tank",
+      "Zhs": "肉盾"
+    },
+    {
+      "Id": "TAUNT",
+      "ClassName": "Taunt",
+      "Zhs": "挑衅"
+    },
+    {
+      "Id": "TEAR_ASUNDER",
+      "ClassName": "TearAsunder",
+      "Zhs": "扯碎"
+    },
+    {
+      "Id": "TEMPEST",
+      "ClassName": "Tempest",
+      "Zhs": "暴风雨"
+    },
+    {
+      "Id": "TERRAFORMING",
+      "ClassName": "Terraforming",
+      "Zhs": "地形改造"
+    },
+    {
+      "Id": "TESLA_COIL",
+      "ClassName": "TeslaCoil",
+      "Zhs": "特斯拉线圈"
+    },
+    {
+      "Id": "THE_BOMB",
+      "ClassName": "TheBomb",
+      "Zhs": "炸弹"
+    },
+    {
+      "Id": "THE_GAMBIT",
+      "ClassName": "TheGambit",
+      "Zhs": "孤注一掷"
+    },
+    {
+      "Id": "THE_HUNT",
+      "ClassName": "TheHunt",
+      "Zhs": "狩猎"
+    },
+    {
+      "Id": "THE_SCYTHE",
+      "ClassName": "TheScythe",
+      "Zhs": "巨镰"
+    },
+    {
+      "Id": "THE_SEALED_THRONE",
+      "ClassName": "TheSealedThrone",
+      "Zhs": "封印王座"
+    },
+    {
+      "Id": "THE_SMITH",
+      "ClassName": "TheSmith",
+      "Zhs": "铸剑者"
+    },
+    {
+      "Id": "THINKING_AHEAD",
+      "ClassName": "ThinkingAhead",
+      "Zhs": "深谋远虑"
+    },
+    {
+      "Id": "THRASH",
+      "ClassName": "Thrash",
+      "Zhs": "痛殴"
+    },
+    {
+      "Id": "THRUMMING_HATCHET",
+      "ClassName": "ThrummingHatchet",
+      "Zhs": "无休手斧"
+    },
+    {
+      "Id": "THUNDER",
+      "ClassName": "Thunder",
+      "Zhs": "雷霆"
+    },
+    {
+      "Id": "THUNDERCLAP",
+      "ClassName": "Thunderclap",
+      "Zhs": "闪电霹雳"
+    },
+    {
+      "Id": "TIMES_UP",
+      "ClassName": "TimesUp",
+      "Zhs": "大限已至"
+    },
+    {
+      "Id": "TOOLS_OF_THE_TRADE",
+      "ClassName": "ToolsOfTheTrade",
+      "Zhs": "必备工具"
+    },
+    {
+      "Id": "TORIC_TOUGHNESS",
+      "ClassName": "ToricToughness",
+      "Zhs": "坚韧之环"
+    },
+    {
+      "Id": "TOXIC",
+      "ClassName": "Toxic",
+      "Zhs": "毒素"
+    },
+    {
+      "Id": "TRACKING",
+      "ClassName": "Tracking",
+      "Zhs": "跟踪"
+    },
+    {
+      "Id": "TRANSFIGURE",
+      "ClassName": "Transfigure",
+      "Zhs": "重构"
+    },
+    {
+      "Id": "TRASH_TO_TREASURE",
+      "ClassName": "TrashToTreasure",
+      "Zhs": "化废为宝"
+    },
+    {
+      "Id": "TREMBLE",
+      "ClassName": "Tremble",
+      "Zhs": "战栗"
+    },
+    {
+      "Id": "TRUE_GRIT",
+      "ClassName": "TrueGrit",
+      "Zhs": "坚毅"
+    },
+    {
+      "Id": "TURBO",
+      "ClassName": "Turbo",
+      "Zhs": "内核加速"
+    },
+    {
+      "Id": "TWIN_STRIKE",
+      "ClassName": "TwinStrike",
+      "Zhs": "双重打击"
+    },
+    {
+      "Id": "TYRANNY",
+      "ClassName": "Tyranny",
+      "Zhs": "暴政"
+    },
+    {
+      "Id": "ULTIMATE_DEFEND",
+      "ClassName": "UltimateDefend",
+      "Zhs": "究极防御"
+    },
+    {
+      "Id": "ULTIMATE_STRIKE",
+      "ClassName": "UltimateStrike",
+      "Zhs": "究极打击"
+    },
+    {
+      "Id": "UNDEATH",
+      "ClassName": "Undeath",
+      "Zhs": "不死"
+    },
+    {
+      "Id": "UNLEASH",
+      "ClassName": "Unleash",
+      "Zhs": "出击"
+    },
+    {
+      "Id": "UNMOVABLE",
+      "ClassName": "Unmovable",
+      "Zhs": "坚定不移"
+    },
+    {
+      "Id": "UNRELENTING",
+      "ClassName": "Unrelenting",
+      "Zhs": "无情猛攻"
+    },
+    {
+      "Id": "UNTOUCHABLE",
+      "ClassName": "Untouchable",
+      "Zhs": "触不可及"
+    },
+    {
+      "Id": "UPPERCUT",
+      "ClassName": "Uppercut",
+      "Zhs": "上勾拳"
+    },
+    {
+      "Id": "UPROAR",
+      "ClassName": "Uproar",
+      "Zhs": "骚动"
+    },
+    {
+      "Id": "UP_MY_SLEEVE",
+      "ClassName": "UpMySleeve",
+      "Zhs": "袖里乾坤"
+    },
+    {
+      "Id": "VEILPIERCER",
+      "ClassName": "Veilpiercer",
+      "Zhs": "刺破帷幕"
+    },
+    {
+      "Id": "VENERATE",
+      "ClassName": "Venerate",
+      "Zhs": "崇拜"
+    },
+    {
+      "Id": "VICIOUS",
+      "ClassName": "Vicious",
+      "Zhs": "凶恶"
+    },
+    {
+      "Id": "VOID",
+      "ClassName": "Void",
+      "Zhs": "虚空"
+    },
+    {
+      "Id": "VOID_FORM",
+      "ClassName": "VoidForm",
+      "Zhs": "虚空形态"
+    },
+    {
+      "Id": "VOLLEY",
+      "ClassName": "Volley",
+      "Zhs": "连射"
+    },
+    {
+      "Id": "VOLTAIC",
+      "ClassName": "Voltaic",
+      "Zhs": "电流相生"
+    },
+    {
+      "Id": "WASTE_AWAY",
+      "ClassName": "WasteAway",
+      "Zhs": "衰朽"
+    },
+    {
+      "Id": "WELL_LAID_PLANS",
+      "ClassName": "WellLaidPlans",
+      "Zhs": "计划妥当"
+    },
+    {
+      "Id": "WHIRLWIND",
+      "ClassName": "Whirlwind",
+      "Zhs": "旋风斩"
+    },
+    {
+      "Id": "WHISTLE",
+      "ClassName": "Whistle",
+      "Zhs": "吹哨"
+    },
+    {
+      "Id": "WHITE_NOISE",
+      "ClassName": "WhiteNoise",
+      "Zhs": "白噪音"
+    },
+    {
+      "Id": "WISH",
+      "ClassName": "Wish",
+      "Zhs": "许愿"
+    },
+    {
+      "Id": "WISP",
+      "ClassName": "Wisp",
+      "Zhs": "鬼火"
+    },
+    {
+      "Id": "WOUND",
+      "ClassName": "Wound",
+      "Zhs": "伤口"
+    },
+    {
+      "Id": "WRAITH_FORM",
+      "ClassName": "WraithForm",
+      "Zhs": "幽魂形态"
+    },
+    {
+      "Id": "WRITHE",
+      "ClassName": "Writhe",
+      "Zhs": "苦恼"
+    },
+    {
+      "Id": "WROUGHT_IN_WAR",
+      "ClassName": "WroughtInWar",
+      "Zhs": "战火铸就"
+    },
+    {
+      "Id": "ZAP",
+      "ClassName": "Zap",
+      "Zhs": "电击"
+    }
+  ],
+  "Potions": [
+    {
+      "Id": "ASHWATER",
+      "ClassName": "Ashwater",
+      "Zhs": "灰水"
+    },
+    {
+      "Id": "ATTACK_POTION",
+      "ClassName": "AttackPotion",
+      "Zhs": "攻击药水"
+    },
+    {
+      "Id": "BEETLE_JUICE",
+      "ClassName": "BeetleJuice",
+      "Zhs": "甲虫汁"
+    },
+    {
+      "Id": "BLESSING_OF_THE_FORGE",
+      "ClassName": "BlessingOfTheForge",
+      "Zhs": "熔炉的祝福"
+    },
+    {
+      "Id": "BLOCK_POTION",
+      "ClassName": "BlockPotion",
+      "Zhs": "格挡药水"
+    },
+    {
+      "Id": "BLOOD_POTION",
+      "ClassName": "BloodPotion",
+      "Zhs": "鲜血药水"
+    },
+    {
+      "Id": "BONE_BREW",
+      "ClassName": "BoneBrew",
+      "Zhs": "骨头酿"
+    },
+    {
+      "Id": "BOTTLED_POTENTIAL",
+      "ClassName": "BottledPotential",
+      "Zhs": "瓶装潜能"
+    },
+    {
+      "Id": "CLARITY",
+      "ClassName": "Clarity",
+      "Zhs": "明晰提取物"
+    },
+    {
+      "Id": "COLORLESS_POTION",
+      "ClassName": "ColorlessPotion",
+      "Zhs": "无色药水"
+    },
+    {
+      "Id": "COSMIC_CONCOCTION",
+      "ClassName": "CosmicConcoction",
+      "Zhs": "宇宙药剂"
+    },
+    {
+      "Id": "CUNNING_POTION",
+      "ClassName": "CunningPotion",
+      "Zhs": "狡诈药水"
+    },
+    {
+      "Id": "CURE_ALL",
+      "ClassName": "CureAll",
+      "Zhs": "痊愈药水"
+    },
+    {
+      "Id": "DEXTERITY_POTION",
+      "ClassName": "DexterityPotion",
+      "Zhs": "敏捷药水"
+    },
+    {
+      "Id": "DISTILLED_CHAOS",
+      "ClassName": "DistilledChaos",
+      "Zhs": "精炼混沌"
+    },
+    {
+      "Id": "DROPLET_OF_PRECOGNITION",
+      "ClassName": "DropletOfPrecognition",
+      "Zhs": "预知之滴"
+    },
+    {
+      "Id": "DUPLICATOR",
+      "ClassName": "Duplicator",
+      "Zhs": "复制药水"
+    },
+    {
+      "Id": "ENERGY_POTION",
+      "ClassName": "EnergyPotion",
+      "Zhs": "能量药水"
+    },
+    {
+      "Id": "ENTROPIC_BREW",
+      "ClassName": "EntropicBrew",
+      "Zhs": "混沌药水"
+    },
+    {
+      "Id": "ESSENCE_OF_DARKNESS",
+      "ClassName": "EssenceOfDarkness",
+      "Zhs": "黑暗精华"
+    },
+    {
+      "Id": "EXPLOSIVE_AMPOULE",
+      "ClassName": "ExplosiveAmpoule",
+      "Zhs": "爆炸安瓿"
+    },
+    {
+      "Id": "FAIRY_IN_ABOTTLE",
+      "ClassName": "FairyInABottle",
+      "Zhs": ""
+    },
+    {
+      "Id": "FIRE_POTION",
+      "ClassName": "FirePotion",
+      "Zhs": "火焰药水"
+    },
+    {
+      "Id": "FLEX_POTION",
+      "ClassName": "FlexPotion",
+      "Zhs": "肌肉药水"
+    },
+    {
+      "Id": "FOCUS_POTION",
+      "ClassName": "FocusPotion",
+      "Zhs": "集中药水"
+    },
+    {
+      "Id": "FORTIFIER",
+      "ClassName": "Fortifier",
+      "Zhs": "固化药水"
+    },
+    {
+      "Id": "FOUL_POTION",
+      "ClassName": "FoulPotion",
+      "Zhs": "污浊药水"
+    },
+    {
+      "Id": "FRUIT_JUICE",
+      "ClassName": "FruitJuice",
+      "Zhs": "果汁"
+    },
+    {
+      "Id": "FYSH_OIL",
+      "ClassName": "FyshOil",
+      "Zhs": "异鱼之油"
+    },
+    {
+      "Id": "GAMBLERS_BREW",
+      "ClassName": "GamblersBrew",
+      "Zhs": "赌徒特酿"
+    },
+    {
+      "Id": "GHOST_IN_AJAR",
+      "ClassName": "GhostInAJar",
+      "Zhs": ""
+    },
+    {
+      "Id": "GIGANTIFICATION_POTION",
+      "ClassName": "GigantificationPotion",
+      "Zhs": "超巨化药水"
+    },
+    {
+      "Id": "GLOWWATER_POTION",
+      "ClassName": "GlowwaterPotion",
+      "Zhs": "发光水"
+    },
+    {
+      "Id": "HEART_OF_IRON",
+      "ClassName": "HeartOfIron",
+      "Zhs": "铁心药水"
+    },
+    {
+      "Id": "KINGS_COURAGE",
+      "ClassName": "KingsCourage",
+      "Zhs": "王之勇气"
+    },
+    {
+      "Id": "LIQUID_BRONZE",
+      "ClassName": "LiquidBronze",
+      "Zhs": "流动铜液"
+    },
+    {
+      "Id": "LIQUID_MEMORIES",
+      "ClassName": "LiquidMemories",
+      "Zhs": "液态记忆"
+    },
+    {
+      "Id": "LUCKY_TONIC",
+      "ClassName": "LuckyTonic",
+      "Zhs": "幸运补剂"
+    },
+    {
+      "Id": "MAZALETHS_GIFT",
+      "ClassName": "MazalethsGift",
+      "Zhs": "马萨雷斯的赠礼"
+    },
+    {
+      "Id": "OROBIC_ACID",
+      "ClassName": "OrobicAcid",
+      "Zhs": "欧洛巴斯之酸"
+    },
+    {
+      "Id": "POISON_POTION",
+      "ClassName": "PoisonPotion",
+      "Zhs": "毒药水"
+    },
+    {
+      "Id": "POTION_OF_BINDING",
+      "ClassName": "PotionOfBinding",
+      "Zhs": "缚魂药水"
+    },
+    {
+      "Id": "POTION_OF_CAPACITY",
+      "ClassName": "PotionOfCapacity",
+      "Zhs": "扩容药水"
+    },
+    {
+      "Id": "POTION_OF_DOOM",
+      "ClassName": "PotionOfDoom",
+      "Zhs": "灾厄药水"
+    },
+    {
+      "Id": "POTION_SHAPED_ROCK",
+      "ClassName": "PotionShapedRock",
+      "Zhs": "药水形状的石头"
+    },
+    {
+      "Id": "POT_OF_GHOULS",
+      "ClassName": "PotOfGhouls",
+      "Zhs": "尸鬼瓮"
+    },
+    {
+      "Id": "POWDERED_DEMISE",
+      "ClassName": "PowderedDemise",
+      "Zhs": "消亡粉末"
+    },
+    {
+      "Id": "POWER_POTION",
+      "ClassName": "PowerPotion",
+      "Zhs": "能力药水"
+    },
+    {
+      "Id": "RADIANT_TINCTURE",
+      "ClassName": "RadiantTincture",
+      "Zhs": "明耀酊剂"
+    },
+    {
+      "Id": "REGEN_POTION",
+      "ClassName": "RegenPotion",
+      "Zhs": "再生药水"
+    },
+    {
+      "Id": "SHACKLING_POTION",
+      "ClassName": "ShacklingPotion",
+      "Zhs": "镣铐药水"
+    },
+    {
+      "Id": "SHIP_IN_ABOTTLE",
+      "ClassName": "ShipInABottle",
+      "Zhs": ""
+    },
+    {
+      "Id": "SKILL_POTION",
+      "ClassName": "SkillPotion",
+      "Zhs": "技能药水"
+    },
+    {
+      "Id": "SNECKO_OIL",
+      "ClassName": "SneckoOil",
+      "Zhs": "异蛇之油"
+    },
+    {
+      "Id": "SOLDIERS_STEW",
+      "ClassName": "SoldiersStew",
+      "Zhs": "士兵炖汤"
+    },
+    {
+      "Id": "SPEED_POTION",
+      "ClassName": "SpeedPotion",
+      "Zhs": "速度药水"
+    },
+    {
+      "Id": "STABLE_SERUM",
+      "ClassName": "StableSerum",
+      "Zhs": "稳定血清"
+    },
+    {
+      "Id": "STAR_POTION",
+      "ClassName": "StarPotion",
+      "Zhs": "星星药水"
+    },
+    {
+      "Id": "STRENGTH_POTION",
+      "ClassName": "StrengthPotion",
+      "Zhs": "力量药水"
+    },
+    {
+      "Id": "SWIFT_POTION",
+      "ClassName": "SwiftPotion",
+      "Zhs": "迅捷药水"
+    },
+    {
+      "Id": "TOUCH_OF_INSANITY",
+      "ClassName": "TouchOfInsanity",
+      "Zhs": "癫狂之触"
+    },
+    {
+      "Id": "VULNERABLE_POTION",
+      "ClassName": "VulnerablePotion",
+      "Zhs": "易伤药水"
+    },
+    {
+      "Id": "WEAK_POTION",
+      "ClassName": "WeakPotion",
+      "Zhs": "虚弱药水"
+    }
+  ],
+  "Relics": [
+    {
+      "Id": "AKABEKO",
+      "ClassName": "Akabeko",
+      "Zhs": "赤牛"
+    },
+    {
+      "Id": "ALCHEMICAL_COFFER",
+      "ClassName": "AlchemicalCoffer",
+      "Zhs": "炼金箱"
+    },
+    {
+      "Id": "AMETHYST_AUBERGINE",
+      "ClassName": "AmethystAubergine",
+      "Zhs": "紫水晶茄子"
+    },
+    {
+      "Id": "ANCHOR",
+      "ClassName": "Anchor",
+      "Zhs": "锚"
+    },
+    {
+      "Id": "ARCANE_SCROLL",
+      "ClassName": "ArcaneScroll",
+      "Zhs": "奥术卷轴"
+    },
+    {
+      "Id": "ARCHAIC_TOOTH",
+      "ClassName": "ArchaicTooth",
+      "Zhs": "古老牙齿"
+    },
+    {
+      "Id": "ART_OF_WAR",
+      "ClassName": "ArtOfWar",
+      "Zhs": "孙子兵法"
+    },
+    {
+      "Id": "ASTROLABE",
+      "ClassName": "Astrolabe",
+      "Zhs": "星盘"
+    },
+    {
+      "Id": "BAG_OF_MARBLES",
+      "ClassName": "BagOfMarbles",
+      "Zhs": "弹珠袋"
+    },
+    {
+      "Id": "BAG_OF_PREPARATION",
+      "ClassName": "BagOfPreparation",
+      "Zhs": "准备背包"
+    },
+    {
+      "Id": "BEATING_REMNANT",
+      "ClassName": "BeatingRemnant",
+      "Zhs": "律动残余"
+    },
+    {
+      "Id": "BEAUTIFUL_BRACELET",
+      "ClassName": "BeautifulBracelet",
+      "Zhs": "华美手镯"
+    },
+    {
+      "Id": "BELLOWS",
+      "ClassName": "Bellows",
+      "Zhs": "风箱"
+    },
+    {
+      "Id": "BELT_BUCKLE",
+      "ClassName": "BeltBuckle",
+      "Zhs": "腰带扣"
+    },
+    {
+      "Id": "BIG_HAT",
+      "ClassName": "BigHat",
+      "Zhs": "大帽子"
+    },
+    {
+      "Id": "BIG_MUSHROOM",
+      "ClassName": "BigMushroom",
+      "Zhs": "大蘑菇"
+    },
+    {
+      "Id": "BIIIG_HUG",
+      "ClassName": "BiiigHug",
+      "Zhs": "大～抱抱"
+    },
+    {
+      "Id": "BING_BONG",
+      "ClassName": "BingBong",
+      "Zhs": "冰梆"
+    },
+    {
+      "Id": "BLACK_BLOOD",
+      "ClassName": "BlackBlood",
+      "Zhs": "黑暗之血"
+    },
+    {
+      "Id": "BLACK_STAR",
+      "ClassName": "BlackStar",
+      "Zhs": "黑星"
+    },
+    {
+      "Id": "BLESSED_ANTLER",
+      "ClassName": "BlessedAntler",
+      "Zhs": "赐福鹿角"
+    },
+    {
+      "Id": "BLOOD_SOAKED_ROSE",
+      "ClassName": "BloodSoakedRose",
+      "Zhs": "血染玫瑰"
+    },
+    {
+      "Id": "BLOOD_VIAL",
+      "ClassName": "BloodVial",
+      "Zhs": "小血瓶"
+    },
+    {
+      "Id": "BONE_FLUTE",
+      "ClassName": "BoneFlute",
+      "Zhs": "骨笛"
+    },
+    {
+      "Id": "BONE_TEA",
+      "ClassName": "BoneTea",
+      "Zhs": "骨茶"
+    },
+    {
+      "Id": "BOOKMARK",
+      "ClassName": "Bookmark",
+      "Zhs": "书签"
+    },
+    {
+      "Id": "BOOK_OF_FIVE_RINGS",
+      "ClassName": "BookOfFiveRings",
+      "Zhs": "五轮书"
+    },
+    {
+      "Id": "BOOK_REPAIR_KNIFE",
+      "ClassName": "BookRepairKnife",
+      "Zhs": "修书小刀"
+    },
+    {
+      "Id": "BOOMING_CONCH",
+      "ClassName": "BoomingConch",
+      "Zhs": "轰鸣海螺"
+    },
+    {
+      "Id": "BOUND_PHYLACTERY",
+      "ClassName": "BoundPhylactery",
+      "Zhs": "缚魂命匣"
+    },
+    {
+      "Id": "BOWLER_HAT",
+      "ClassName": "BowlerHat",
+      "Zhs": "圆顶礼帽"
+    },
+    {
+      "Id": "BREAD",
+      "ClassName": "Bread",
+      "Zhs": "面包"
+    },
+    {
+      "Id": "BRILLIANT_SCARF",
+      "ClassName": "BrilliantScarf",
+      "Zhs": "艳丽围巾"
+    },
+    {
+      "Id": "BRIMSTONE",
+      "ClassName": "Brimstone",
+      "Zhs": "硫磺"
+    },
+    {
+      "Id": "BRONZE_SCALES",
+      "ClassName": "BronzeScales",
+      "Zhs": "铜质鳞片"
+    },
+    {
+      "Id": "BURNING_BLOOD",
+      "ClassName": "BurningBlood",
+      "Zhs": "燃烧之血"
+    },
+    {
+      "Id": "BURNING_STICKS",
+      "ClassName": "BurningSticks",
+      "Zhs": "燃烧木棍"
+    },
+    {
+      "Id": "BYRDPIP",
+      "ClassName": "Byrdpip",
+      "Zhs": "异鸟宝宝"
+    },
+    {
+      "Id": "CALLING_BELL",
+      "ClassName": "CallingBell",
+      "Zhs": "召唤铃铛"
+    },
+    {
+      "Id": "CANDELABRA",
+      "ClassName": "Candelabra",
+      "Zhs": "烛台"
+    },
+    {
+      "Id": "CAPTAINS_WHEEL",
+      "ClassName": "CaptainsWheel",
+      "Zhs": "舵盘"
+    },
+    {
+      "Id": "CAULDRON",
+      "ClassName": "Cauldron",
+      "Zhs": "大锅"
+    },
+    {
+      "Id": "CENTENNIAL_PUZZLE",
+      "ClassName": "CentennialPuzzle",
+      "Zhs": "百年积木"
+    },
+    {
+      "Id": "CHANDELIER",
+      "ClassName": "Chandelier",
+      "Zhs": "吊灯"
+    },
+    {
+      "Id": "CHARONS_ASHES",
+      "ClassName": "CharonsAshes",
+      "Zhs": "卡戎之灰"
+    },
+    {
+      "Id": "CHEMICAL_X",
+      "ClassName": "ChemicalX",
+      "Zhs": "化学物X"
+    },
+    {
+      "Id": "CHOICES_PARADOX",
+      "ClassName": "ChoicesParadox",
+      "Zhs": "选择悖论"
+    },
+    {
+      "Id": "CHOSEN_CHEESE",
+      "ClassName": "ChosenCheese",
+      "Zhs": "天选芝士"
+    },
+    {
+      "Id": "CIRCLET",
+      "ClassName": "Circlet",
+      "Zhs": "头环"
+    },
+    {
+      "Id": "CLAWS",
+      "ClassName": "Claws",
+      "Zhs": "利爪"
+    },
+    {
+      "Id": "CLOAK_CLASP",
+      "ClassName": "CloakClasp",
+      "Zhs": "斗篷扣"
+    },
+    {
+      "Id": "CRACKED_CORE",
+      "ClassName": "CrackedCore",
+      "Zhs": "破损核心"
+    },
+    {
+      "Id": "CROSSBOW",
+      "ClassName": "Crossbow",
+      "Zhs": "十字弓"
+    },
+    {
+      "Id": "CURSED_PEARL",
+      "ClassName": "CursedPearl",
+      "Zhs": "诅咒珍珠"
+    },
+    {
+      "Id": "DARKSTONE_PERIAPT",
+      "ClassName": "DarkstonePeriapt",
+      "Zhs": "黑石护符"
+    },
+    {
+      "Id": "DATA_DISK",
+      "ClassName": "DataDisk",
+      "Zhs": "数据磁盘"
+    },
+    {
+      "Id": "DAUGHTER_OF_THE_WIND",
+      "ClassName": "DaughterOfTheWind",
+      "Zhs": "风的女儿"
+    },
+    {
+      "Id": "DELICATE_FROND",
+      "ClassName": "DelicateFrond",
+      "Zhs": "娇嫩蕨草"
+    },
+    {
+      "Id": "DEMON_TONGUE",
+      "ClassName": "DemonTongue",
+      "Zhs": "恶魔之舌"
+    },
+    {
+      "Id": "DIAMOND_DIADEM",
+      "ClassName": "DiamondDiadem",
+      "Zhs": "钻石头冠"
+    },
+    {
+      "Id": "DINGY_RUG",
+      "ClassName": "DingyRug",
+      "Zhs": "肮脏地毯"
+    },
+    {
+      "Id": "DISTINGUISHED_CAPE",
+      "ClassName": "DistinguishedCape",
+      "Zhs": "卓越斗篷"
+    },
+    {
+      "Id": "DIVINE_DESTINY",
+      "ClassName": "DivineDestiny",
+      "Zhs": "天命所归"
+    },
+    {
+      "Id": "DIVINE_RIGHT",
+      "ClassName": "DivineRight",
+      "Zhs": "天赋君权"
+    },
+    {
+      "Id": "DOLLYS_MIRROR",
+      "ClassName": "DollysMirror",
+      "Zhs": "多利之镜"
+    },
+    {
+      "Id": "DRAGON_FRUIT",
+      "ClassName": "DragonFruit",
+      "Zhs": "火龙果"
+    },
+    {
+      "Id": "DREAM_CATCHER",
+      "ClassName": "DreamCatcher",
+      "Zhs": "捕梦网"
+    },
+    {
+      "Id": "DRIFTWOOD",
+      "ClassName": "Driftwood",
+      "Zhs": "浮木"
+    },
+    {
+      "Id": "DUSTY_TOME",
+      "ClassName": "DustyTome",
+      "Zhs": "尘封魔典"
+    },
+    {
+      "Id": "ECTOPLASM",
+      "ClassName": "Ectoplasm",
+      "Zhs": "灵体外质"
+    },
+    {
+      "Id": "ELECTRIC_SHRYMP",
+      "ClassName": "ElectricShrymp",
+      "Zhs": "放电异虾"
+    },
+    {
+      "Id": "EMBER_TEA",
+      "ClassName": "EmberTea",
+      "Zhs": "余烬茶"
+    },
+    {
+      "Id": "EMOTION_CHIP",
+      "ClassName": "EmotionChip",
+      "Zhs": "情感芯片"
+    },
+    {
+      "Id": "EMPTY_CAGE",
+      "ClassName": "EmptyCage",
+      "Zhs": "空鸟笼"
+    },
+    {
+      "Id": "ETERNAL_FEATHER",
+      "ClassName": "EternalFeather",
+      "Zhs": "永恒羽毛"
+    },
+    {
+      "Id": "FAKE_ANCHOR",
+      "ClassName": "FakeAnchor",
+      "Zhs": "锚？？？"
+    },
+    {
+      "Id": "FAKE_BLOOD_VIAL",
+      "ClassName": "FakeBloodVial",
+      "Zhs": "小血瓶？？？"
+    },
+    {
+      "Id": "FAKE_HAPPY_FLOWER",
+      "ClassName": "FakeHappyFlower",
+      "Zhs": "开心小花？？？"
+    },
+    {
+      "Id": "FAKE_LEES_WAFFLE",
+      "ClassName": "FakeLeesWaffle",
+      "Zhs": "李家华夫饼？？？"
+    },
+    {
+      "Id": "FAKE_MANGO",
+      "ClassName": "FakeMango",
+      "Zhs": "芒果？？？"
+    },
+    {
+      "Id": "FAKE_MERCHANTS_RUG",
+      "ClassName": "FakeMerchantsRug",
+      "Zhs": "商人的地毯？？？"
+    },
+    {
+      "Id": "FAKE_ORICHALCUM",
+      "ClassName": "FakeOrichalcum",
+      "Zhs": "奥利哈钢？？？"
+    },
+    {
+      "Id": "FAKE_SNECKO_EYE",
+      "ClassName": "FakeSneckoEye",
+      "Zhs": "异蛇之眼？？？"
+    },
+    {
+      "Id": "FAKE_STRIKE_DUMMY",
+      "ClassName": "FakeStrikeDummy",
+      "Zhs": "打击木偶？？？"
+    },
+    {
+      "Id": "FAKE_VENERABLE_TEA_SET",
+      "ClassName": "FakeVenerableTeaSet",
+      "Zhs": "古茶具套装？？？"
+    },
+    {
+      "Id": "FENCING_MANUAL",
+      "ClassName": "FencingManual",
+      "Zhs": "击剑指南"
+    },
+    {
+      "Id": "FESTIVE_POPPER",
+      "ClassName": "FestivePopper",
+      "Zhs": "节日拉炮"
+    },
+    {
+      "Id": "FIDDLE",
+      "ClassName": "Fiddle",
+      "Zhs": "小提琴"
+    },
+    {
+      "Id": "FORGOTTEN_SOUL",
+      "ClassName": "ForgottenSoul",
+      "Zhs": "遗忘之魂"
+    },
+    {
+      "Id": "FRAGRANT_MUSHROOM",
+      "ClassName": "FragrantMushroom",
+      "Zhs": "芳香蘑菇"
+    },
+    {
+      "Id": "FRESNEL_LENS",
+      "ClassName": "FresnelLens",
+      "Zhs": "菲涅耳透镜"
+    },
+    {
+      "Id": "FROZEN_EGG",
+      "ClassName": "FrozenEgg",
+      "Zhs": "冻结之蛋"
+    },
+    {
+      "Id": "FUNERARY_MASK",
+      "ClassName": "FuneraryMask",
+      "Zhs": "葬礼面具"
+    },
+    {
+      "Id": "FUR_COAT",
+      "ClassName": "FurCoat",
+      "Zhs": "皮草大衣"
+    },
+    {
+      "Id": "GALACTIC_DUST",
+      "ClassName": "GalacticDust",
+      "Zhs": "星系尘埃"
+    },
+    {
+      "Id": "GAMBLING_CHIP",
+      "ClassName": "GamblingChip",
+      "Zhs": "赌博筹码"
+    },
+    {
+      "Id": "GAME_PIECE",
+      "ClassName": "GamePiece",
+      "Zhs": "棋子"
+    },
+    {
+      "Id": "GHOST_SEED",
+      "ClassName": "GhostSeed",
+      "Zhs": "幽灵种子"
+    },
+    {
+      "Id": "GIRYA",
+      "ClassName": "Girya",
+      "Zhs": "壶铃"
+    },
+    {
+      "Id": "GLASS_EYE",
+      "ClassName": "GlassEye",
+      "Zhs": "玻璃眼珠"
+    },
+    {
+      "Id": "GLITTER",
+      "ClassName": "Glitter",
+      "Zhs": "亮片"
+    },
+    {
+      "Id": "GNARLED_HAMMER",
+      "ClassName": "GnarledHammer",
+      "Zhs": "扭曲锤子"
+    },
+    {
+      "Id": "GOLDEN_COMPASS",
+      "ClassName": "GoldenCompass",
+      "Zhs": "黄金罗盘"
+    },
+    {
+      "Id": "GOLDEN_PEARL",
+      "ClassName": "GoldenPearl",
+      "Zhs": "金色珍珠"
+    },
+    {
+      "Id": "GOLD_PLATED_CABLES",
+      "ClassName": "GoldPlatedCables",
+      "Zhs": "镀金缆线"
+    },
+    {
+      "Id": "GORGET",
+      "ClassName": "Gorget",
+      "Zhs": "护喉甲"
+    },
+    {
+      "Id": "GREMLIN_HORN",
+      "ClassName": "GremlinHorn",
+      "Zhs": "地精之角"
+    },
+    {
+      "Id": "HAND_DRILL",
+      "ClassName": "HandDrill",
+      "Zhs": "手钻"
+    },
+    {
+      "Id": "HAPPY_FLOWER",
+      "ClassName": "HappyFlower",
+      "Zhs": "开心小花"
+    },
+    {
+      "Id": "HELICAL_DART",
+      "ClassName": "HelicalDart",
+      "Zhs": "螺线飞镖"
+    },
+    {
+      "Id": "HISTORY_COURSE",
+      "ClassName": "HistoryCourse",
+      "Zhs": "历史课"
+    },
+    {
+      "Id": "HORN_CLEAT",
+      "ClassName": "HornCleat",
+      "Zhs": "船夹板"
+    },
+    {
+      "Id": "ICE_CREAM",
+      "ClassName": "IceCream",
+      "Zhs": "冰淇淋"
+    },
+    {
+      "Id": "INFUSED_CORE",
+      "ClassName": "InfusedCore",
+      "Zhs": "注能核心"
+    },
+    {
+      "Id": "INTIMIDATING_HELMET",
+      "ClassName": "IntimidatingHelmet",
+      "Zhs": "骇人头盔"
+    },
+    {
+      "Id": "IRON_CLUB",
+      "ClassName": "IronClub",
+      "Zhs": "铁棒"
+    },
+    {
+      "Id": "IVORY_TILE",
+      "ClassName": "IvoryTile",
+      "Zhs": "象牙麻将牌"
+    },
+    {
+      "Id": "JEWELED_MASK",
+      "ClassName": "JeweledMask",
+      "Zhs": "宝石面具"
+    },
+    {
+      "Id": "JEWELRY_BOX",
+      "ClassName": "JewelryBox",
+      "Zhs": "珠宝盒"
+    },
+    {
+      "Id": "JOSS_PAPER",
+      "ClassName": "JossPaper",
+      "Zhs": "金纸"
+    },
+    {
+      "Id": "JUZU_BRACELET",
+      "ClassName": "JuzuBracelet",
+      "Zhs": "佛珠手链"
+    },
+    {
+      "Id": "KIFUDA",
+      "ClassName": "Kifuda",
+      "Zhs": "木札"
+    },
+    {
+      "Id": "KUNAI",
+      "ClassName": "Kunai",
+      "Zhs": "苦无"
+    },
+    {
+      "Id": "KUSARIGAMA",
+      "ClassName": "Kusarigama",
+      "Zhs": "锁镰"
+    },
+    {
+      "Id": "LANTERN",
+      "ClassName": "Lantern",
+      "Zhs": "灯笼"
+    },
+    {
+      "Id": "LARGE_CAPSULE",
+      "ClassName": "LargeCapsule",
+      "Zhs": "巨大扭蛋"
+    },
+    {
+      "Id": "LASTING_CANDY",
+      "ClassName": "LastingCandy",
+      "Zhs": "吃不完的糖"
+    },
+    {
+      "Id": "LAVA_LAMP",
+      "ClassName": "LavaLamp",
+      "Zhs": "熔岩灯"
+    },
+    {
+      "Id": "LAVA_ROCK",
+      "ClassName": "LavaRock",
+      "Zhs": "熔岩石"
+    },
+    {
+      "Id": "LEAD_PAPERWEIGHT",
+      "ClassName": "LeadPaperweight",
+      "Zhs": "铅制镇纸"
+    },
+    {
+      "Id": "LEAFY_POULTICE",
+      "ClassName": "LeafyPoultice",
+      "Zhs": "树叶药膏"
+    },
+    {
+      "Id": "LEES_WAFFLE",
+      "ClassName": "LeesWaffle",
+      "Zhs": "李家华夫饼"
+    },
+    {
+      "Id": "LETTER_OPENER",
+      "ClassName": "LetterOpener",
+      "Zhs": "开信刀"
+    },
+    {
+      "Id": "LIZARD_TAIL",
+      "ClassName": "LizardTail",
+      "Zhs": "蜥蜴尾巴"
+    },
+    {
+      "Id": "LOOMING_FRUIT",
+      "ClassName": "LoomingFruit",
+      "Zhs": "布质果实"
+    },
+    {
+      "Id": "LORDS_PARASOL",
+      "ClassName": "LordsParasol",
+      "Zhs": "领主阳伞"
+    },
+    {
+      "Id": "LOST_COFFER",
+      "ClassName": "LostCoffer",
+      "Zhs": "失物盒"
+    },
+    {
+      "Id": "LOST_WISP",
+      "ClassName": "LostWisp",
+      "Zhs": "迷失鬼火"
+    },
+    {
+      "Id": "LUCKY_FYSH",
+      "ClassName": "LuckyFysh",
+      "Zhs": "招财异鱼"
+    },
+    {
+      "Id": "LUNAR_PASTRY",
+      "ClassName": "LunarPastry",
+      "Zhs": "月亮糕点"
+    },
+    {
+      "Id": "MANGO",
+      "ClassName": "Mango",
+      "Zhs": "芒果"
+    },
+    {
+      "Id": "MASSIVE_SCROLL",
+      "ClassName": "MassiveScroll",
+      "Zhs": "巨大卷轴"
+    },
+    {
+      "Id": "MAW_BANK",
+      "ClassName": "MawBank",
+      "Zhs": "巨口储蓄罐"
+    },
+    {
+      "Id": "MEAL_TICKET",
+      "ClassName": "MealTicket",
+      "Zhs": "餐券"
+    },
+    {
+      "Id": "MEAT_CLEAVER",
+      "ClassName": "MeatCleaver",
+      "Zhs": "切肉刀"
+    },
+    {
+      "Id": "MEAT_ON_THE_BONE",
+      "ClassName": "MeatOnTheBone",
+      "Zhs": "带骨肉"
+    },
+    {
+      "Id": "MEMBERSHIP_CARD",
+      "ClassName": "MembershipCard",
+      "Zhs": "会员卡"
+    },
+    {
+      "Id": "MERCURY_HOURGLASS",
+      "ClassName": "MercuryHourglass",
+      "Zhs": "水银沙漏"
+    },
+    {
+      "Id": "METRONOME",
+      "ClassName": "Metronome",
+      "Zhs": "节拍器"
+    },
+    {
+      "Id": "MINIATURE_CANNON",
+      "ClassName": "MiniatureCannon",
+      "Zhs": "微型大炮"
+    },
+    {
+      "Id": "MINIATURE_TENT",
+      "ClassName": "MiniatureTent",
+      "Zhs": "微型帐篷"
+    },
+    {
+      "Id": "MINI_REGENT",
+      "ClassName": "MiniRegent",
+      "Zhs": "迷你储君"
+    },
+    {
+      "Id": "MOLTEN_EGG",
+      "ClassName": "MoltenEgg",
+      "Zhs": "熔火之蛋"
+    },
+    {
+      "Id": "MR_STRUGGLES",
+      "ClassName": "MrStruggles",
+      "Zhs": "挣扎先生"
+    },
+    {
+      "Id": "MUMMIFIED_HAND",
+      "ClassName": "MummifiedHand",
+      "Zhs": "干瘪之手"
+    },
+    {
+      "Id": "MUSIC_BOX",
+      "ClassName": "MusicBox",
+      "Zhs": "音乐盒"
+    },
+    {
+      "Id": "MYSTIC_LIGHTER",
+      "ClassName": "MysticLighter",
+      "Zhs": "神秘打火机"
+    },
+    {
+      "Id": "NEOWS_TORMENT",
+      "ClassName": "NeowsTorment",
+      "Zhs": "涅奥的苦痛"
+    },
+    {
+      "Id": "NEW_LEAF",
+      "ClassName": "NewLeaf",
+      "Zhs": "新叶"
+    },
+    {
+      "Id": "NINJA_SCROLL",
+      "ClassName": "NinjaScroll",
+      "Zhs": "忍术卷轴"
+    },
+    {
+      "Id": "NUNCHAKU",
+      "ClassName": "Nunchaku",
+      "Zhs": "双截棍"
+    },
+    {
+      "Id": "NUTRITIOUS_OYSTER",
+      "ClassName": "NutritiousOyster",
+      "Zhs": "营养牡蛎"
+    },
+    {
+      "Id": "NUTRITIOUS_SOUP",
+      "ClassName": "NutritiousSoup",
+      "Zhs": "营养汤"
+    },
+    {
+      "Id": "ODDLY_SMOOTH_STONE",
+      "ClassName": "OddlySmoothStone",
+      "Zhs": "意外光滑的石头"
+    },
+    {
+      "Id": "OLD_COIN",
+      "ClassName": "OldCoin",
+      "Zhs": "古钱币"
+    },
+    {
+      "Id": "ORANGE_DOUGH",
+      "ClassName": "OrangeDough",
+      "Zhs": "橙色团块"
+    },
+    {
+      "Id": "ORICHALCUM",
+      "ClassName": "Orichalcum",
+      "Zhs": "奥利哈钢"
+    },
+    {
+      "Id": "ORNAMENTAL_FAN",
+      "ClassName": "OrnamentalFan",
+      "Zhs": "精致折扇"
+    },
+    {
+      "Id": "ORRERY",
+      "ClassName": "Orrery",
+      "Zhs": "星系仪"
+    },
+    {
+      "Id": "PAELS_BLOOD",
+      "ClassName": "PaelsBlood",
+      "Zhs": "佩尔之血"
+    },
+    {
+      "Id": "PAELS_CLAW",
+      "ClassName": "PaelsClaw",
+      "Zhs": "佩尔之爪"
+    },
+    {
+      "Id": "PAELS_EYE",
+      "ClassName": "PaelsEye",
+      "Zhs": "佩尔之眼"
+    },
+    {
+      "Id": "PAELS_FLESH",
+      "ClassName": "PaelsFlesh",
+      "Zhs": "佩尔之肉"
+    },
+    {
+      "Id": "PAELS_GROWTH",
+      "ClassName": "PaelsGrowth",
+      "Zhs": "佩尔的增生组织"
+    },
+    {
+      "Id": "PAELS_HORN",
+      "ClassName": "PaelsHorn",
+      "Zhs": "佩尔之角"
+    },
+    {
+      "Id": "PAELS_LEGION",
+      "ClassName": "PaelsLegion",
+      "Zhs": "佩尔的士兵"
+    },
+    {
+      "Id": "PAELS_TEARS",
+      "ClassName": "PaelsTears",
+      "Zhs": "佩尔之泪"
+    },
+    {
+      "Id": "PAELS_TOOTH",
+      "ClassName": "PaelsTooth",
+      "Zhs": "佩尔之牙"
+    },
+    {
+      "Id": "PAELS_WING",
+      "ClassName": "PaelsWing",
+      "Zhs": "佩尔之翼"
+    },
+    {
+      "Id": "PANDORAS_BOX",
+      "ClassName": "PandorasBox",
+      "Zhs": "潘多拉魔盒"
+    },
+    {
+      "Id": "PANTOGRAPH",
+      "ClassName": "Pantograph",
+      "Zhs": "缩放仪"
+    },
+    {
+      "Id": "PAPER_KRANE",
+      "ClassName": "PaperKrane",
+      "Zhs": "纸鹤"
+    },
+    {
+      "Id": "PAPER_PHROG",
+      "ClassName": "PaperPhrog",
+      "Zhs": "纸蛙"
+    },
+    {
+      "Id": "PARRYING_SHIELD",
+      "ClassName": "ParryingShield",
+      "Zhs": "招架盾"
+    },
+    {
+      "Id": "PEAR",
+      "ClassName": "Pear",
+      "Zhs": "梨子"
+    },
+    {
+      "Id": "PENDULUM",
+      "ClassName": "Pendulum",
+      "Zhs": "摆动球"
+    },
+    {
+      "Id": "PEN_NIB",
+      "ClassName": "PenNib",
+      "Zhs": "钢笔尖"
+    },
+    {
+      "Id": "PERMAFROST",
+      "ClassName": "Permafrost",
+      "Zhs": "永冻冰晶"
+    },
+    {
+      "Id": "PETRIFIED_TOAD",
+      "ClassName": "PetrifiedToad",
+      "Zhs": "石化蟾蜍"
+    },
+    {
+      "Id": "PHILOSOPHERS_STONE",
+      "ClassName": "PhilosophersStone",
+      "Zhs": "贤者之石"
+    },
+    {
+      "Id": "PHYLACTERY_UNBOUND",
+      "ClassName": "PhylacteryUnbound",
+      "Zhs": "无界命匣"
+    },
+    {
+      "Id": "PLANISPHERE",
+      "ClassName": "Planisphere",
+      "Zhs": "活动星图"
+    },
+    {
+      "Id": "POCKETWATCH",
+      "ClassName": "Pocketwatch",
+      "Zhs": "怀表"
+    },
+    {
+      "Id": "POLLINOUS_CORE",
+      "ClassName": "PollinousCore",
+      "Zhs": "花粉核心"
+    },
+    {
+      "Id": "POMANDER",
+      "ClassName": "Pomander",
+      "Zhs": "橙型香盒"
+    },
+    {
+      "Id": "POTION_BELT",
+      "ClassName": "PotionBelt",
+      "Zhs": "药水腰带"
+    },
+    {
+      "Id": "POWER_CELL",
+      "ClassName": "PowerCell",
+      "Zhs": "能量电池"
+    },
+    {
+      "Id": "PRAYER_WHEEL",
+      "ClassName": "PrayerWheel",
+      "Zhs": "转经轮"
+    },
+    {
+      "Id": "PRECARIOUS_SHEARS",
+      "ClassName": "PrecariousShears",
+      "Zhs": "松动羊毛剪"
+    },
+    {
+      "Id": "PRECISE_SCISSORS",
+      "ClassName": "PreciseScissors",
+      "Zhs": "精准剪刀"
+    },
+    {
+      "Id": "PRESERVED_FOG",
+      "ClassName": "PreservedFog",
+      "Zhs": "腌制活雾"
+    },
+    {
+      "Id": "PRISMATIC_GEM",
+      "ClassName": "PrismaticGem",
+      "Zhs": "棱彩宝石"
+    },
+    {
+      "Id": "PUMPKIN_CANDLE",
+      "ClassName": "PumpkinCandle",
+      "Zhs": "南瓜蜡烛"
+    },
+    {
+      "Id": "PUNCH_DAGGER",
+      "ClassName": "PunchDagger",
+      "Zhs": "拳刃"
+    },
+    {
+      "Id": "RADIANT_PEARL",
+      "ClassName": "RadiantPearl",
+      "Zhs": "发光珍珠"
+    },
+    {
+      "Id": "RAINBOW_RING",
+      "ClassName": "RainbowRing",
+      "Zhs": "彩虹戒指"
+    },
+    {
+      "Id": "RAZOR_TOOTH",
+      "ClassName": "RazorTooth",
+      "Zhs": "剃刀牙"
+    },
+    {
+      "Id": "RED_MASK",
+      "ClassName": "RedMask",
+      "Zhs": "红面具"
+    },
+    {
+      "Id": "RED_SKULL",
+      "ClassName": "RedSkull",
+      "Zhs": "红头骨"
+    },
+    {
+      "Id": "REGALITE",
+      "ClassName": "Regalite",
+      "Zhs": "君王矿石"
+    },
+    {
+      "Id": "REGAL_PILLOW",
+      "ClassName": "RegalPillow",
+      "Zhs": "皇家枕头"
+    },
+    {
+      "Id": "REPTILE_TRINKET",
+      "ClassName": "ReptileTrinket",
+      "Zhs": "爬行动物饰品"
+    },
+    {
+      "Id": "RINGING_TRIANGLE",
+      "ClassName": "RingingTriangle",
+      "Zhs": "三角铃鼓"
+    },
+    {
+      "Id": "RING_OF_THE_DRAKE",
+      "ClassName": "RingOfTheDrake",
+      "Zhs": "长蛇戒指"
+    },
+    {
+      "Id": "RING_OF_THE_SNAKE",
+      "ClassName": "RingOfTheSnake",
+      "Zhs": "蛇之戒指"
+    },
+    {
+      "Id": "RIPPLE_BASIN",
+      "ClassName": "RippleBasin",
+      "Zhs": "波纹水盆"
+    },
+    {
+      "Id": "ROYAL_POISON",
+      "ClassName": "RoyalPoison",
+      "Zhs": "王室猛毒"
+    },
+    {
+      "Id": "ROYAL_STAMP",
+      "ClassName": "RoyalStamp",
+      "Zhs": "王室印章"
+    },
+    {
+      "Id": "RUINED_HELMET",
+      "ClassName": "RuinedHelmet",
+      "Zhs": "损毁头盔"
+    },
+    {
+      "Id": "RUNIC_CAPACITOR",
+      "ClassName": "RunicCapacitor",
+      "Zhs": "符文电容器"
+    },
+    {
+      "Id": "RUNIC_PYRAMID",
+      "ClassName": "RunicPyramid",
+      "Zhs": "符文金字塔"
+    },
+    {
+      "Id": "SAI",
+      "ClassName": "Sai",
+      "Zhs": "钗"
+    },
+    {
+      "Id": "SAND_CASTLE",
+      "ClassName": "SandCastle",
+      "Zhs": "沙堡"
+    },
+    {
+      "Id": "SCREAMING_FLAGON",
+      "ClassName": "ScreamingFlagon",
+      "Zhs": "尖叫酒壶"
+    },
+    {
+      "Id": "SCROLL_BOXES",
+      "ClassName": "ScrollBoxes",
+      "Zhs": "卷轴箱"
+    },
+    {
+      "Id": "SEAL_OF_GOLD",
+      "ClassName": "SealOfGold",
+      "Zhs": "黄金印"
+    },
+    {
+      "Id": "SEA_GLASS",
+      "ClassName": "SeaGlass",
+      "Zhs": "海玻璃"
+    },
+    {
+      "Id": "SELF_FORMING_CLAY",
+      "ClassName": "SelfFormingClay",
+      "Zhs": "自成型黏土"
+    },
+    {
+      "Id": "SERE_TALON",
+      "ClassName": "SereTalon",
+      "Zhs": "原初之爪"
+    },
+    {
+      "Id": "SHOVEL",
+      "ClassName": "Shovel",
+      "Zhs": "铲子"
+    },
+    {
+      "Id": "SHURIKEN",
+      "ClassName": "Shuriken",
+      "Zhs": "手里剑"
+    },
+    {
+      "Id": "SIGNET_RING",
+      "ClassName": "SignetRing",
+      "Zhs": "图章戒指"
+    },
+    {
+      "Id": "SILVER_CRUCIBLE",
+      "ClassName": "SilverCrucible",
+      "Zhs": "白银熔炉"
+    },
+    {
+      "Id": "SLING_OF_COURAGE",
+      "ClassName": "SlingOfCourage",
+      "Zhs": "勇气投石索"
+    },
+    {
+      "Id": "SMALL_CAPSULE",
+      "ClassName": "SmallCapsule",
+      "Zhs": "小型扭蛋"
+    },
+    {
+      "Id": "SNECKO_EYE",
+      "ClassName": "SneckoEye",
+      "Zhs": "异蛇之眼"
+    },
+    {
+      "Id": "SNECKO_SKULL",
+      "ClassName": "SneckoSkull",
+      "Zhs": "异蛇头骨"
+    },
+    {
+      "Id": "SOZU",
+      "ClassName": "Sozu",
+      "Zhs": "添水"
+    },
+    {
+      "Id": "SPARKLING_ROUGE",
+      "ClassName": "SparklingRouge",
+      "Zhs": "闪亮口红"
+    },
+    {
+      "Id": "SPIKED_GAUNTLETS",
+      "ClassName": "SpikedGauntlets",
+      "Zhs": "带刺手甲"
+    },
+    {
+      "Id": "STONE_CALENDAR",
+      "ClassName": "StoneCalendar",
+      "Zhs": "历石"
+    },
+    {
+      "Id": "STONE_CRACKER",
+      "ClassName": "StoneCracker",
+      "Zhs": "碎石钻"
+    },
+    {
+      "Id": "STONE_HUMIDIFIER",
+      "ClassName": "StoneHumidifier",
+      "Zhs": "石炉加湿器"
+    },
+    {
+      "Id": "STORYBOOK",
+      "ClassName": "Storybook",
+      "Zhs": "故事书"
+    },
+    {
+      "Id": "STRAWBERRY",
+      "ClassName": "Strawberry",
+      "Zhs": "草莓"
+    },
+    {
+      "Id": "STRIKE_DUMMY",
+      "ClassName": "StrikeDummy",
+      "Zhs": "打击木偶"
+    },
+    {
+      "Id": "STURDY_CLAMP",
+      "ClassName": "SturdyClamp",
+      "Zhs": "坚固钳子"
+    },
+    {
+      "Id": "SWORD_OF_JADE",
+      "ClassName": "SwordOfJade",
+      "Zhs": "玉之剑"
+    },
+    {
+      "Id": "SWORD_OF_STONE",
+      "ClassName": "SwordOfStone",
+      "Zhs": "石之剑"
+    },
+    {
+      "Id": "SYMBIOTIC_VIRUS",
+      "ClassName": "SymbioticVirus",
+      "Zhs": "共生病毒"
+    },
+    {
+      "Id": "TANXS_WHISTLE",
+      "ClassName": "TanxsWhistle",
+      "Zhs": "坦克斯的哨子"
+    },
+    {
+      "Id": "TEA_OF_DISCOURTESY",
+      "ClassName": "TeaOfDiscourtesy",
+      "Zhs": "无礼之茶"
+    },
+    {
+      "Id": "THE_ABACUS",
+      "ClassName": "TheAbacus",
+      "Zhs": "算盘"
+    },
+    {
+      "Id": "THE_BOOT",
+      "ClassName": "TheBoot",
+      "Zhs": "发条靴"
+    },
+    {
+      "Id": "THE_COURIER",
+      "ClassName": "TheCourier",
+      "Zhs": "送货员"
+    },
+    {
+      "Id": "THROWING_AXE",
+      "ClassName": "ThrowingAxe",
+      "Zhs": "投斧"
+    },
+    {
+      "Id": "TINGSHA",
+      "ClassName": "Tingsha",
+      "Zhs": "铜钹"
+    },
+    {
+      "Id": "TINY_MAILBOX",
+      "ClassName": "TinyMailbox",
+      "Zhs": "小邮箱"
+    },
+    {
+      "Id": "TOASTY_MITTENS",
+      "ClassName": "ToastyMittens",
+      "Zhs": "烘焙手套"
+    },
+    {
+      "Id": "TOOLBOX",
+      "ClassName": "Toolbox",
+      "Zhs": "工具箱"
+    },
+    {
+      "Id": "TOUCH_OF_OROBAS",
+      "ClassName": "TouchOfOrobas",
+      "Zhs": "欧洛巴斯之触"
+    },
+    {
+      "Id": "TOUGH_BANDAGES",
+      "ClassName": "ToughBandages",
+      "Zhs": "结实绷带"
+    },
+    {
+      "Id": "TOXIC_EGG",
+      "ClassName": "ToxicEgg",
+      "Zhs": "毒素之蛋"
+    },
+    {
+      "Id": "TOY_BOX",
+      "ClassName": "ToyBox",
+      "Zhs": "玩具盒"
+    },
+    {
+      "Id": "TRI_BOOMERANG",
+      "ClassName": "TriBoomerang",
+      "Zhs": "三刃回旋镖"
+    },
+    {
+      "Id": "TUNGSTEN_ROD",
+      "ClassName": "TungstenRod",
+      "Zhs": "钨合金棍"
+    },
+    {
+      "Id": "TUNING_FORK",
+      "ClassName": "TuningFork",
+      "Zhs": "音叉"
+    },
+    {
+      "Id": "TWISTED_FUNNEL",
+      "ClassName": "TwistedFunnel",
+      "Zhs": "扭曲漏斗"
+    },
+    {
+      "Id": "UNCEASING_TOP",
+      "ClassName": "UnceasingTop",
+      "Zhs": "不休陀螺"
+    },
+    {
+      "Id": "UNDYING_SIGIL",
+      "ClassName": "UndyingSigil",
+      "Zhs": "不死符文"
+    },
+    {
+      "Id": "UNSETTLING_LAMP",
+      "ClassName": "UnsettlingLamp",
+      "Zhs": "不安油灯"
+    },
+    {
+      "Id": "VAJRA",
+      "ClassName": "Vajra",
+      "Zhs": "金刚杵"
+    },
+    {
+      "Id": "VAKUU_CARD_SELECTOR",
+      "ClassName": "VakuuCardSelector",
+      "Zhs": ""
+    },
+    {
+      "Id": "VAMBRACE",
+      "ClassName": "Vambrace",
+      "Zhs": "臂甲"
+    },
+    {
+      "Id": "VELVET_CHOKER",
+      "ClassName": "VelvetChoker",
+      "Zhs": "天鹅绒颈圈"
+    },
+    {
+      "Id": "VENERABLE_TEA_SET",
+      "ClassName": "VenerableTeaSet",
+      "Zhs": "古茶具套装"
+    },
+    {
+      "Id": "VERY_HOT_COCOA",
+      "ClassName": "VeryHotCocoa",
+      "Zhs": "烫嘴可可"
+    },
+    {
+      "Id": "VEXING_PUZZLEBOX",
+      "ClassName": "VexingPuzzlebox",
+      "Zhs": "烦人机关盒"
+    },
+    {
+      "Id": "VITRUVIAN_MINION",
+      "ClassName": "VitruvianMinion",
+      "Zhs": "维特鲁威仆从"
+    },
+    {
+      "Id": "WAR_HAMMER",
+      "ClassName": "WarHammer",
+      "Zhs": "战锤"
+    },
+    {
+      "Id": "WAR_PAINT",
+      "ClassName": "WarPaint",
+      "Zhs": "战纹涂料"
+    },
+    {
+      "Id": "WHETSTONE",
+      "ClassName": "Whetstone",
+      "Zhs": "磨刀石"
+    },
+    {
+      "Id": "WHISPERING_EARRING",
+      "ClassName": "WhisperingEarring",
+      "Zhs": "低语耳环"
+    },
+    {
+      "Id": "WHITE_BEAST_STATUE",
+      "ClassName": "WhiteBeastStatue",
+      "Zhs": "白兽雕像"
+    },
+    {
+      "Id": "WHITE_STAR",
+      "ClassName": "WhiteStar",
+      "Zhs": "白星"
+    },
+    {
+      "Id": "WING_CHARM",
+      "ClassName": "WingCharm",
+      "Zhs": "羽翼护符"
+    },
+    {
+      "Id": "WONGOS_MYSTERY_TICKET",
+      "ClassName": "WongosMysteryTicket",
+      "Zhs": "旺购神秘券"
+    },
+    {
+      "Id": "WONGO_CUSTOMER_APPRECIATION_BADGE",
+      "ClassName": "WongoCustomerAppreciationBadge",
+      "Zhs": "旺购客户感恩徽章"
+    },
+    {
+      "Id": "YUMMY_COOKIE",
+      "ClassName": "YummyCookie",
+      "Zhs": "美味饼干"
+    }
+  ],
+  "Powers": [
+    {
+      "Id": "ACCELERANT_POWER",
+      "ClassName": "AccelerantPower",
+      "Zhs": "触媒"
+    },
+    {
+      "Id": "ACCURACY_POWER",
+      "ClassName": "AccuracyPower",
+      "Zhs": "精准"
+    },
+    {
+      "Id": "ADAPTABLE_POWER",
+      "ClassName": "AdaptablePower",
+      "Zhs": "适者生存"
+    },
+    {
+      "Id": "AFTERIMAGE_POWER",
+      "ClassName": "AfterimagePower",
+      "Zhs": "余像"
+    },
+    {
+      "Id": "AGGRESSION_POWER",
+      "ClassName": "AggressionPower",
+      "Zhs": "好勇斗狠"
+    },
+    {
+      "Id": "ANTICIPATE_POWER",
+      "ClassName": "AnticipatePower",
+      "Zhs": ""
+    },
+    {
+      "Id": "ARSENAL_POWER",
+      "ClassName": "ArsenalPower",
+      "Zhs": "武器库"
+    },
+    {
+      "Id": "ARTIFACT_POWER",
+      "ClassName": "ArtifactPower",
+      "Zhs": "人工制品"
+    },
+    {
+      "Id": "ASLEEP_POWER",
+      "ClassName": "AsleepPower",
+      "Zhs": "沉睡"
+    },
+    {
+      "Id": "AUTOMATION_POWER",
+      "ClassName": "AutomationPower",
+      "Zhs": "自动化"
+    },
+    {
+      "Id": "BACK_ATTACK_LEFT_POWER",
+      "ClassName": "BackAttackLeftPower",
+      "Zhs": "后方攻击"
+    },
+    {
+      "Id": "BACK_ATTACK_RIGHT_POWER",
+      "ClassName": "BackAttackRightPower",
+      "Zhs": "后方攻击"
+    },
+    {
+      "Id": "BARRICADE_POWER",
+      "ClassName": "BarricadePower",
+      "Zhs": "壁垒"
+    },
+    {
+      "Id": "BATTLEWORN_DUMMY_TIME_LIMIT_POWER",
+      "ClassName": "BattlewornDummyTimeLimitPower",
+      "Zhs": "时间限制"
+    },
+    {
+      "Id": "BEACON_OF_HOPE_POWER",
+      "ClassName": "BeaconOfHopePower",
+      "Zhs": "希望灯塔"
+    },
+    {
+      "Id": "BIASED_COGNITION_POWER",
+      "ClassName": "BiasedCognitionPower",
+      "Zhs": "偏差认知"
+    },
+    {
+      "Id": "BLACK_HOLE_POWER",
+      "ClassName": "BlackHolePower",
+      "Zhs": "黑洞"
+    },
+    {
+      "Id": "BLADE_OF_INK_POWER",
+      "ClassName": "BladeOfInkPower",
+      "Zhs": "墨之刃"
+    },
+    {
+      "Id": "BLOCK_NEXT_TURN_POWER",
+      "ClassName": "BlockNextTurnPower",
+      "Zhs": "下回合格挡"
+    },
+    {
+      "Id": "BLUR_POWER",
+      "ClassName": "BlurPower",
+      "Zhs": "残影"
+    },
+    {
+      "Id": "BUFFER_POWER",
+      "ClassName": "BufferPower",
+      "Zhs": "缓冲"
+    },
+    {
+      "Id": "BURROWED_POWER",
+      "ClassName": "BurrowedPower",
+      "Zhs": "埋地"
+    },
+    {
+      "Id": "BURST_POWER",
+      "ClassName": "BurstPower",
+      "Zhs": "爆发"
+    },
+    {
+      "Id": "CALAMITY_POWER",
+      "ClassName": "CalamityPower",
+      "Zhs": "灾祸"
+    },
+    {
+      "Id": "CALCIFY_POWER",
+      "ClassName": "CalcifyPower",
+      "Zhs": "钙化"
+    },
+    {
+      "Id": "CALL_OF_THE_VOID_POWER",
+      "ClassName": "CallOfTheVoidPower",
+      "Zhs": "虚空之唤"
+    },
+    {
+      "Id": "CHAINS_OF_BINDING_POWER",
+      "ClassName": "ChainsOfBindingPower",
+      "Zhs": "魂缚锁链"
+    },
+    {
+      "Id": "CHILD_OF_THE_STARS_POWER",
+      "ClassName": "ChildOfTheStarsPower",
+      "Zhs": "群星之子"
+    },
+    {
+      "Id": "CLARITY_POWER",
+      "ClassName": "ClarityPower",
+      "Zhs": "明晰"
+    },
+    {
+      "Id": "COLOSSUS_POWER",
+      "ClassName": "ColossusPower",
+      "Zhs": "巨像"
+    },
+    {
+      "Id": "CONFUSED_POWER",
+      "ClassName": "ConfusedPower",
+      "Zhs": "混乱"
+    },
+    {
+      "Id": "CONQUEROR_POWER",
+      "ClassName": "ConquerorPower",
+      "Zhs": "征服者"
+    },
+    {
+      "Id": "CONSTRICT_POWER",
+      "ClassName": "ConstrictPower",
+      "Zhs": "紧缠"
+    },
+    {
+      "Id": "CONSUMING_SHADOW_POWER",
+      "ClassName": "ConsumingShadowPower",
+      "Zhs": "吞噬暗影"
+    },
+    {
+      "Id": "COOLANT_POWER",
+      "ClassName": "CoolantPower",
+      "Zhs": "冷却剂"
+    },
+    {
+      "Id": "COORDINATE_POWER",
+      "ClassName": "CoordinatePower",
+      "Zhs": ""
+    },
+    {
+      "Id": "CORROSIVE_WAVE_POWER",
+      "ClassName": "CorrosiveWavePower",
+      "Zhs": "腐蚀波"
+    },
+    {
+      "Id": "CORRUPTION_POWER",
+      "ClassName": "CorruptionPower",
+      "Zhs": "腐化"
+    },
+    {
+      "Id": "COUNTDOWN_POWER",
+      "ClassName": "CountdownPower",
+      "Zhs": "倒数计时"
+    },
+    {
+      "Id": "COVERED_POWER",
+      "ClassName": "CoveredPower",
+      "Zhs": "掩护"
+    },
+    {
+      "Id": "CRAB_RAGE_POWER",
+      "ClassName": "CrabRagePower",
+      "Zhs": "蟹之怒"
+    },
+    {
+      "Id": "CREATIVE_AI_POWER",
+      "ClassName": "CreativeAiPower",
+      "Zhs": "创造性AI"
+    },
+    {
+      "Id": "CRIMSON_MANTLE_POWER",
+      "ClassName": "CrimsonMantlePower",
+      "Zhs": "绯红披风"
+    },
+    {
+      "Id": "CRUELTY_POWER",
+      "ClassName": "CrueltyPower",
+      "Zhs": "残酷"
+    },
+    {
+      "Id": "CRUSH_UNDER_POWER",
+      "ClassName": "CrushUnderPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "CURIOUS_POWER",
+      "ClassName": "CuriousPower",
+      "Zhs": "好奇"
+    },
+    {
+      "Id": "CURL_UP_POWER",
+      "ClassName": "CurlUpPower",
+      "Zhs": "蜷身"
+    },
+    {
+      "Id": "DAMPEN_POWER",
+      "ClassName": "DampenPower",
+      "Zhs": "抑制"
+    },
+    {
+      "Id": "DANSE_MACABRE_POWER",
+      "ClassName": "DanseMacabrePower",
+      "Zhs": "死亡之舞"
+    },
+    {
+      "Id": "DARK_EMBRACE_POWER",
+      "ClassName": "DarkEmbracePower",
+      "Zhs": "黑暗之拥"
+    },
+    {
+      "Id": "DARK_SHACKLES_POWER",
+      "ClassName": "DarkShacklesPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "DEBILITATE_POWER",
+      "ClassName": "DebilitatePower",
+      "Zhs": "摧残"
+    },
+    {
+      "Id": "DEMESNE_POWER",
+      "ClassName": "DemesnePower",
+      "Zhs": "领域"
+    },
+    {
+      "Id": "DEMISE_POWER",
+      "ClassName": "DemisePower",
+      "Zhs": "消亡"
+    },
+    {
+      "Id": "DEMON_FORM_POWER",
+      "ClassName": "DemonFormPower",
+      "Zhs": "恶魔形态"
+    },
+    {
+      "Id": "DEVOUR_LIFE_POWER",
+      "ClassName": "DevourLifePower",
+      "Zhs": "吞噬生命"
+    },
+    {
+      "Id": "DEXTERITY_POWER",
+      "ClassName": "DexterityPower",
+      "Zhs": "敏捷"
+    },
+    {
+      "Id": "DIAMOND_DIADEM_POWER",
+      "ClassName": "DiamondDiademPower",
+      "Zhs": "钻石头冠"
+    },
+    {
+      "Id": "DIE_FOR_YOU_POWER",
+      "ClassName": "DieForYouPower",
+      "Zhs": "为你而死"
+    },
+    {
+      "Id": "DISINTEGRATION_POWER",
+      "ClassName": "DisintegrationPower",
+      "Zhs": "瓦解"
+    },
+    {
+      "Id": "DOOM_POWER",
+      "ClassName": "DoomPower",
+      "Zhs": "灾厄"
+    },
+    {
+      "Id": "DOOR_REVIVAL_POWER",
+      "ClassName": "DoorRevivalPower",
+      "Zhs": "门扉复活"
+    },
+    {
+      "Id": "DOUBLE_DAMAGE_POWER",
+      "ClassName": "DoubleDamagePower",
+      "Zhs": "双倍伤害"
+    },
+    {
+      "Id": "DRAW_CARDS_NEXT_TURN_POWER",
+      "ClassName": "DrawCardsNextTurnPower",
+      "Zhs": "下回合抽牌"
+    },
+    {
+      "Id": "DRUM_OF_BATTLE_POWER",
+      "ClassName": "DrumOfBattlePower",
+      "Zhs": "战鼓"
+    },
+    {
+      "Id": "DUPLICATION_POWER",
+      "ClassName": "DuplicationPower",
+      "Zhs": "复制"
+    },
+    {
+      "Id": "DYING_STAR_POWER",
+      "ClassName": "DyingStarPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "ECHO_FORM_POWER",
+      "ClassName": "EchoFormPower",
+      "Zhs": "回响形态"
+    },
+    {
+      "Id": "ENERGY_NEXT_TURN_POWER",
+      "ClassName": "EnergyNextTurnPower",
+      "Zhs": "下回合能量"
+    },
+    {
+      "Id": "ENFEEBLING_TOUCH_POWER",
+      "ClassName": "EnfeeblingTouchPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "ENRAGE_POWER",
+      "ClassName": "EnragePower",
+      "Zhs": "激怒"
+    },
+    {
+      "Id": "ENTROPY_POWER",
+      "ClassName": "EntropyPower",
+      "Zhs": "熵"
+    },
+    {
+      "Id": "ENVENOM_POWER",
+      "ClassName": "EnvenomPower",
+      "Zhs": "涂毒"
+    },
+    {
+      "Id": "ESCAPE_ARTIST_POWER",
+      "ClassName": "EscapeArtistPower",
+      "Zhs": "逃脱大师"
+    },
+    {
+      "Id": "FAN_OF_KNIVES_POWER",
+      "ClassName": "FanOfKnivesPower",
+      "Zhs": "刀扇"
+    },
+    {
+      "Id": "FASTEN_POWER",
+      "ClassName": "FastenPower",
+      "Zhs": "勒紧"
+    },
+    {
+      "Id": "FEEDING_FRENZY_POWER",
+      "ClassName": "FeedingFrenzyPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "FEEL_NO_PAIN_POWER",
+      "ClassName": "FeelNoPainPower",
+      "Zhs": "无惧疼痛"
+    },
+    {
+      "Id": "FERAL_POWER",
+      "ClassName": "FeralPower",
+      "Zhs": "野性"
+    },
+    {
+      "Id": "FLAME_BARRIER_POWER",
+      "ClassName": "FlameBarrierPower",
+      "Zhs": "火焰屏障"
+    },
+    {
+      "Id": "FLANKING_POWER",
+      "ClassName": "FlankingPower",
+      "Zhs": "夹击"
+    },
+    {
+      "Id": "FLEX_POTION_POWER",
+      "ClassName": "FlexPotionPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "FLUTTER_POWER",
+      "ClassName": "FlutterPower",
+      "Zhs": "振翅"
+    },
+    {
+      "Id": "FOCUSED_STRIKE_POWER",
+      "ClassName": "FocusedStrikePower",
+      "Zhs": ""
+    },
+    {
+      "Id": "FOCUS_POWER",
+      "ClassName": "FocusPower",
+      "Zhs": "集中"
+    },
+    {
+      "Id": "FORBIDDEN_GRIMOIRE_POWER",
+      "ClassName": "ForbiddenGrimoirePower",
+      "Zhs": "禁忌魔典"
+    },
+    {
+      "Id": "FOREGONE_CONCLUSION_POWER",
+      "ClassName": "ForegoneConclusionPower",
+      "Zhs": "既定事项"
+    },
+    {
+      "Id": "FRAIL_POWER",
+      "ClassName": "FrailPower",
+      "Zhs": "脆弱"
+    },
+    {
+      "Id": "FREE_ATTACK_POWER",
+      "ClassName": "FreeAttackPower",
+      "Zhs": "免费攻击"
+    },
+    {
+      "Id": "FREE_POWER_POWER",
+      "ClassName": "FreePowerPower",
+      "Zhs": "免费能力"
+    },
+    {
+      "Id": "FREE_SKILL_POWER",
+      "ClassName": "FreeSkillPower",
+      "Zhs": "免费技能"
+    },
+    {
+      "Id": "FRIENDSHIP_POWER",
+      "ClassName": "FriendshipPower",
+      "Zhs": "友谊"
+    },
+    {
+      "Id": "FURNACE_POWER",
+      "ClassName": "FurnacePower",
+      "Zhs": "熔炉"
+    },
+    {
+      "Id": "GALVANIC_POWER",
+      "ClassName": "GalvanicPower",
+      "Zhs": "流电"
+    },
+    {
+      "Id": "GENESIS_POWER",
+      "ClassName": "GenesisPower",
+      "Zhs": "创世纪"
+    },
+    {
+      "Id": "GIGANTIFICATION_POWER",
+      "ClassName": "GigantificationPower",
+      "Zhs": "超巨化"
+    },
+    {
+      "Id": "GRAPPLE_POWER",
+      "ClassName": "GrapplePower",
+      "Zhs": "擒拿"
+    },
+    {
+      "Id": "GRAVITY_POWER",
+      "ClassName": "GravityPower",
+      "Zhs": "引力"
+    },
+    {
+      "Id": "GUARDED_POWER",
+      "ClassName": "GuardedPower",
+      "Zhs": "护卫"
+    },
+    {
+      "Id": "HAILSTORM_POWER",
+      "ClassName": "HailstormPower",
+      "Zhs": "冰雹风暴"
+    },
+    {
+      "Id": "HAMMER_TIME_POWER",
+      "ClassName": "HammerTimePower",
+      "Zhs": "锤子时间"
+    },
+    {
+      "Id": "HANG_POWER",
+      "ClassName": "HangPower",
+      "Zhs": "吊杀"
+    },
+    {
+      "Id": "HARDENED_SHELL_POWER",
+      "ClassName": "HardenedShellPower",
+      "Zhs": "硬化外壳"
+    },
+    {
+      "Id": "HARD_TO_KILL_POWER",
+      "ClassName": "HardToKillPower",
+      "Zhs": "难以杀灭"
+    },
+    {
+      "Id": "HATCH_POWER",
+      "ClassName": "HatchPower",
+      "Zhs": "孵化"
+    },
+    {
+      "Id": "HAUNT_POWER",
+      "ClassName": "HauntPower",
+      "Zhs": "纠缠"
+    },
+    {
+      "Id": "HEIST_POWER",
+      "ClassName": "HeistPower",
+      "Zhs": "盗窃"
+    },
+    {
+      "Id": "HELICAL_DART_POWER",
+      "ClassName": "HelicalDartPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "HELLO_WORLD_POWER",
+      "ClassName": "HelloWorldPower",
+      "Zhs": "你好世界"
+    },
+    {
+      "Id": "HELLRAISER_POWER",
+      "ClassName": "HellraiserPower",
+      "Zhs": "地狱狂徒"
+    },
+    {
+      "Id": "HEX_POWER",
+      "ClassName": "HexPower",
+      "Zhs": "恶咒"
+    },
+    {
+      "Id": "HIGH_VOLTAGE_POWER",
+      "ClassName": "HighVoltagePower",
+      "Zhs": "高电压"
+    },
+    {
+      "Id": "HOTFIX_POWER",
+      "ClassName": "HotfixPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "ILLUSION_POWER",
+      "ClassName": "IllusionPower",
+      "Zhs": "幻象"
+    },
+    {
+      "Id": "IMBALANCED_POWER",
+      "ClassName": "ImbalancedPower",
+      "Zhs": "失衡"
+    },
+    {
+      "Id": "IMPROVEMENT_POWER",
+      "ClassName": "ImprovementPower",
+      "Zhs": "改善"
+    },
+    {
+      "Id": "INFERNO_POWER",
+      "ClassName": "InfernoPower",
+      "Zhs": "狱火"
+    },
+    {
+      "Id": "INFESTED_POWER",
+      "ClassName": "InfestedPower",
+      "Zhs": "寄生物"
+    },
+    {
+      "Id": "INFINITE_BLADES_POWER",
+      "ClassName": "InfiniteBladesPower",
+      "Zhs": "无尽刀刃"
+    },
+    {
+      "Id": "INTANGIBLE_POWER",
+      "ClassName": "IntangiblePower",
+      "Zhs": "无实体"
+    },
+    {
+      "Id": "INTERCEPT_POWER",
+      "ClassName": "InterceptPower",
+      "Zhs": "拦截"
+    },
+    {
+      "Id": "ITERATION_POWER",
+      "ClassName": "IterationPower",
+      "Zhs": "迭代"
+    },
+    {
+      "Id": "JUGGERNAUT_POWER",
+      "ClassName": "JuggernautPower",
+      "Zhs": "势不可当"
+    },
+    {
+      "Id": "JUGGLING_POWER",
+      "ClassName": "JugglingPower",
+      "Zhs": "杂耍"
+    },
+    {
+      "Id": "KNOCKDOWN_POWER",
+      "ClassName": "KnockdownPower",
+      "Zhs": "击倒"
+    },
+    {
+      "Id": "LEADERSHIP_POWER",
+      "ClassName": "LeadershipPower",
+      "Zhs": "领袖气质"
+    },
+    {
+      "Id": "LETHALITY_POWER",
+      "ClassName": "LethalityPower",
+      "Zhs": "致死性"
+    },
+    {
+      "Id": "LIGHTNING_ROD_POWER",
+      "ClassName": "LightningRodPower",
+      "Zhs": "引雷针"
+    },
+    {
+      "Id": "LOOP_POWER",
+      "ClassName": "LoopPower",
+      "Zhs": "循环"
+    },
+    {
+      "Id": "MACHINE_LEARNING_POWER",
+      "ClassName": "MachineLearningPower",
+      "Zhs": "机器学习"
+    },
+    {
+      "Id": "MAGIC_BOMB_POWER",
+      "ClassName": "MagicBombPower",
+      "Zhs": "魔法炸弹"
+    },
+    {
+      "Id": "MANGLE_POWER",
+      "ClassName": "ManglePower",
+      "Zhs": ""
+    },
+    {
+      "Id": "MASTER_PLANNER_POWER",
+      "ClassName": "MasterPlannerPower",
+      "Zhs": "谋划专家"
+    },
+    {
+      "Id": "MAYHEM_POWER",
+      "ClassName": "MayhemPower",
+      "Zhs": "乱战"
+    },
+    {
+      "Id": "MIND_ROT_POWER",
+      "ClassName": "MindRotPower",
+      "Zhs": "心灵腐化"
+    },
+    {
+      "Id": "MINION_POWER",
+      "ClassName": "MinionPower",
+      "Zhs": "爪牙"
+    },
+    {
+      "Id": "MONARCHS_GAZE_POWER",
+      "ClassName": "MonarchsGazePower",
+      "Zhs": "王之凝视"
+    },
+    {
+      "Id": "MONARCHS_GAZE_STRENGTH_DOWN_POWER",
+      "ClassName": "MonarchsGazeStrengthDownPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "MONOLOGUE_POWER",
+      "ClassName": "MonologuePower",
+      "Zhs": "独白"
+    },
+    {
+      "Id": "NECRO_MASTERY_POWER",
+      "ClassName": "NecroMasteryPower",
+      "Zhs": "亡灵精通"
+    },
+    {
+      "Id": "NEMESIS_POWER",
+      "ClassName": "NemesisPower",
+      "Zhs": "天罚"
+    },
+    {
+      "Id": "NEUROSURGE_POWER",
+      "ClassName": "NeurosurgePower",
+      "Zhs": "精神过载"
+    },
+    {
+      "Id": "NIGHTMARE_POWER",
+      "ClassName": "NightmarePower",
+      "Zhs": "夜魇"
+    },
+    {
+      "Id": "NOSTALGIA_POWER",
+      "ClassName": "NostalgiaPower",
+      "Zhs": "怀旧"
+    },
+    {
+      "Id": "NOXIOUS_FUMES_POWER",
+      "ClassName": "NoxiousFumesPower",
+      "Zhs": "毒雾"
+    },
+    {
+      "Id": "NO_BLOCK_POWER",
+      "ClassName": "NoBlockPower",
+      "Zhs": "不可格挡"
+    },
+    {
+      "Id": "NO_DRAW_POWER",
+      "ClassName": "NoDrawPower",
+      "Zhs": "不可抽牌"
+    },
+    {
+      "Id": "OBLIVION_POWER",
+      "ClassName": "OblivionPower",
+      "Zhs": "湮灭"
+    },
+    {
+      "Id": "ONE_TWO_PUNCH_POWER",
+      "ClassName": "OneTwoPunchPower",
+      "Zhs": "连环拳"
+    },
+    {
+      "Id": "ORBIT_POWER",
+      "ClassName": "OrbitPower",
+      "Zhs": "环绕轨道"
+    },
+    {
+      "Id": "OUTBREAK_POWER",
+      "ClassName": "OutbreakPower",
+      "Zhs": "毒性爆发"
+    },
+    {
+      "Id": "PAGESTORM_POWER",
+      "ClassName": "PagestormPower",
+      "Zhs": "书页风暴"
+    },
+    {
+      "Id": "PAINFUL_STABS_POWER",
+      "ClassName": "PainfulStabsPower",
+      "Zhs": "疼痛戳刺"
+    },
+    {
+      "Id": "PALE_BLUE_DOT_POWER",
+      "ClassName": "PaleBlueDotPower",
+      "Zhs": "暗淡蓝点"
+    },
+    {
+      "Id": "PANACHE_POWER",
+      "ClassName": "PanachePower",
+      "Zhs": "神气制胜"
+    },
+    {
+      "Id": "PAPER_CUTS_POWER",
+      "ClassName": "PaperCutsPower",
+      "Zhs": "纸伤难愈"
+    },
+    {
+      "Id": "PARRY_POWER",
+      "ClassName": "ParryPower",
+      "Zhs": "招架"
+    },
+    {
+      "Id": "PERSONAL_HIVE_POWER",
+      "ClassName": "PersonalHivePower",
+      "Zhs": "人体蜂房"
+    },
+    {
+      "Id": "PHANTOM_BLADES_POWER",
+      "ClassName": "PhantomBladesPower",
+      "Zhs": "幻影之刃"
+    },
+    {
+      "Id": "PIERCING_WAIL_POWER",
+      "ClassName": "PiercingWailPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "PILLAR_OF_CREATION_POWER",
+      "ClassName": "PillarOfCreationPower",
+      "Zhs": "创世之柱"
+    },
+    {
+      "Id": "PLATING_POWER",
+      "ClassName": "PlatingPower",
+      "Zhs": "覆甲"
+    },
+    {
+      "Id": "PLOW_POWER",
+      "ClassName": "PlowPower",
+      "Zhs": "横冲直撞"
+    },
+    {
+      "Id": "POISON_POWER",
+      "ClassName": "PoisonPower",
+      "Zhs": "中毒"
+    },
+    {
+      "Id": "POSSESS_SPEED_POWER",
+      "ClassName": "PossessSpeedPower",
+      "Zhs": "抢夺速度"
+    },
+    {
+      "Id": "POSSESS_STRENGTH_POWER",
+      "ClassName": "PossessStrengthPower",
+      "Zhs": "抢夺力量"
+    },
+    {
+      "Id": "PREP_TIME_POWER",
+      "ClassName": "PrepTimePower",
+      "Zhs": "准备时间"
+    },
+    {
+      "Id": "PYRE_POWER",
+      "ClassName": "PyrePower",
+      "Zhs": "薪火之源"
+    },
+    {
+      "Id": "RADIANCE_POWER",
+      "ClassName": "RadiancePower",
+      "Zhs": "明耀"
+    },
+    {
+      "Id": "RAGE_POWER",
+      "ClassName": "RagePower",
+      "Zhs": "狂怒"
+    },
+    {
+      "Id": "RAMPART_POWER",
+      "ClassName": "RampartPower",
+      "Zhs": "盾墙"
+    },
+    {
+      "Id": "RAVENOUS_POWER",
+      "ClassName": "RavenousPower",
+      "Zhs": "饥饿"
+    },
+    {
+      "Id": "REAPER_FORM_POWER",
+      "ClassName": "ReaperFormPower",
+      "Zhs": "死神形态"
+    },
+    {
+      "Id": "REATTACH_POWER",
+      "ClassName": "ReattachPower",
+      "Zhs": "接续"
+    },
+    {
+      "Id": "REBOUND_POWER",
+      "ClassName": "ReboundPower",
+      "Zhs": "弹回"
+    },
+    {
+      "Id": "REFLECT_POWER",
+      "ClassName": "ReflectPower",
+      "Zhs": "倒映"
+    },
+    {
+      "Id": "REGEN_POWER",
+      "ClassName": "RegenPower",
+      "Zhs": "再生"
+    },
+    {
+      "Id": "REPTILE_TRINKET_POWER",
+      "ClassName": "ReptileTrinketPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "RETAIN_HAND_POWER",
+      "ClassName": "RetainHandPower",
+      "Zhs": "保留手牌"
+    },
+    {
+      "Id": "RINGING_POWER",
+      "ClassName": "RingingPower",
+      "Zhs": "昏眩"
+    },
+    {
+      "Id": "RITUAL_POWER",
+      "ClassName": "RitualPower",
+      "Zhs": "仪式"
+    },
+    {
+      "Id": "ROLLING_BOULDER_POWER",
+      "ClassName": "RollingBoulderPower",
+      "Zhs": "滚石"
+    },
+    {
+      "Id": "ROYALTIES_POWER",
+      "ClassName": "RoyaltiesPower",
+      "Zhs": "王国资产"
+    },
+    {
+      "Id": "RUPTURE_POWER",
+      "ClassName": "RupturePower",
+      "Zhs": "撕裂"
+    },
+    {
+      "Id": "SANDPIT_POWER",
+      "ClassName": "SandpitPower",
+      "Zhs": "沙坑"
+    },
+    {
+      "Id": "SEEKING_EDGE_POWER",
+      "ClassName": "SeekingEdgePower",
+      "Zhs": "追踪之刃"
+    },
+    {
+      "Id": "SELF_FORMING_CLAY_POWER",
+      "ClassName": "SelfFormingClayPower",
+      "Zhs": "自成型黏土"
+    },
+    {
+      "Id": "SENTRY_MODE_POWER",
+      "ClassName": "SentryModePower",
+      "Zhs": "哨卫模式"
+    },
+    {
+      "Id": "SERPENT_FORM_POWER",
+      "ClassName": "SerpentFormPower",
+      "Zhs": "群蛇形态"
+    },
+    {
+      "Id": "SETUP_STRIKE_POWER",
+      "ClassName": "SetupStrikePower",
+      "Zhs": ""
+    },
+    {
+      "Id": "SHACKLING_POTION_POWER",
+      "ClassName": "ShacklingPotionPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "SHADOWMELD_POWER",
+      "ClassName": "ShadowmeldPower",
+      "Zhs": "融入暗影"
+    },
+    {
+      "Id": "SHADOW_STEP_POWER",
+      "ClassName": "ShadowStepPower",
+      "Zhs": "暗影步"
+    },
+    {
+      "Id": "SHRIEK_POWER",
+      "ClassName": "ShriekPower",
+      "Zhs": "尖叫"
+    },
+    {
+      "Id": "SHRINK_POWER",
+      "ClassName": "ShrinkPower",
+      "Zhs": "缩小"
+    },
+    {
+      "Id": "SHROUD_POWER",
+      "ClassName": "ShroudPower",
+      "Zhs": "厄运之衣"
+    },
+    {
+      "Id": "SIC_EM_POWER",
+      "ClassName": "SicEmPower",
+      "Zhs": "紧追不放"
+    },
+    {
+      "Id": "SIGNAL_BOOST_POWER",
+      "ClassName": "SignalBoostPower",
+      "Zhs": "信号增强"
+    },
+    {
+      "Id": "SKITTISH_POWER",
+      "ClassName": "SkittishPower",
+      "Zhs": "胆小"
+    },
+    {
+      "Id": "SLEIGHT_OF_FLESH_POWER",
+      "ClassName": "SleightOfFleshPower",
+      "Zhs": "血肉戏法"
+    },
+    {
+      "Id": "SLIPPERY_POWER",
+      "ClassName": "SlipperyPower",
+      "Zhs": "滑溜"
+    },
+    {
+      "Id": "SLOTH_POWER",
+      "ClassName": "SlothPower",
+      "Zhs": "懒惰"
+    },
+    {
+      "Id": "SLOW_POWER",
+      "ClassName": "SlowPower",
+      "Zhs": "缓慢"
+    },
+    {
+      "Id": "SLUMBER_POWER",
+      "ClassName": "SlumberPower",
+      "Zhs": "熟睡"
+    },
+    {
+      "Id": "SMOGGY_POWER",
+      "ClassName": "SmoggyPower",
+      "Zhs": "烟雾弥漫"
+    },
+    {
+      "Id": "SMOKESTACK_POWER",
+      "ClassName": "SmokestackPower",
+      "Zhs": "烟囱"
+    },
+    {
+      "Id": "SNEAKY_POWER",
+      "ClassName": "SneakyPower",
+      "Zhs": "鬼祟"
+    },
+    {
+      "Id": "SOAR_POWER",
+      "ClassName": "SoarPower",
+      "Zhs": "翱翔"
+    },
+    {
+      "Id": "SPECTRUM_SHIFT_POWER",
+      "ClassName": "SpectrumShiftPower",
+      "Zhs": "光谱偏移"
+    },
+    {
+      "Id": "SPEEDSTER_POWER",
+      "ClassName": "SpeedsterPower",
+      "Zhs": "速行者"
+    },
+    {
+      "Id": "SPEED_POTION_POWER",
+      "ClassName": "SpeedPotionPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "SPINNER_POWER",
+      "ClassName": "SpinnerPower",
+      "Zhs": "旋转工艺"
+    },
+    {
+      "Id": "SPIRIT_OF_ASH_POWER",
+      "ClassName": "SpiritOfAshPower",
+      "Zhs": "灰烬之灵"
+    },
+    {
+      "Id": "STAMPEDE_POWER",
+      "ClassName": "StampedePower",
+      "Zhs": "惊逃"
+    },
+    {
+      "Id": "STAR_NEXT_TURN_POWER",
+      "ClassName": "StarNextTurnPower",
+      "Zhs": "下回合辉星"
+    },
+    {
+      "Id": "STEAM_ERUPTION_POWER",
+      "ClassName": "SteamEruptionPower",
+      "Zhs": "蒸汽喷发"
+    },
+    {
+      "Id": "STOCK_POWER",
+      "ClassName": "StockPower",
+      "Zhs": "库存"
+    },
+    {
+      "Id": "STORM_POWER",
+      "ClassName": "StormPower",
+      "Zhs": "雷暴"
+    },
+    {
+      "Id": "STRANGLE_POWER",
+      "ClassName": "StranglePower",
+      "Zhs": "紧勒"
+    },
+    {
+      "Id": "STRATAGEM_POWER",
+      "ClassName": "StratagemPower",
+      "Zhs": "计策"
+    },
+    {
+      "Id": "STRENGTH_POWER",
+      "ClassName": "StrengthPower",
+      "Zhs": "力量"
+    },
+    {
+      "Id": "SUBROUTINE_POWER",
+      "ClassName": "SubroutinePower",
+      "Zhs": "子程序"
+    },
+    {
+      "Id": "SUCK_POWER",
+      "ClassName": "SuckPower",
+      "Zhs": "吮吸"
+    },
+    {
+      "Id": "SUMMON_NEXT_TURN_POWER",
+      "ClassName": "SummonNextTurnPower",
+      "Zhs": "下回合召唤"
+    },
+    {
+      "Id": "SURPRISE_POWER",
+      "ClassName": "SurprisePower",
+      "Zhs": "意外"
+    },
+    {
+      "Id": "SURROUNDED_POWER",
+      "ClassName": "SurroundedPower",
+      "Zhs": "遭到包围"
+    },
+    {
+      "Id": "SWIPE_POWER",
+      "ClassName": "SwipePower",
+      "Zhs": "顺走"
+    },
+    {
+      "Id": "SWORD_SAGE_POWER",
+      "ClassName": "SwordSagePower",
+      "Zhs": "剑圣"
+    },
+    {
+      "Id": "SYNCHRONIZE_POWER",
+      "ClassName": "SynchronizePower",
+      "Zhs": ""
+    },
+    {
+      "Id": "TAG_TEAM_POWER",
+      "ClassName": "TagTeamPower",
+      "Zhs": "多人组队"
+    },
+    {
+      "Id": "TANGLED_POWER",
+      "ClassName": "TangledPower",
+      "Zhs": "缠结"
+    },
+    {
+      "Id": "TANK_POWER",
+      "ClassName": "TankPower",
+      "Zhs": "肉盾"
+    },
+    {
+      "Id": "TEMPORARY_DEXTERITY_POWER",
+      "ClassName": "TemporaryDexterityPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "TEMPORARY_FOCUS_POWER",
+      "ClassName": "TemporaryFocusPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "TEMPORARY_STRENGTH_POWER",
+      "ClassName": "TemporaryStrengthPower",
+      "Zhs": ""
+    },
+    {
+      "Id": "TENDER_POWER",
+      "ClassName": "TenderPower",
+      "Zhs": "柔嫩"
+    },
+    {
+      "Id": "TERRITORIAL_POWER",
+      "ClassName": "TerritorialPower",
+      "Zhs": "领地意识"
+    },
+    {
+      "Id": "THE_BOMB_POWER",
+      "ClassName": "TheBombPower",
+      "Zhs": "炸弹"
+    },
+    {
+      "Id": "THE_GAMBIT_POWER",
+      "ClassName": "TheGambitPower",
+      "Zhs": "孤注一掷"
+    },
+    {
+      "Id": "THE_HUNT_POWER",
+      "ClassName": "TheHuntPower",
+      "Zhs": "狩猎"
+    },
+    {
+      "Id": "THE_SEALED_THRONE_POWER",
+      "ClassName": "TheSealedThronePower",
+      "Zhs": "封印王座"
+    },
+    {
+      "Id": "THIEVERY_POWER",
+      "ClassName": "ThieveryPower",
+      "Zhs": "偷窃"
+    },
+    {
+      "Id": "THORNS_POWER",
+      "ClassName": "ThornsPower",
+      "Zhs": "荆棘"
+    },
+    {
+      "Id": "THUNDER_POWER",
+      "ClassName": "ThunderPower",
+      "Zhs": "雷霆"
+    },
+    {
+      "Id": "TOOLS_OF_THE_TRADE_POWER",
+      "ClassName": "ToolsOfTheTradePower",
+      "Zhs": "必备工具"
+    },
+    {
+      "Id": "TORIC_TOUGHNESS_POWER",
+      "ClassName": "ToricToughnessPower",
+      "Zhs": "坚韧之环"
+    },
+    {
+      "Id": "TRACKING_POWER",
+      "ClassName": "TrackingPower",
+      "Zhs": "跟踪"
+    },
+    {
+      "Id": "TRASH_TO_TREASURE_POWER",
+      "ClassName": "TrashToTreasurePower",
+      "Zhs": "化废为宝"
+    },
+    {
+      "Id": "TYRANNY_POWER",
+      "ClassName": "TyrannyPower",
+      "Zhs": "暴政"
+    },
+    {
+      "Id": "UNMOVABLE_POWER",
+      "ClassName": "UnmovablePower",
+      "Zhs": "不动"
+    },
+    {
+      "Id": "VEILPIERCER_POWER",
+      "ClassName": "VeilpiercerPower",
+      "Zhs": "刺破帷幕"
+    },
+    {
+      "Id": "VICIOUS_POWER",
+      "ClassName": "ViciousPower",
+      "Zhs": "凶恶"
+    },
+    {
+      "Id": "VIGOR_POWER",
+      "ClassName": "VigorPower",
+      "Zhs": "活力"
+    },
+    {
+      "Id": "VITAL_SPARK_POWER",
+      "ClassName": "VitalSparkPower",
+      "Zhs": "活力火花"
+    },
+    {
+      "Id": "VOID_FORM_POWER",
+      "ClassName": "VoidFormPower",
+      "Zhs": "虚空形态"
+    },
+    {
+      "Id": "VULNERABLE_POWER",
+      "ClassName": "VulnerablePower",
+      "Zhs": "易伤"
+    },
+    {
+      "Id": "WASTE_AWAY_POWER",
+      "ClassName": "WasteAwayPower",
+      "Zhs": "衰朽"
+    },
+    {
+      "Id": "WEAK_POWER",
+      "ClassName": "WeakPower",
+      "Zhs": "虚弱"
+    },
+    {
+      "Id": "WELL_LAID_PLANS_POWER",
+      "ClassName": "WellLaidPlansPower",
+      "Zhs": "计划妥当"
+    },
+    {
+      "Id": "WRAITH_FORM_POWER",
+      "ClassName": "WraithFormPower",
+      "Zhs": "幽魂形态"
+    }
+  ],
+  "Enchantments": [
+    {
+      "Id": "ADROIT",
+      "ClassName": "Adroit",
+      "Zhs": "伶俐"
+    },
+    {
+      "Id": "CLONE",
+      "ClassName": "Clone",
+      "Zhs": "克隆"
+    },
+    {
+      "Id": "CORRUPTED",
+      "ClassName": "Corrupted",
+      "Zhs": "腐化"
+    },
+    {
+      "Id": "FAVORED",
+      "ClassName": "Favored",
+      "Zhs": "钟爱"
+    },
+    {
+      "Id": "GLAM",
+      "ClassName": "Glam",
+      "Zhs": "华彩"
+    },
+    {
+      "Id": "GOOPY",
+      "ClassName": "Goopy",
+      "Zhs": "黏糊"
+    },
+    {
+      "Id": "IMBUED",
+      "ClassName": "Imbued",
+      "Zhs": "注能"
+    },
+    {
+      "Id": "INSTINCT",
+      "ClassName": "Instinct",
+      "Zhs": "本能"
+    },
+    {
+      "Id": "MOMENTUM",
+      "ClassName": "Momentum",
+      "Zhs": "动量"
+    },
+    {
+      "Id": "NIMBLE",
+      "ClassName": "Nimble",
+      "Zhs": "灵巧"
+    },
+    {
+      "Id": "PERFECT_FIT",
+      "ClassName": "PerfectFit",
+      "Zhs": "完美契合"
+    },
+    {
+      "Id": "ROYALLY_APPROVED",
+      "ClassName": "RoyallyApproved",
+      "Zhs": "皇室认证"
+    },
+    {
+      "Id": "SHARP",
+      "ClassName": "Sharp",
+      "Zhs": "锋利"
+    },
+    {
+      "Id": "SLITHER",
+      "ClassName": "Slither",
+      "Zhs": "蛇行"
+    },
+    {
+      "Id": "SLUMBERING_ESSENCE",
+      "ClassName": "SlumberingEssence",
+      "Zhs": "沉眠精华"
+    },
+    {
+      "Id": "SOULS_POWER",
+      "ClassName": "SoulsPower",
+      "Zhs": "灵魂之力"
+    },
+    {
+      "Id": "SOWN",
+      "ClassName": "Sown",
+      "Zhs": "播种"
+    },
+    {
+      "Id": "SPIRAL",
+      "ClassName": "Spiral",
+      "Zhs": "涡旋"
+    },
+    {
+      "Id": "STEADY",
+      "ClassName": "Steady",
+      "Zhs": "稳定"
+    },
+    {
+      "Id": "SWIFT",
+      "ClassName": "Swift",
+      "Zhs": "迅速"
+    },
+    {
+      "Id": "TEZCATARAS_EMBER",
+      "ClassName": "TezcatarasEmber",
+      "Zhs": "特兹卡塔拉的余烬"
+    },
+    {
+      "Id": "VIGOROUS",
+      "ClassName": "Vigorous",
+      "Zhs": "活力"
+    }
+  ],
+  "Afflictions": [
+    {
+      "Id": "BOUND",
+      "ClassName": "Bound",
+      "Zhs": "魂缚"
+    },
+    {
+      "Id": "ENTANGLED",
+      "ClassName": "Entangled",
+      "Zhs": "缠身"
+    },
+    {
+      "Id": "GALVANIZED",
+      "ClassName": "Galvanized",
+      "Zhs": "流电"
+    },
+    {
+      "Id": "HEXED",
+      "ClassName": "Hexed",
+      "Zhs": "邪咒"
+    },
+    {
+      "Id": "RINGING",
+      "ClassName": "Ringing",
+      "Zhs": "昏眩"
+    },
+    {
+      "Id": "SMOG",
+      "ClassName": "Smog",
+      "Zhs": "烟雾"
+    }
+  ]
+}
