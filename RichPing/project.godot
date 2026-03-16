@@ -1,0 +1,14 @@
+; RichPing Mod - 丰富战斗 Ping 文本
+; 依赖: ModConfig（可选）、sts2
+
+config_version=5
+
+[application]
+
+config/name="RichPing"
+run/main_scene=""
+config/features=PackedStringArray("4.5")
+
+[dotnet]
+
+project/assembly_name="RichPing"

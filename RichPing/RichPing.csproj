@@ -1,0 +1,17 @@
+<Project Sdk="Godot.NET.Sdk/4.5.1">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>RichPing</RootNamespace>
+    <AssemblyName>RichPing</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="sts2">
+      <!-- 复制游戏 data_sts2_windows_x86_64\sts2.dll 到本目录，或修改为游戏路径。需 .NET 9 编译 -->
+      <HintPath>..\..\SteamLibrary\steamapps\common\Slay the Spire 2\data_sts2_windows_x86_64\sts2.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+</Project>
