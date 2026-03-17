@@ -2,11 +2,22 @@ using System;
 
 namespace ControlPanel;
 
+/// <summary>遭遇战类型：普通/精英/Boss</summary>
+public enum EncounterType { Normal, Elite, Boss }
+
 /// <summary>
-/// 控制面板静态数据：药水分类、卡牌子集、药水完整列表、遭遇战列表。
+/// 控制面板静态数据：药水分类、卡牌子集、药水完整列表、遭遇战列表、遗物、事件。
 /// </summary>
 public static class PotionAndCardData
 {
+    /// <summary>牌堆类型（对应 PileType）</summary>
+    public static readonly (string name, string cmd)[] PileTypes =
+    {
+        ("手牌", "Hand"), ("抽牌堆", "Draw"), ("弃牌堆", "Discard"), ("牌组", "Deck"),
+    };
+
+    /// <summary>遗物稀有度</summary>
+    public static readonly string[] RelicRarities = { "全部", "普通", "罕见", "稀有", "远古", "初始", "事件", "商店" };
     public static readonly string[] PotionCategories = { "全部", "伤害", "格挡", "增益", "减益", "治疗", "能量", "抽牌/技能", "其他" };
 
     /// <summary>约 80 张常用卡牌 ID</summary>
@@ -148,5 +159,49 @@ public static class PotionAndCardData
         ("SOUL_FYSH_BOSS", "灵魂异鱼Boss"),
         ("KNOWLEDGE_DEMON_BOSS", "知识恶魔Boss"),
         ("LAGAVULIN_MATRIARCH_BOSS", "拉格维林母体Boss"),
+    };
+
+    /// <summary>从遭遇 ID 推断类型</summary>
+    public static EncounterType GetEncounterType(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return EncounterType.Normal;
+        var u = id.ToUpperInvariant();
+        if (u.Contains("_BOSS")) return EncounterType.Boss;
+        if (u.Contains("_ELITE")) return EncounterType.Elite;
+        return EncounterType.Normal;
+    }
+
+    /// <summary>遗物数据 (id, zh, rarity)。rarity: Common/Uncommon/Rare/Ancient/Starter/Event/Shop</summary>
+    public static readonly (string id, string zh, string rarity)[] RelicData =
+    {
+        ("VAJRA", "金刚杵", "Common"), ("BAG_OF_MARBLES", "弹珠袋", "Common"), ("WARPED_TONGS", "扭曲钳", "Common"),
+        ("ANCHOR", "锚", "Common"), ("PRESERVED_INSECT", "保存的昆虫", "Common"), ("BRONZE_SCALES", "青铜鳞片", "Common"),
+        ("SELF_FORMING_CLAY", "自塑粘土", "Uncommon"), ("ORICHALCUM", "山铜", "Uncommon"), ("PAPER_PHROG", "纸蛙", "Uncommon"),
+        ("TOXIC_EGG", "毒蛋", "Rare"), ("INCENSE_BURNER", "香炉", "Rare"), ("WHITE_BEAST_STATUE", "白兽雕像", "Rare"),
+        ("THE_BOOT", "靴子", "Event"), ("GOLDEN_IDOL", "黄金偶像", "Rare"), ("NUNCHAKU", "双节棍", "Uncommon"),
+        ("KUNAI", "苦无", "Uncommon"), ("SHURIKEN", "手里剑", "Uncommon"), ("ORNAMENTAL_FAN", "装饰扇", "Uncommon"),
+        ("STRIKE_DUMMY", "打击假人", "Common"), ("RED_MASK", "红面具", "Common"), ("TWISTED_FUNNEL", "扭曲漏斗", "Uncommon"),
+        ("MEMENTO", "纪念品", "Starter"), ("CRACKED_CORE", "裂隙核心", "Starter"), ("RING_OF_THE_SERPENT", "蛇戒", "Starter"),
+    };
+
+    /// <summary>常用能力/Buff (id, zh)</summary>
+    public static readonly (string id, string zh)[] PowerData =
+    {
+        ("STRENGTH_POWER", "力量"), ("DEXTERITY_POWER", "敏捷"), ("VULNERABLE_POWER", "易伤"), ("WEAK_POWER", "虚弱"),
+        ("PLATED_ARMOR_POWER", "覆甲"), ("BLUR_POWER", "残影"), ("ARTIFACT_POWER", "人工制品"), ("POISON_POWER", "中毒"),
+        ("FOCUS_POWER", "集中"), ("REGEN_POWER", "再生"), ("INTANGIBLE_POWER", "无实体"), ("RITUAL_POWER", "仪式"),
+        ("NOXIOUS_FUMES_POWER", "毒雾"), ("ENVENOM_POWER", "涂毒"), ("THORNS_POWER", "荆棘"), ("FLAME_BARRIER_POWER", "火焰屏障"),
+        ("JUGGERNAUT_POWER", "势不可当"), ("BARRICADE_POWER", "壁垒"), ("DARK_EMBRACE_POWER", "黑暗之拥"), ("CORRUPTION_POWER", "腐化"),
+        ("MACHINE_LEARNING_POWER", "机器学习"), ("LOOP_POWER", "循环"), ("ECHO_FORM_POWER", "回响形态"), ("CREATIVE_AI_POWER", "创造性AI"),
+    };
+
+    /// <summary>事件数据 (id, zh)</summary>
+    public static readonly (string id, string zh)[] EventData =
+    {
+        ("BONFIRE_SPIRITS", "篝火之灵"), ("CURSED_TOME", "诅咒之书"), ("DEAD_ADVENTURER", "死去冒险家"),
+        ("HYPNOTIZING_COLORED_MUSHROOM", "催眠彩菇"), ("LIVING_WALL", "活体墙"), ("MASKED_BANDITS", "蒙面强盗"),
+        ("THE_SSSSSERPENT", "蛇"), ("THE_CLERIC", "牧师"), ("THE_LIBRARIAN", "图书管理员"),
+        ("THE_JOUSTER", "骑枪手"), ("WING_STATUE", "翅膀雕像"), ("AUGMENTER", "增强者"),
+        ("COLLECTOR", "收藏家"), ("DESIGNER_IN_SPIRE", "尖塔设计师"), ("DUPLICATOR", "复制机"),
     };
 }

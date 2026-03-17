@@ -66,6 +66,16 @@
 | 2025-03-17 | 完整列表脚本爬取、官方中文汉化来源、解包提取 | **extract_sts2_ids.py** 从 Models 爬取卡(576)/药(63)/遗(289)/能(260)/附(22)/强(6)；GodotPckTool 解包 SlayTheSpire2.pck 获取 res://localization/zhs；**VC_STS2_FULL_ID_LISTS.md** 已更新完整 ID+官方翻译(约 97.8%)；**extract_localization_from_pck.md** 解包说明 |
 | 2025-03-17 | ControlPanel 卡牌/药水栏空、游戏内功能不实现 | 日志显示列表已加载但点击无反应；多次修复后 **最终方案**：ItemList → VBoxContainer+Button；同步加载替代 CallDeferred；版本标识 v2；运行构建.bat；**游戏内功能已实现** ✓ |
 | 2025-03-17 | ControlPanel 总结反思、Plan 记录 | 见下方 ControlPanel 项目总结与反思；工作日志见 `VC_CONTROL_PANEL_WORK_LOG.md` |
+| 2025-03-17 | ControlPanel 构建 7 错误修复、反思记录 | CS0136 pileRow 重复→改 removePileRow；CS0117 AutowrapModeOff→改 AutowrapMode.Off；已记入报错速查与错误反思 |
+| 2025-03-17 | ControlPanel 大改：实时检测+角色分类+遗物图标+生成敌人+Power表+可调尺寸 | GameStateHelper 反射牌堆/遗物/药水；CardCharacterHelper 角色筛选；遗物图标网格左键添加/删除；药水实时显示；PowerData 表；生成敌人(fight)；尺寸 SpinBox；标题 ControlPanel+Composer 1.5 |
+| 2025-03-16 | ControlPanel 10 项大改+构建错误修复 | 1)添加卡牌从 VC_STS2_FULL_IDS.json 加载；2)面板右下角拖拽改变大小；3)牌堆实时检测用 DebugOnlyGetState；4)遗物 RunState 从 CombatState/NRun 获取；5)图标用小写 ID；6)药水/事件右侧游戏内文本；7)战斗内生成敌人(SpawnEnemyHelper+CreatureCmd.Add)；8)能力从 JSON Powers 加载；9)事件场景文本；10)VC_STS2_FULL_IDS.json 复制到 mod 目录。**SpawnEnemyHelper 构建错误**：combatMgr 为 object 需 GetType() 再 GetProperty/GetMethod；modelDb.GetMethod 第二个参数不能为 int(会被当作 BindingFlags)，改用 GetMethods+FirstOrDefault 找泛型 GetById |
+| 2025-03-16 | ControlPanel 10 项优化+卡顿修复 | 1)**卡牌角色归属**：CardPoolHelper 从 ModelDb.AllCardPools 反射获取官方归属；2)**卡顿**：RefreshRightContent 延迟构建；卡牌列表“全部”+无搜索时显示占位；上限 200；3)**遗物**：文字改到图标下方；稀有度从 GameStateHelper.GetRelicRarityFromGame 获取并缓存；4)**药水**：右侧图标 64→40；移除删除药水；5)**显示面积**：ScrollContainer/HSplitContainer 加 SizeFlagsVertical=ExpandFill 自适应；6)**生成敌人**：SpawnEnemyHelper CreateModelId 转小写；Monsters/AllMonsters 回退；7)**事件**：LocalizationHelper.GetEventText 增加 options.0.text 等选项文本；8)**百科大全**：今后爬取数据可参考游戏内百科(官方已细化分类) |
+
+---
+
+## 数据来源约定 · 百科大全
+
+**爬取/归类游戏数据时**，优先参考游戏内「百科大全」功能：官方已对卡牌、遗物、药水、怪物图鉴等做了细化分类。NBestiary 显示怪物；NCardLibrary 用 `c.Pool is IroncladCardPool` 等筛选卡牌。数据脚本与 Mod 可据此对齐分类。
 
 ---
 
@@ -78,6 +88,10 @@
 | `mod_mainfest.json` | 拼写错误（应为 manifest） | 重命名为 `mod_manifest.json` |
 | `CS1705` / `Failed to load project assembly` / `System.Runtime Version=9.0.0.0` 找不到 | Godot 4.5.1 为 .NET 8，sts2 为 .NET 9，直接引用导致加载失败 | **Sts2Stubs 方案**：net8.0 + Sts2Stubs.cs 存根，移除 sts2 引用；Harmony 运行时反射访问游戏 |
 | Ping 文本未替换 / ModConfig 无配置项 | ModLoaded 未调用；Register 时机太晚或未调用 | **ModManagerInitPostfix** 在 ModManager.Initialize 完成后调度 init；**严格按 [ModConfig-STS2](https://github.com/xhyrzldf/ModConfig-STS2) README**：Type.GetType + 程序集回退；2 帧延迟；`Array.CreateInstance(_entryType)` 构造 ConfigEntry[] |
+| **CS0136** 无法在此范围中声明名为“X”的局部变量 | 同一方法内，外层与内层（if/else/循环）使用了相同变量名，即使路径互斥 | 内/外层变量改用不同名称，如 `removePileRow` vs `pileRow` |
+| **CS0117** “TextServer”未包含“AutowrapModeOff” | Godot 4 API 误用：`AutowrapModeOff` 不存在 | 正确为 **`TextServer.AutowrapMode.Off`**（枚举 `AutowrapMode` 下的值 `Off`），不是 `AutowrapModeOff` |
+| **CS1929** “object”不包含“GetProperty”/“GetMethod” | 反射时对 `object` 实例直接调用了 `GetProperty`/`GetMethod`（实为 `Type` 的扩展） | 先用 `obj.GetType()` 得到 Type，再 `type.GetProperty(...)` / `type.GetMethod(...)` |
+| **CS1503** 参数 2: 无法从“int”转换为“BindingFlags” | `Type.GetMethod(name, 1, ...)` 中 `1` 被解析为 BindingFlags 参数 | 使用 `GetMethods(BindingFlags)...FirstOrDefault(m => m.Name=="..." && m.IsGenericMethodDefinition)` 等方式查找泛型方法 |
 
 ---
 
@@ -89,6 +103,9 @@
 4. ~~多阶段 / 多角色 / 死亡 Ping~~：已实现。
 5. ~~Godot 导出~~：dotnet build + Godot --export-pack，build.ps1 一键构建。
 6. ~~实机验证~~：Ping 文本替换 ✓、模组配置显示 ✓
+7. ~~ControlPanel 功能扩大与 UI 改造~~：已实现（2025-03 计划，见 VC_CONTROL_PANEL_WORK_LOG.md）
+8. ~~ControlPanel UI 可调宽度 + 图2 模板~~：栏目可拖拽调整；各功能统一为 列表\|预览+执行 结构
+9. ~~ControlPanel 实时检测+角色筛选+遗物图标+生成敌人+Power表~~：GameStateHelper 实时牌堆/遗物/药水；CardCharacterHelper 卡牌角色；遗物按稀有度图标网格；能力表；**战斗内生成敌人**（SpawnEnemyHelper+CreatureCmd.Add，非 fight）
 
 ---
 
@@ -185,6 +202,8 @@
 | 点击无反应 | ItemList.ItemClicked 未触发（selectable、渲染等问题） | Button.Pressed 可靠 |
 | 修改后 UI 无变化 | 构建后未正确部署或游戏未重启加载新 DLL | 版本标识（v2）可验证；`运行构建.bat` 后需完全重启游戏 |
 | 药水 ID 错误 | 使用 FAIRY_IN_A_BOTTLE 等，游戏实际为 FAIRY_IN_ABOTTLE | 以 VC_STS2_FULL_IDS.json 为准 |
+| **CS0136** pileRow 重复声明 | 同一方法内 remove 分支与 add 分支都声明 `pileRow`，C# 不允许外层与内层同名 | 移除分支内改为 `removePileRow` |
+| **CS0117** TextServer.AutowrapModeOff | Godot 4 中不存在该成员 | 使用 `TextServer.AutowrapMode.Off`（枚举值在 `AutowrapMode` 下） |
 
 ### 排查与记忆（保留）
 
