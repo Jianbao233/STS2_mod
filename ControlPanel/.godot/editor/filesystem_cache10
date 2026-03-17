@@ -1,12 +1,12 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1773690167
+::res://::1773725380
 ControlPanelMod.cs::CSharpScript::5521864322795265474::1773690060::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1773688854::0::1::::<><><>0<>0<><>::
 F7InputLayer.cs::CSharpScript::5100442232752878633::1773690061::0::1::::<>Control<><>0<>0<><>::
 HarmonyPatcher.cs::CSharpScript::614659258763905007::1773689621::0::1::::<><><>0<>0<><>::
 ModConfigIntegration.cs::CSharpScript::5022299346676059157::1773690082::0::1::::<><><>0<>0<><>::
 mod_manifest.json::JSON::-1::1773688535::0::1::::<><><>0<>0<><>::
-NControlPanel.cs::CSharpScript::1850903764677797865::1773690053::0::1::::<>CanvasLayer<><>0<>0<><>::
-PotionAndCardData.cs::CSharpScript::6671564945630888116::1773690107::0::1::::<><><>0<>0<><>::
-README.md::TextFile::-1::1773688545::0::1::::<><><>0<>0<><>::
+NControlPanel.cs::CSharpScript::1850903764677797865::1773725313::0::1::::<>CanvasLayer<><>0<>0<><>::
+PotionAndCardData.cs::CSharpScript::6671564945630888116::1773724159::0::1::::<><><>0<>0<><>::
+README.md::TextFile::-1::1773724230::0::1::::<><><>0<>0<><>::
 Sts2Stubs.cs::CSharpScript::8297284093290592058::1773688535::0::1::::<><><>0<>0<><>::

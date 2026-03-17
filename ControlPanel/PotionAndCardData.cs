@@ -71,7 +71,7 @@ public static class PotionAndCardData
         ("ENTROPIC_BREW", "混沌药水", "其他"),
         ("ESSENCE_OF_DARKNESS", "黑暗精华", "伤害"),
         ("EXPLOSIVE_AMPOULE", "爆炸安瓿", "伤害"),
-        ("FAIRY_IN_A_BOTTLE", "瓶中精灵", "治疗"),
+        ("FAIRY_IN_ABOTTLE", "瓶中精灵", "治疗"),  // 游戏内拼写为 ABOTTLE
         ("FIRE_POTION", "火焰药水", "伤害"),
         ("FLEX_POTION", "肌肉药水", "增益"),
         ("FOCUS_POTION", "集中药水", "增益"),
@@ -101,7 +101,7 @@ public static class PotionAndCardData
         ("RADIANT_TINCTURE", "明耀酊剂", "增益"),
         ("REGEN_POTION", "再生药水", "治疗"),
         ("SHACKLING_POTION", "镣铐药水", "减益"),
-        ("SHIP_IN_A_BOTTLE", "瓶中船", "其他"),
+        ("SHIP_IN_ABOTTLE", "瓶中船", "其他"),  // 游戏内拼写为 ABOTTLE
         ("SKILL_POTION", "技能药水", "抽牌/技能"),
         ("SNECKO_OIL", "异蛇之油", "其他"),
         ("SOLDIERS_STEW", "士兵炖汤", "其他"),

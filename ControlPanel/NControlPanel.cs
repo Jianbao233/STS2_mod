@@ -20,9 +20,9 @@ public partial class NControlPanel : CanvasLayer
     private Control _cardTab;
     private Control _potionTab;
     private Control _fightTab;
-    private ItemList _cardList;
-    private ItemList _potionList;
-    private ItemList _fightList;
+    private VBoxContainer _cardListContainer;  // 卡牌按钮列表（替代 ItemList）
+    private VBoxContainer _potionListContainer;
+    private VBoxContainer _fightListContainer;
     private LineEdit _cardSearch;
     private OptionButton _potionCategory;
     private LineEdit _potionSearch;
@@ -77,7 +77,7 @@ public partial class NControlPanel : CanvasLayer
         // 可拖拽标题栏（DamageMeter 同款）
         _titleBtn = new Button
         {
-            Text = "控制面板  [F7 关闭]",
+            Text = "控制面板 v2 · 卡牌/药水/战斗  [F7 关闭]",
             Flat = true,
             FocusMode = Control.FocusModeEnum.None,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
@@ -101,6 +101,18 @@ public partial class NControlPanel : CanvasLayer
         BuildCardTab();
         BuildPotionTab();
         BuildFightTab();
+        // 同步加载列表（不再用 CallDeferred，避免某些环境下延迟回调未执行）
+        try
+        {
+            LoadCardItems();
+            LoadPotionItems();
+            LoadFightItems();
+            GD.Print($"[ControlPanel] v2 列表已加载: 卡牌 {_cardListContainer.GetChildCount()}, 药水 {_potionListContainer.GetChildCount()}, 遭遇 {_fightListContainer.GetChildCount()}");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[ControlPanel] 列表加载失败: {e.Message}\n{e.StackTrace}");
+        }
         // F7 由 CreateAndAttachPanel 中单独挂载的 F7InputLayer 处理（作为 Root 子节点，确保面板隐藏时仍能接收输入）
     }
 
@@ -120,16 +132,10 @@ public partial class NControlPanel : CanvasLayer
             CustomMinimumSize = new Vector2(0, 180),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
         };
-        _cardList = new ItemList
-        {
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            MaxColumns = 2
-        };
-        _cardList.ItemClicked += (long index, Vector2 atPosition, long mouseButtonIndex) => OnCardClicked((int)index);
-        cardScroll.AddChild(_cardList);
+        _cardListContainer = new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        cardScroll.AddChild(_cardListContainer);
         _cardTab.AddChild(cardScroll);
-
-        LoadCardItems();
+        // 列表由 DeferredLoadAllLists 统一加载
     }
 
     private void BuildPotionTab()
@@ -153,12 +159,10 @@ public partial class NControlPanel : CanvasLayer
             CustomMinimumSize = new Vector2(0, 180),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
         };
-        _potionList = new ItemList { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        _potionList.ItemClicked += (long index, Vector2 atPosition, long mouseButtonIndex) => OnPotionClicked((int)index);
-        potionScroll.AddChild(_potionList);
+        _potionListContainer = new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        potionScroll.AddChild(_potionListContainer);
         _potionTab.AddChild(potionScroll);
-
-        LoadPotionItems();
+        // 列表由 DeferredLoadAllLists 统一加载
     }
 
     private void BuildFightTab()
@@ -176,12 +180,10 @@ public partial class NControlPanel : CanvasLayer
             CustomMinimumSize = new Vector2(0, 180),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
         };
-        _fightList = new ItemList { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        _fightList.ItemClicked += (long index, Vector2 atPosition, long mouseButtonIndex) => OnFightClicked((int)index);
-        fightScroll.AddChild(_fightList);
+        _fightListContainer = new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        fightScroll.AddChild(_fightListContainer);
         _fightTab.AddChild(fightScroll);
-
-        LoadFightItems();
+        // 列表由 DeferredLoadAllLists 统一加载
     }
 
     private string[] _cardIds = Array.Empty<string>();
@@ -189,9 +191,10 @@ public partial class NControlPanel : CanvasLayer
 
     private void LoadCardItems()
     {
-        // 使用预置常用卡牌子集，或从资源加载
-        _cardIds = PotionAndCardData.CardIds;
-        _cardZhs = PotionAndCardData.CardZhs;
+        _cardIds = PotionAndCardData.CardIds ?? Array.Empty<string>();
+        _cardZhs = PotionAndCardData.CardZhs ?? Array.Empty<string>();
+        if (_cardIds.Length == 0)
+            GD.Print("[ControlPanel] 警告: 卡牌数据为空");
         RefreshCardList();
     }
 
@@ -202,7 +205,8 @@ public partial class NControlPanel : CanvasLayer
 
     private void RefreshCardList()
     {
-        _cardList.Clear();
+        foreach (var c in _cardListContainer.GetChildren())
+            c.QueueFree();
         var q = _cardSearch?.Text?.Trim().ToLowerInvariant() ?? "";
         for (int i = 0; i < _cardIds.Length; i++)
         {
@@ -212,36 +216,33 @@ public partial class NControlPanel : CanvasLayer
                 !id.ToLowerInvariant().Contains(q) &&
                 !(zh?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))
                 continue;
-            _cardList.AddItem(string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", null, false);
-            _cardList.SetItemMetadata(_cardList.ItemCount - 1, Variant.CreateFrom(id));
+            var btn = new Button { Text = string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", Flat = true };
+            var idCopy = id;
+            btn.Pressed += () => RunCommand($"card {idCopy}");
+            _cardListContainer.AddChild(btn);
         }
-    }
-
-    private void OnCardClicked(int index)
-    {
-        var id = _cardList.GetItemMetadata(index).AsString();
-        if (!string.IsNullOrEmpty(id))
-            RunCommand($"card {id} hand");
     }
 
     private (string id, string zh, string cat)[] _potionData = Array.Empty<(string, string, string)>();
 
     private void LoadPotionItems()
     {
-        _potionData = PotionAndCardData.PotionData;
-        _potionCategory.Clear();
+        _potionData = PotionAndCardData.PotionData ?? Array.Empty<(string, string, string)>();
+        _potionCategory?.Clear();
         foreach (var cat in PotionAndCardData.PotionCategories)
-            _potionCategory.AddItem(cat);
+            _potionCategory?.AddItem(cat);
+        if (_potionData.Length == 0)
+            GD.Print("[ControlPanel] 警告: 药水数据为空");
         FilterPotionList();
     }
 
     private void FilterPotionList()
     {
-        _potionList.Clear();
+        foreach (var c in _potionListContainer.GetChildren())
+            c.QueueFree();
         var catIdx = _potionCategory?.Selected ?? 0;
         var catFilter = catIdx <= 0 ? "" : _potionCategory.GetItemText(catIdx);
         var q = _potionSearch?.Text?.Trim().ToLowerInvariant() ?? "";
-
         foreach (var (id, zh, cat) in _potionData)
         {
             if (!string.IsNullOrEmpty(catFilter) && cat != catFilter) continue;
@@ -249,39 +250,30 @@ public partial class NControlPanel : CanvasLayer
                 !id.ToLowerInvariant().Contains(q) &&
                 !(zh?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))
                 continue;
-            var idx = _potionList.AddItem(string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", null, false);
-            _potionList.SetItemMetadata(idx, Variant.CreateFrom(id));
+            var btn = new Button { Text = string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", Flat = true };
+            var idCopy = id;
+            btn.Pressed += () => RunCommand($"potion {idCopy}");
+            _potionListContainer.AddChild(btn);
         }
-    }
-
-    private void OnPotionClicked(int index)
-    {
-        var id = _potionList.GetItemMetadata(index).AsString();
-        if (!string.IsNullOrEmpty(id))
-            RunCommand($"potion {id}");
     }
 
     private (string id, string zh)[] _fightData = Array.Empty<(string, string)>();
 
     private void LoadFightItems()
     {
-        _fightData = PotionAndCardData.FightData;
-        _fightList.Clear();
+        _fightData = PotionAndCardData.FightData ?? Array.Empty<(string, string)>();
+        foreach (var c in _fightListContainer.GetChildren())
+            c.QueueFree();
         foreach (var (id, zh) in _fightData)
         {
-            var idx = _fightList.AddItem(string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", null, false);
-            _fightList.SetItemMetadata(idx, Variant.CreateFrom(id));
+            var btn = new Button { Text = string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", Flat = true };
+            var idCopy = id;
+            btn.Pressed += () => RunCommand($"fight {idCopy}");
+            _fightListContainer.AddChild(btn);
         }
     }
 
-    private void OnFightClicked(int index)
-    {
-        var id = _fightList.GetItemMetadata(index).AsString();
-        if (!string.IsNullOrEmpty(id))
-            RunCommand($"fight {id}");
-    }
-
-    /// <summary>通过 DevConsole 执行命令（需进行中局内）</summary>
+    /// <summary>通过 DevConsole 执行命令（需进行中局内：卡牌/药水在战斗中，fight 需在地图/局内）</summary>
     private void RunCommand(string cmd)
     {
         try
@@ -289,56 +281,93 @@ public partial class NControlPanel : CanvasLayer
             object devConsole = GetDevConsole();
             if (devConsole == null)
             {
-                Godot.GD.Print($"[ControlPanel] DevConsole 未找到，无法执行: {cmd}");
+                GD.PrintErr($"[ControlPanel] DevConsole 未找到，无法执行: {cmd}");
                 return;
             }
 
-            var method = devConsole.GetType().GetMethod("ProcessCommand", new[] { typeof(string) });
-            var result = method?.Invoke(devConsole, new object[] { cmd });
+            var t = devConsole.GetType();
+            var method = t.GetMethod("ProcessCommand", new[] { typeof(string) })
+                ?? t.GetMethod("ProcessCommand", BindingFlags.Public | BindingFlags.Instance, null, new[] { typeof(string) }, null);
+            if (method == null)
+            {
+                GD.PrintErr($"[ControlPanel] 未找到 ProcessCommand(string) 方法");
+                return;
+            }
+
+            var result = method.Invoke(devConsole, new object[] { cmd });
             if (result != null)
             {
                 var success = result.GetType().GetProperty("Success")?.GetValue(result) as bool?
                     ?? result.GetType().GetProperty("success")?.GetValue(result) as bool?;
                 var msg = result.GetType().GetProperty("Msg")?.GetValue(result) as string
                     ?? result.GetType().GetProperty("msg")?.GetValue(result) as string;
-                Godot.GD.Print($"[ControlPanel] {cmd} => {(success == true ? "OK" : "FAIL")} {msg}");
+                GD.Print($"[ControlPanel] {cmd} => {(success == true ? "OK" : "FAIL")} {msg ?? ""}");
             }
         }
         catch (Exception e)
         {
-            Godot.GD.PrintErr($"[ControlPanel] RunCommand failed: {e.Message}");
+            GD.PrintErr($"[ControlPanel] RunCommand failed: {e.Message}\n{e.StackTrace}");
         }
     }
 
+    private static readonly string[] NDevConsoleTypeNames = {
+        "MegaCrit.Sts2.Core.Nodes.Debug.NDevConsole",
+        "Sts2.Core.Nodes.Debug.NDevConsole",
+        "NDevConsole"
+    };
+
+    private static readonly string[] DevConsoleTypeNames = {
+        "MegaCrit.Sts2.Core.DevConsole.DevConsole",
+        "Sts2.Core.DevConsole.DevConsole",
+        "DevConsole"
+    };
+
     private static object GetDevConsole()
     {
+        // 1) 通过 NDevConsole.Instance._devConsole 获取（游戏单例，可能尚未创建则 Instance 会抛异常）
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
         {
             try
             {
-                var name = asm.GetName().Name ?? "";
-                if (!name.Contains("sts2", StringComparison.OrdinalIgnoreCase) && !name.Contains("Sts2")) continue;
-
-                var ndevType = asm.GetType("MegaCrit.Sts2.Core.Nodes.Debug.NDevConsole");
-                if (ndevType != null)
+                foreach (var typeName in NDevConsoleTypeNames)
                 {
-                    var instance = ndevType.GetProperty("Instance")?.GetValue(null);
-                    if (instance != null)
+                    var ndevType = asm.GetType(typeName);
+                    if (ndevType != null)
                     {
-                        var devField = ndevType.GetField("_devConsole", BindingFlags.NonPublic | BindingFlags.Instance);
-                        var dev = devField?.GetValue(instance);
-                        if (dev != null) return dev;
+                        var instance = ndevType.GetProperty("Instance")?.GetValue(null);  // 可能抛 InvalidOperationException
+                        if (instance != null)
+                        {
+                            var devField = ndevType.GetField("_devConsole", BindingFlags.NonPublic | BindingFlags.Instance);
+                            var dev = devField?.GetValue(instance);
+                            if (dev != null) return dev;
+                        }
+                        break;
                     }
                 }
+            }
+            catch (InvalidOperationException) { /* Instance 尚未创建 */ }
+            catch { /* 跳过 */ }
+        }
 
-                var devType = asm.GetType("MegaCrit.Sts2.Core.DevConsole.DevConsole");
+        // 2) 创建 DevConsole 实例（mod 加载时 allowDebug=true）
+        bool allowDebug = true;  // ModManager.LoadedMods.Count > 0 时等效
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            try
+            {
+                Type devType = null;
+                foreach (var name in DevConsoleTypeNames)
+                {
+                    devType = asm.GetType(name);
+                    if (devType != null) break;
+                }
                 if (devType != null)
                 {
-                    var dev = Activator.CreateInstance(devType, true);
+                    var dev = Activator.CreateInstance(devType, allowDebug);  // DevConsole(bool shouldAllowDebugCommands)
                     if (dev != null) return dev;
                 }
             }
-            catch { /* 跳过无法加载的程序集 */ }
+            catch { /* 跳过 */ }
         }
         return null;
     }

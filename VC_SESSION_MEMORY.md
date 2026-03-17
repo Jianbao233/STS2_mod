@@ -6,8 +6,9 @@
 
 ## 项目工作区约定
 
-- **STS2_mod**：`K:\杀戮尖塔mod制作\STS2_mod\` — Mod 工作区根目录，包含 RichPing 等子项目
+- **STS2_mod**：`K:\杀戮尖塔mod制作\STS2_mod\` — Mod 工作区根目录，包含 RichPing、ControlPanel 等子项目
 - **RichPing**：`K:\杀戮尖塔mod制作\STS2_mod\RichPing\` — RichPing Mod 项目根目录
+- **ControlPanel**：`K:\杀戮尖塔mod制作\STS2_mod\ControlPanel\` — 控制面板 Mod（F7 卡牌/药水/战斗快捷）
 - **sts2 反编译源码**：`K:\杀戮尖塔mod制作\Tools\sts2_decompiled\`（外部参考）
 - **游戏目录**：`K:\SteamLibrary\steamapps\common\Slay the Spire 2\`
 
@@ -63,6 +64,8 @@
 | 2025-03-17 | 查找游戏内各类卡牌药水遗物等 ID，整合文档；战斗内外指令、多人联机 | 创建 VC_STS2_IDS_AND_COMMANDS_REFERENCE.md |
 | 2025-03-17 | 罗列所有省略的大型数组（卡牌/药水/遗物/能力/附魔/强化）、附中文、多人玩家与敌方 ID | 创建 VC_STS2_FULL_ID_LISTS.md；记录完整药水(63)、附魔(21)、强化(6)及多人 NetId/CombatId 说明 |
 | 2025-03-17 | 完整列表脚本爬取、官方中文汉化来源、解包提取 | **extract_sts2_ids.py** 从 Models 爬取卡(576)/药(63)/遗(289)/能(260)/附(22)/强(6)；GodotPckTool 解包 SlayTheSpire2.pck 获取 res://localization/zhs；**VC_STS2_FULL_ID_LISTS.md** 已更新完整 ID+官方翻译(约 97.8%)；**extract_localization_from_pck.md** 解包说明 |
+| 2025-03-17 | ControlPanel 卡牌/药水栏空、游戏内功能不实现 | 日志显示列表已加载但点击无反应；多次修复后 **最终方案**：ItemList → VBoxContainer+Button；同步加载替代 CallDeferred；版本标识 v2；运行构建.bat；**游戏内功能已实现** ✓ |
+| 2025-03-17 | ControlPanel 总结反思、Plan 记录 | 见下方 ControlPanel 项目总结与反思；工作日志见 `VC_CONTROL_PANEL_WORK_LOG.md` |
 
 ---
 
@@ -157,6 +160,40 @@
 - 「继续 RichPing」：在 RichPing 文件夹内施工
 - 「我遇到了 [报错特征]」：可引用报错速查表
 - 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
+- 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
+
+---
+
+## ControlPanel Mod · 项目总结与反思
+
+### 实现要点
+
+| 维度 | 要点 |
+|------|------|
+| **架构** | CanvasLayer + Panel 浮窗；Harmony ModManagerInitPostfix 挂载；F7InputLayer 独立于面板处理快捷键 |
+| **UI 实现** | **VBoxContainer + Button** 替代 ItemList（ItemList 在 STS2 环境下不显示、不响应点击） |
+| **命令执行** | 反射 DevConsole.ProcessCommand(string)；NDevConsole.Instance 未创建时用 Activator.CreateInstance(DevConsole, true) |
+| **数据** | PotionAndCardData 静态类：约 80 卡牌、63 药水、30 遭遇；药水 ID 须与游戏一致（FAIRY_IN_ABOTTLE 等） |
+| **加载时机** | **同步加载** 列表于 _Ready（CallDeferred 在某些环境下未执行导致列表始终为空） |
+| **构建部署** | dotnet build → Godot 导出 PCK → 复制到 `{游戏}\mods\ControlPanel\`；`运行构建.bat` 一键执行 |
+
+### 错误反思
+
+| 问题 | 原因 | 正确做法 |
+|------|------|----------|
+| 列表始终为空 | 1) ItemList 在 Godot/STS2 下渲染或事件异常；2) CallDeferred 可能未执行 | 用 VBoxContainer+Button；同步加载 |
+| 点击无反应 | ItemList.ItemClicked 未触发（selectable、渲染等问题） | Button.Pressed 可靠 |
+| 修改后 UI 无变化 | 构建后未正确部署或游戏未重启加载新 DLL | 版本标识（v2）可验证；`运行构建.bat` 后需完全重启游戏 |
+| 药水 ID 错误 | 使用 FAIRY_IN_A_BOTTLE 等，游戏实际为 FAIRY_IN_ABOTTLE | 以 VC_STS2_FULL_IDS.json 为准 |
+
+### 排查与记忆（保留）
+
+| 要点 | 说明 |
+|------|------|
+| **日志路径** | `%APPDATA%\SlayTheSpire2\logs\godot.log` |
+| **DevConsole** | NDevConsole.Instance 会抛 InvalidOperationException，需 catch 后 CreateInstance |
+| **构建** | `运行构建.bat` 或 `.\build.ps1` |
+| **版本标识** | 标题含「v2」则新版本已加载 |
 
 ---
 
