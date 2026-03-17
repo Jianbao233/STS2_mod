@@ -76,6 +76,7 @@
 | 2025-03-17 | 禁止客机作弊 Mod 可行性分析 | 分析 ActionQueueSynchronizer 网络收发；结论：房主 Patch HandleRequestEnqueueActionMessage 可行 |
 | 2025-03-17 | NoClientCheats Mod 实现与构建 | 创建 NoClientCheats 项目；Harmony Prefix + ModConfig；构建部署至 mods/NoClientCheats ✓ |
 | 2025-03-17 | GitHub 发布 Mod：README + Release | 模仿 STS2 mod 仓库撰写 README.md；prepare-release.ps1 打包；VC_GITHUB_RELEASE_GUIDE.md 发布流程；记忆中补充 Release 学习与提示词 ✓ |
+| 2025-03-17 | 仓库 README（vibe coding / 高中生 / AI）+ 构建打包 | 根目录 README 写明 vibe coding、中国高中生、昨天才开始、无系统编程经验、AI 协助；构建并打包 NoClientCheats；Releases 链接改为 Jianbao233/STS2_mod ✓ |
 
 ---
 
@@ -231,6 +232,7 @@
 | 时间 | 提示词 | 结果概要 |
 |------|--------|----------|
 | 2025-03-17 | 把 mod 发布到 github，没有经验，模仿其他 mod 的 readme，实现发行版并讲述逻辑，学习发布，记入记忆 | 撰写 README.md（参考 Minty-Spire-2、StS2-Quick-Restart）；prepare-release.ps1 打包脚本；VC_GITHUB_RELEASE_GUIDE.md 发布指南；VC_SESSION_MEMORY 补充 Release 逻辑与流程 |
+| 2025-03-17 | 仓库 README 表达 vibe coding、中国高中生、昨天才开始、无编程经验、AI 创建；构建打包禁止客机作弊 mod 供上传；记入记忆 | 根目录 README 中英双语说明；构建+prepare-release 生成 NoClientCheats-v1.0.0.zip 于 `NoClientCheats/release/`；Releases 指向 Jianbao233/STS2_mod |
 
 ---
 

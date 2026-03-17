@@ -28,7 +28,7 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 
 1. 找到游戏目录，例如：`Steam\steamapps\common\Slay the Spire 2`
 2. 确保存在 `mods` 文件夹（与 `SlayTheSpire2.exe` 同级）
-3. 从 [Releases](https://github.com/YOUR_USERNAME/NoClientCheats/releases) 下载最新版 `NoClientCheats-vX.X.X.zip`
+3. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载最新版 `NoClientCheats-vX.X.X.zip`
 4. 解压到 `mods` 文件夹内，确保目录结构为：
    ```
    mods/
