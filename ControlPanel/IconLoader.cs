@@ -15,7 +15,7 @@ public static class IconLoader
     private const string PotionAtlas = "potion_atlas";
     private const string PowerAtlas = "power_atlas";
 
-    /// <summary>卡牌图标路径：res://images/packed/card_portraits/{id}.png</summary>
+    /// <summary>卡牌 portrait 按角色分目录：res://images/packed/card_portraits/{pool}/{id}.png</summary>
     private const string CardFallbackPrefix = "res://images/packed/card_portraits/";
     /// <summary>遗物图标路径：res://images/relics/{id}.png</summary>
     private const string RelicFallbackPrefix = "res://images/relics/";
@@ -24,13 +24,23 @@ public static class IconLoader
     /// <summary>能力图标路径：res://images/powers/{id}.png</summary>
     private const string PowerFallbackPrefix = "res://images/powers/";
 
-    /// <summary>获取卡牌图标，spriteName 通常为 CardClassName 或 Id（如 BODY_SLAM）</summary>
+    /// <summary>获取卡牌图标。游戏使用 packed/card_portraits/{pool}/{id}.png，atlas 格式为 {pool}/{id}</summary>
     public static Texture2D GetCardIcon(string spriteName)
     {
         if (string.IsNullOrEmpty(spriteName)) return null;
-        var atlas = TryAtlasGetSprite(CardAtlas, spriteName);
-        if (atlas is Texture2D tex) return tex;
-        return ResourceLoader.Load<Texture2D>($"{CardFallbackPrefix}{spriteName}.png", null, ResourceLoader.CacheMode.Reuse);
+        var idLower = spriteName.ToLowerInvariant();
+        // 1) Atlas: card_atlas 内 sprite 格式为 pool/id，如 ironclad/body_slam
+        var character = CardPoolHelper.GetCharacter(spriteName);
+        var poolFolder = character.ToLowerInvariant();
+        var atlas = TryAtlasGetSprite(CardAtlas, $"{poolFolder}/{idLower}");
+        if (atlas is Texture2D t1) return t1;
+        atlas = TryAtlasGetSprite(CardAtlas, idLower);
+        if (atlas is Texture2D t2) return t2;
+        // 2) PNG 回退：packed/card_portraits/{pool}/{id}.png
+        var path = $"{CardFallbackPrefix}{poolFolder}/{idLower}.png";
+        var tex = ResourceLoader.Load<Texture2D>(path, null, ResourceLoader.CacheMode.Reuse);
+        if (tex != null) return tex;
+        return ResourceLoader.Load<Texture2D>($"{CardFallbackPrefix}{idLower}.png", null, ResourceLoader.CacheMode.Reuse);
     }
 
     /// <summary>获取遗物图标（游戏 atlas 使用小写 ID）</summary>

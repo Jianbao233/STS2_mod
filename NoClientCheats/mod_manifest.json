@@ -1,0 +1,7 @@
+{
+  "pck_name": "NoClientCheats",
+  "name": "禁止客机作弊 / No Client Cheats",
+  "author": "VC",
+  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。需 ModConfig 方可配置。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install. ModConfig for settings.\n\n致谢 / Thanks:\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（DamageMeter 作者）",
+  "version": "1.0.0"
+}

@@ -195,13 +195,14 @@ public static class PotionAndCardData
         ("MACHINE_LEARNING_POWER", "机器学习"), ("LOOP_POWER", "循环"), ("ECHO_FORM_POWER", "回响形态"), ("CREATIVE_AI_POWER", "创造性AI"),
     };
 
-    /// <summary>事件数据 (id, zh)</summary>
+    /// <summary>事件数据 (id, zh)，ID 需与 events.json 及游戏 EventModel 一致</summary>
     public static readonly (string id, string zh)[] EventData =
     {
-        ("BONFIRE_SPIRITS", "篝火之灵"), ("CURSED_TOME", "诅咒之书"), ("DEAD_ADVENTURER", "死去冒险家"),
-        ("HYPNOTIZING_COLORED_MUSHROOM", "催眠彩菇"), ("LIVING_WALL", "活体墙"), ("MASKED_BANDITS", "蒙面强盗"),
-        ("THE_SSSSSERPENT", "蛇"), ("THE_CLERIC", "牧师"), ("THE_LIBRARIAN", "图书管理员"),
-        ("THE_JOUSTER", "骑枪手"), ("WING_STATUE", "翅膀雕像"), ("AUGMENTER", "增强者"),
-        ("COLLECTOR", "收藏家"), ("DESIGNER_IN_SPIRE", "尖塔设计师"), ("DUPLICATOR", "复制机"),
+        ("ABYSSAL_BATHS", "深渊浴场"), ("AMALGAMATOR", "熔合者"), ("AROMA_OF_CHAOS", "混沌芳香"),
+        ("BATTLEWORN_DUMMY", "战痕累累的训练假人"), ("BRAIN_LEECH", "脑蛭"), ("BUGSLAYER", "害虫杀手"),
+        ("BYRDONIS_NEST", "多尼斯异鸟巢"), ("COLORFUL_PHILOSOPHERS", "色彩哲学家"),
+        ("RELIC_TRADER", "遗物商人"), ("POTION_COURIER", "药水信使"), ("PUNCH_OFF", "拳击赛"),
+        ("THE_ARCHITECT", "建筑师"), ("MORPHIC_GROVE", "变形树丛"), ("WELCOME_TO_WONGOS", "欢迎来到翁戈斯"),
+        ("NEOW", "尼奥"), ("SUNKEN_TREASURY", "沉没宝库"), ("RANWID_THE_ELDER", "长者兰维德"),
     };
 }

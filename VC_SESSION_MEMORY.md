@@ -69,7 +69,13 @@
 | 2025-03-17 | ControlPanel 构建 7 错误修复、反思记录 | CS0136 pileRow 重复→改 removePileRow；CS0117 AutowrapModeOff→改 AutowrapMode.Off；已记入报错速查与错误反思 |
 | 2025-03-17 | ControlPanel 大改：实时检测+角色分类+遗物图标+生成敌人+Power表+可调尺寸 | GameStateHelper 反射牌堆/遗物/药水；CardCharacterHelper 角色筛选；遗物图标网格左键添加/删除；药水实时显示；PowerData 表；生成敌人(fight)；尺寸 SpinBox；标题 ControlPanel+Composer 1.5 |
 | 2025-03-16 | ControlPanel 10 项大改+构建错误修复 | 1)添加卡牌从 VC_STS2_FULL_IDS.json 加载；2)面板右下角拖拽改变大小；3)牌堆实时检测用 DebugOnlyGetState；4)遗物 RunState 从 CombatState/NRun 获取；5)图标用小写 ID；6)药水/事件右侧游戏内文本；7)战斗内生成敌人(SpawnEnemyHelper+CreatureCmd.Add)；8)能力从 JSON Powers 加载；9)事件场景文本；10)VC_STS2_FULL_IDS.json 复制到 mod 目录。**SpawnEnemyHelper 构建错误**：combatMgr 为 object 需 GetType() 再 GetProperty/GetMethod；modelDb.GetMethod 第二个参数不能为 int(会被当作 BindingFlags)，改用 GetMethods+FirstOrDefault 找泛型 GetById |
-| 2025-03-16 | ControlPanel 10 项优化+卡顿修复 | 1)**卡牌角色归属**：CardPoolHelper 从 ModelDb.AllCardPools 反射获取官方归属；2)**卡顿**：RefreshRightContent 延迟构建；卡牌列表“全部”+无搜索时显示占位；上限 200；3)**遗物**：文字改到图标下方；稀有度从 GameStateHelper.GetRelicRarityFromGame 获取并缓存；4)**药水**：右侧图标 64→40；移除删除药水；5)**显示面积**：ScrollContainer/HSplitContainer 加 SizeFlagsVertical=ExpandFill 自适应；6)**生成敌人**：SpawnEnemyHelper CreateModelId 转小写；Monsters/AllMonsters 回退；7)**事件**：LocalizationHelper.GetEventText 增加 options.0.text 等选项文本；8)**百科大全**：今后爬取数据可参考游戏内百科(官方已细化分类) |
+| 2025-03-16 | ControlPanel 10 项优化+卡顿修复 | 1)**卡牌角色归属**：CardPoolHelper 从 ModelDb.AllCardPools 反射；2)**卡顿**：延迟构建、占位、上限 200；3)**遗物**：图标下文字、稀有度缓存；4)**药水**：图标缩小、移除删除药水；5)**显示面积**：ExpandFill 自适应；6)**生成敌人**：CreateModelId 小写、Monsters 回退；7)**事件**：GetEventText options 文本；8)**百科大全**：数据爬取参考 |
+| 2025-03-16 | ControlPanel 9 项修复与 UI 优化 | 1)**删除卡牌**：游戏 remove_card 仅支持 Hand/Deck，移除抽牌堆/弃牌堆选项；2)**遗物/能力**：网格 8→10 列、6 列，ExpandFill 自适应；3)**药水**：预览图标 40→28；4)**事件**：GetEventText 改用 pages.INITIAL.description + LocManager 枚举 options；5)**生成敌人**：CombatState 类型显式查找；6)**添加卡牌**：cardPreview 100x140、KeepAspectCentered；7)**能力**：单行显示、9 号字体、6 列；8)参考 STS-EUI、BaseLib-StS2 等 mod 仓库 |
+| 2025-03-16 | ControlPanel 卡牌图/事件文本/UI 锐化 | 1)**卡牌缩略图**：IconLoader 使用 pool/id 路径 `packed/card_portraits/{pool}/{id}.png`，CardPoolHelper 映射角色；2)**事件文本**：LocString 失败时回退到 `extracted/localization/zhs|eng/events.json` 文件读取，BBCode  stripping；3)**EventData**：更新为与 events.json 一致的 ID（ABYSSAL_BATHS、BUGSLAYER、RELIC_TRADER 等）；4)**UI**：边框 2px/更亮、事件右侧 Panel 背景+内边距、卡牌预览 110x154、字体 12px |
+| 2025-03-16 | ControlPanel 生成敌人/UI 自适应/ParasiteSpire 致谢 | 1)**生成敌人**：SpawnEnemyHelper 修复 ModelId 的 Category（MONSTER，从 ModelDb.Monsters 缓存）；2)**遗物**：网格 12 列、ScrollContainer ExpandFill；3)**药水**：右侧预览 32–48px 限制；4)**Buff**：scroll 120 最小高+ExpandFill，8 列；5)**感谢**：标题栏+mod 描述加入 ParasiteSpire 参考致谢 |
+| 2025-03-17 | 禁止客机作弊 Mod 可行性分析 | 分析 ActionQueueSynchronizer 网络收发；结论：房主 Patch HandleRequestEnqueueActionMessage 可行 |
+| 2025-03-17 | NoClientCheats Mod 实现与构建 | 创建 NoClientCheats 项目；Harmony Prefix + ModConfig；构建部署至 mods/NoClientCheats ✓ |
+| 2025-03-17 | GitHub 发布 Mod：README + Release | 模仿 STS2 mod 仓库撰写 README.md；prepare-release.ps1 打包；VC_GITHUB_RELEASE_GUIDE.md 发布流程；记忆中补充 Release 学习与提示词 ✓ |
 
 ---
 
@@ -92,6 +98,40 @@
 | **CS0117** “TextServer”未包含“AutowrapModeOff” | Godot 4 API 误用：`AutowrapModeOff` 不存在 | 正确为 **`TextServer.AutowrapMode.Off`**（枚举 `AutowrapMode` 下的值 `Off`），不是 `AutowrapModeOff` |
 | **CS1929** “object”不包含“GetProperty”/“GetMethod” | 反射时对 `object` 实例直接调用了 `GetProperty`/`GetMethod`（实为 `Type` 的扩展） | 先用 `obj.GetType()` 得到 Type，再 `type.GetProperty(...)` / `type.GetMethod(...)` |
 | **CS1503** 参数 2: 无法从“int”转换为“BindingFlags” | `Type.GetMethod(name, 1, ...)` 中 `1` 被解析为 BindingFlags 参数 | 使用 `GetMethods(BindingFlags)...FirstOrDefault(m => m.Name=="..." && m.IsGenericMethodDefinition)` 等方式查找泛型方法 |
+
+---
+
+## 控制台作弊指令 · 多人联机与模组模式（2025-03-17）
+
+| 场景 | 作弊指令是否可用 | 说明 |
+|------|------------------|------|
+| **模组模式**（ModManager.LoadedMods.Count > 0） | ✅ **可用** | 有 Mod 加载时，控制台会以 `shouldAllowDebugCommands=true` 初始化，所有指令（含 DebugOnly）均注册并可执行 |
+| **多人联机**（真实多人，非单人/假多人） | ✅ **可用** | gold/relic/card/potion 等 IsNetworked 指令会通过 ActionQueueSynchronizer 入队同步执行，所有玩家同步生效 |
+| **单人 / 假多人** | ✅ **可用** | 指令直接执行，无入队逻辑 |
+
+**关键代码**：
+- `NDevConsole._Ready`：`shouldAllowDebugCommands = OS.HasFeature("editor") \|\| TestMode.IsOn \|\| ModManager.LoadedMods.Count > 0 \|\| SaveManager.Instance.SettingsSave.FullConsole`
+- `DevConsole.ProcessCommand`：真实多人且 IsNetworked 时 `ActionQueueSynchronizer.RequestEnqueue(ConsoleCmdGameAction)` 入队
+- `RunManager.IsSinglePlayerOrFakeMultiplayer`：`IsInProgress && NetService.Type == NetGameType.Singleplayer`
+
+**无 Mod 且未开 FullConsole 时**：部分 DebugOnly 指令（如 log、open、getlogs 等）不注册，但 gold/relic/potion/card 等游戏内作弊指令为默认注册，不受影响。
+
+---
+
+## NoClientCheats Mod · 禁止客机作弊（2025-03-17）
+
+| 项目 | 说明 |
+|------|------|
+| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\NoClientCheats\` |
+| **功能** | 多人联机时禁止客机（非房主）使用控制台作弊指令（gold、relic、card 等） |
+| **部署** | 仅房主需安装；客机无需安装 |
+| **实现** | Harmony Prefix Patch `ActionQueueSynchronizer.HandleRequestEnqueueActionMessage`，当 `message.action` 为 `NetConsoleCmdGameAction` 且 cmd 在作弊列表中时跳过原方法 |
+| **ModConfig** | `block_enabled` 开关，默认 true；需 ModConfig 方可配置 |
+| **构建** | `运行构建.bat` 或 `.\build.ps1` → 复制到 `{游戏}\mods\NoClientCheats\` |
+
+**网络逻辑**：客机输入作弊指令 → 发送 `RequestEnqueueActionMessage` 给房主 → 房主 `HandleRequestEnqueueActionMessage` 收到 → 若启用且为作弊 cmd 则静默丢弃，不入队、不广播 `ActionEnqueuedMessage`，客机不会执行。
+
+**GitHub 发布**：README.md、prepare-release.ps1、VC_GITHUB_RELEASE_GUIDE.md；Releases 打包逻辑见下文。
 
 ---
 
@@ -172,12 +212,35 @@
 
 ---
 
+## GitHub Release 发布 Mod · 逻辑与流程（2025-03-17）
+
+| 概念 | 说明 |
+|------|------|
+| **Tag** | 版本标签（如 v1.0.0），每个 Release 绑定一个 Tag |
+| **Release** | 发行版页面，含版本说明和可下载附件（zip） |
+| **附件 (Assets)** | 用户下载的 Mod 打包，如 NoClientCheats-v1.0.0.zip |
+
+**流程**：1) `build.ps1` 构建 → 2) `prepare-release.ps1 -Version "1.0.0"` 打包 zip → 3) GitHub 网页或 `gh release create` 创建 Release 并上传 zip。
+
+**文件**：`NoClientCheats/README.md`、`prepare-release.ps1`、`VC_GITHUB_RELEASE_GUIDE.md`。
+
+---
+
+## 提示词记录 · 发布相关
+
+| 时间 | 提示词 | 结果概要 |
+|------|--------|----------|
+| 2025-03-17 | 把 mod 发布到 github，没有经验，模仿其他 mod 的 readme，实现发行版并讲述逻辑，学习发布，记入记忆 | 撰写 README.md（参考 Minty-Spire-2、StS2-Quick-Restart）；prepare-release.ps1 打包脚本；VC_GITHUB_RELEASE_GUIDE.md 发布指南；VC_SESSION_MEMORY 补充 Release 逻辑与流程 |
+
+---
+
 ## 下次对话可用的快速指令
 
 - 「继续 RichPing」：在 RichPing 文件夹内施工
 - 「我遇到了 [报错特征]」：可引用报错速查表
 - 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
 - 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
+- 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats 用 `prepare-release.ps1` 打包
 
 ---
 

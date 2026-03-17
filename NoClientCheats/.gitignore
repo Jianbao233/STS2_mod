@@ -1,0 +1,15 @@
+# Godot
+.godot/
+*.pck
+*.import
+project.godot.lock
+
+# Build output
+release/
+*.zip
+
+# IDE
+.vs/
+*.user
+*.suo
+*.cache

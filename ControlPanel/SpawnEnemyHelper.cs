@@ -11,7 +11,9 @@ namespace ControlPanel;
 /// </summary>
 public static class SpawnEnemyHelper
 {
-    /// <summary>获取可生成的怪物列表 (id, zh)</summary>
+    private static string _monsterCategoryCache;
+
+    /// <summary>获取可生成的怪物列表 (id, zh)。参考 ParasiteSpire 使用 CreatureCmd.Add</summary>
     public static (string id, string zh)[] GetSpawnableMonsterIds()
     {
         var result = new List<(string, string)>();
@@ -20,7 +22,7 @@ public static class SpawnEnemyHelper
             var modelDb = GetModelDbType();
             if (modelDb == null) { GD.PrintErr("[SpawnEnemy] ModelDb 未找到"); return Array.Empty<(string, string)>(); }
             var monstersProp = modelDb.GetProperty("Monsters") ?? modelDb.GetProperty("AllMonsters") ?? modelDb.GetProperty("Creatures");
-            if (monstersProp == null) { GD.PrintErr("[SpawnEnemy] ModelDb 无 Monsters/AllMonsters/Creatures 属性"); return Array.Empty<(string, string)>(); }
+            if (monstersProp == null) { GD.PrintErr("[SpawnEnemy] ModelDb 无 Monsters 属性"); return Array.Empty<(string, string)>(); }
             var monsters = monstersProp.GetValue(null) as System.Collections.IEnumerable;
             if (monsters == null) return Array.Empty<(string, string)>();
             foreach (var m in monsters)
@@ -29,9 +31,13 @@ public static class SpawnEnemyHelper
                 var idProp = m.GetType().GetProperty("Id");
                 if (idProp == null) continue;
                 var idObj = idProp.GetValue(m);
-                var entryProp = idObj?.GetType().GetProperty("Entry");
-                var id = entryProp?.GetValue(idObj) as string ?? idObj?.ToString();
-                if (string.IsNullOrEmpty(id)) continue;
+                if (idObj == null) continue;
+                var catProp = idObj.GetType().GetProperty("Category");
+                var entryProp = idObj.GetType().GetProperty("Entry");
+                var cat = catProp?.GetValue(idObj) as string;
+                var entry = entryProp?.GetValue(idObj) as string ?? idObj.ToString();
+                if (string.IsNullOrEmpty(entry)) continue;
+                if (!string.IsNullOrEmpty(cat)) _monsterCategoryCache = cat;
                 var titleProp = m.GetType().GetProperty("Title");
                 var zh = "";
                 if (titleProp != null)
@@ -40,7 +46,7 @@ public static class SpawnEnemyHelper
                     var fmt = title?.GetType().GetMethod("GetFormattedText");
                     if (fmt != null) zh = fmt.Invoke(title, null) as string ?? "";
                 }
-                result.Add((id, zh ?? ""));
+                result.Add((entry, zh ?? ""));
             }
         }
         catch (Exception e) { GD.PrintErr($"[SpawnEnemy] GetList: {e.Message}"); }
@@ -80,7 +86,8 @@ public static class SpawnEnemyHelper
 
             var creatureCmd = GetCreatureCmdType();
             if (creatureCmd == null) { GD.PrintErr("[SpawnEnemy] CreatureCmd 未找到"); return; }
-            var addMethod = creatureCmd.GetMethod("Add", new[] { GetMonsterModelType(), state.GetType(), GetCombatSideType(), typeof(string) });
+            var combatStateType = GetType("MegaCrit.Sts2.Core.Combat.CombatState") ?? GetType("CombatState");
+            var addMethod = creatureCmd.GetMethod("Add", new[] { GetMonsterModelType(), combatStateType ?? state.GetType(), GetCombatSideType(), typeof(string) });
             if (addMethod == null) { GD.PrintErr("[SpawnEnemy] CreatureCmd.Add 未找到"); return; }
 
             var combatSideEnemy = Enum.Parse(GetCombatSideType(), "Enemy");
@@ -167,17 +174,21 @@ public static class SpawnEnemyHelper
         {
             var modelIdType = GetModelIdType();
             if (modelIdType == null) return null;
-            var low = entry?.Trim().ToLowerInvariant() ?? "";
-            if (string.IsNullOrEmpty(low)) return null;
-            if (low.Contains("."))
+            var trimmed = entry?.Trim() ?? "";
+            if (string.IsNullOrEmpty(trimmed)) return null;
+            string category, ent;
+            if (trimmed.Contains("."))
             {
-                var parts = low.Split(new[] { '.' }, 2);
-                var ctor2 = modelIdType.GetConstructor(new[] { typeof(string), typeof(string) });
-                if (ctor2 != null) return ctor2.Invoke(new object[] { parts[0], parts[1] });
+                var parts = trimmed.Split(new[] { '.' }, 2);
+                category = parts[0]; ent = parts[1];
             }
-            var category = "monster";
+            else
+            {
+                category = _monsterCategoryCache ?? "MONSTER";
+                ent = trimmed;
+            }
             var ctor = modelIdType.GetConstructor(new[] { typeof(string), typeof(string) });
-            if (ctor != null) return ctor.Invoke(new object[] { category, low });
+            if (ctor != null) return ctor.Invoke(new object[] { category, ent });
         }
         catch (Exception e) { GD.PrintErr($"[SpawnEnemy] CreateModelId: {e.Message}"); }
         return null;

@@ -16,7 +16,7 @@ public partial class NControlPanel : CanvasLayer
     private static readonly Color GoldBorder = new Color(1f, 0.84f, 0f, 0.3f);
     private const string ModVersion = "0.2.0";
     private const string ProjectName = "ControlPanel";
-    private const string AuthorInfo = "煎包 / bili@我叫煎包 / Composer 1.5";
+    private const string AuthorInfo = "煎包 / bili@我叫煎包 / Composer 1.5 | 生成敌人参考 ParasiteSpire";
 
     private Panel _mainPanel;
     private Button _titleBtn;
@@ -57,10 +57,10 @@ public partial class NControlPanel : CanvasLayer
         _mainPanel.SetAnchorsPreset(Control.LayoutPreset.Center);
         var style = new StyleBoxFlat
         {
-            BgColor = new Color(0.05f, 0.05f, 0.12f, 0.9f),
-            BorderColor = GoldBorder
+            BgColor = new Color(0.06f, 0.06f, 0.14f, 0.95f),
+            BorderColor = new Color(1f, 0.84f, 0f, 0.5f)
         };
-        style.BorderWidthBottom = style.BorderWidthTop = style.BorderWidthLeft = style.BorderWidthRight = 1;
+        style.BorderWidthBottom = style.BorderWidthTop = style.BorderWidthLeft = style.BorderWidthRight = 2;
         style.CornerRadiusTopLeft = style.CornerRadiusTopRight = style.CornerRadiusBottomLeft = style.CornerRadiusBottomRight = 8;
         _mainPanel.AddThemeStyleboxOverride("panel", style);
         AddChild(_mainPanel);
@@ -278,11 +278,11 @@ public partial class NControlPanel : CanvasLayer
     {
         if (_currentSub == "remove")
         {
-            _rightContent.AddChild(new Label { Text = "删除卡牌：实时显示牌堆中的卡牌，点击删除（需战斗中，remove_card 支持 Hand/Draw/Discard/Deck）" });
+            _rightContent.AddChild(new Label { Text = "删除卡牌：实时显示牌堆中的卡牌，点击删除。游戏 remove_card 仅支持 Hand/Deck（抽牌堆/弃牌堆需先抽到手上再删）" });
             var removePileRow = new HBoxContainer();
             removePileRow.AddChild(new Label { Text = "牌堆：" });
             var pileOpt = new OptionButton();
-            pileOpt.AddItem("手牌"); pileOpt.AddItem("抽牌堆"); pileOpt.AddItem("弃牌堆"); pileOpt.AddItem("牌组");
+            pileOpt.AddItem("手牌"); pileOpt.AddItem("牌组");
             pileOpt.Selected = 0;
             removePileRow.AddChild(pileOpt);
             _rightContent.AddChild(removePileRow);
@@ -298,7 +298,7 @@ public partial class NControlPanel : CanvasLayer
             void Refresh()
             {
                 foreach (var c in list.GetChildren()) c.QueueFree();
-                var pileNames = new[] { "Hand", "Draw", "Discard", "Deck" };
+                var pileNames = new[] { "Hand", "Deck" };
                 var pile = pileOpt.Selected < pileNames.Length ? pileNames[pileOpt.Selected] : "Hand";
                 var cards = GameStateHelper.GetCardsInPile(pile);
                 if (cards.Count == 0)
@@ -364,7 +364,7 @@ public partial class NControlPanel : CanvasLayer
 
         var rightPanel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(200, 0) };
         var previewRow = new HBoxContainer();
-        var cardPreview = new TextureRect { CustomMinimumSize = new Vector2(80, 110), ExpandMode = TextureRect.ExpandModeEnum.FitHeight };
+        var cardPreview = new TextureRect { CustomMinimumSize = new Vector2(110, 154), ExpandMode = TextureRect.ExpandModeEnum.FitHeight, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered };
         previewRow.AddChild(cardPreview);
         var cardInfo = new VBoxContainer();
         cardInfo.AddChild(new Label { Text = "选中卡牌" });
@@ -466,8 +466,8 @@ public partial class NControlPanel : CanvasLayer
         topRow.AddChild(refreshBtn);
         _rightContent.AddChild(topRow);
 
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 200), SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        var grid = new GridContainer { Columns = 8, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var grid = new GridContainer { Columns = 12, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         scroll.AddChild(grid);
         _rightContent.AddChild(scroll);
 
@@ -564,7 +564,7 @@ public partial class NControlPanel : CanvasLayer
         scroll.AddChild(list);
         mainSplit.AddChild(scroll);
 
-        var rightPanel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(220, 0) };
+        var rightPanel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(180, 0) };
         var preview = new TextureRect { CustomMinimumSize = new Vector2(40, 40), ExpandMode = TextureRect.ExpandModeEnum.FitHeight, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered };
         rightPanel.AddChild(preview);
         var cmdLabel = new Label { Text = "将执行: potion <id>", AutowrapMode = TextServer.AutowrapMode.Off };
@@ -673,13 +673,24 @@ public partial class NControlPanel : CanvasLayer
         scroll.AddChild(list);
         mainSplit.AddChild(scroll);
 
-        var rightPanel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(220, 0) };
+        var rightPanel = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(240, 0) };
         var cmdLabel = new Label { Text = "将执行: event <id>", AutowrapMode = TextServer.AutowrapMode.Off };
+        cmdLabel.AddThemeColorOverride("font_color", new Color(0.95f, 0.92f, 0.8f, 1f));
+        cmdLabel.AddThemeFontSizeOverride("font_size", 12);
         rightPanel.AddChild(cmdLabel);
-        var eventTextLabel = new Label { Text = "", AutowrapMode = TextServer.AutowrapMode.Off, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        eventTextLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.9f, 1f));
-        eventTextLabel.AddThemeFontSizeOverride("font_size", 11);
-        rightPanel.AddChild(eventTextLabel);
+        var eventTextPanel = new PanelContainer();
+        var eventTextStyle = new StyleBoxFlat { BgColor = new Color(0.08f, 0.08f, 0.16f, 0.9f), BorderColor = new Color(1f, 0.84f, 0f, 0.2f) };
+        eventTextStyle.BorderWidthTop = eventTextStyle.BorderWidthBottom = eventTextStyle.BorderWidthLeft = eventTextStyle.BorderWidthRight = 1;
+        eventTextStyle.CornerRadiusTopLeft = eventTextStyle.CornerRadiusTopRight = eventTextStyle.CornerRadiusBottomLeft = eventTextStyle.CornerRadiusBottomRight = 4;
+        eventTextStyle.ContentMarginLeft = eventTextStyle.ContentMarginRight = 10;
+        eventTextStyle.ContentMarginTop = eventTextStyle.ContentMarginBottom = 8;
+        eventTextPanel.AddThemeStyleboxOverride("panel", eventTextStyle);
+        var eventTextLabel = new Label { Text = "", AutowrapMode = TextServer.AutowrapMode.Arbitrary, SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        eventTextLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.95f, 1f));
+        eventTextLabel.AddThemeFontSizeOverride("font_size", 12);
+        eventTextPanel.AddChild(eventTextLabel);
+        eventTextPanel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        rightPanel.AddChild(eventTextPanel);
         var execBtn = new Button { Text = "执行指令", Flat = false };
         execBtn.AddThemeColorOverride("font_color", GoldColor);
         rightPanel.AddChild(execBtn);
@@ -736,14 +747,14 @@ public partial class NControlPanel : CanvasLayer
             var targetEdit = new SpinBox { Value = 0, MinValue = 0, MaxValue = 99 };
             _rightContent.AddChild(amountEdit);
             _rightContent.AddChild(targetEdit);
-            var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 120), SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-            var grid = new GridContainer { Columns = 4, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 120), SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            var grid = new GridContainer { Columns = 8, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             scroll.AddChild(grid);
             _rightContent.AddChild(scroll);
             foreach (var (id, zh) in FullDataLoader.GetFullPowers())
             {
-                var btn = new Button { Flat = true, Text = string.IsNullOrEmpty(zh) ? id : $"{zh}\n({id})", Icon = IconLoader.GetPowerIcon(id) };
-                btn.AddThemeFontSizeOverride("font_size", 10);
+                var btn = new Button { Flat = true, Text = string.IsNullOrEmpty(zh) ? id : $"{zh} ({id})", Icon = IconLoader.GetPowerIcon(id) };
+                btn.AddThemeFontSizeOverride("font_size", 9);
                 var idCopy = id;
                 btn.Pressed += () => RunCommand($"power {idCopy} {(int)amountEdit.Value} {(int)targetEdit.Value}");
                 btn.TooltipText = $"将执行: power {idCopy} {(int)amountEdit.Value} {(int)targetEdit.Value}";
@@ -759,7 +770,7 @@ public partial class NControlPanel : CanvasLayer
         }
         else if (_currentSub == "spawn")
         {
-            _rightContent.AddChild(new Label { Text = "本次战斗中生成敌人：点击下方怪物直接加入当前战斗（需战斗中）" });
+            _rightContent.AddChild(new Label { Text = "本次战斗中生成敌人：点击下方怪物加入当前战斗。若无效请查看 godot.log 中 [SpawnEnemy] 错误" });
             var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 120), SizeFlagsVertical = Control.SizeFlags.ExpandFill };
             var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             scroll.AddChild(list);
