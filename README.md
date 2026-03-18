@@ -12,7 +12,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 |-----|------|-------|
 | **NoClientCheats** | 多人联机禁止客机作弊；仅房主需安装 | [README](NoClientCheats/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ControlPanel** | F7 控制面板：卡牌/药水/遗物/战斗快捷 | [README](ControlPanel/README.md) |
-| **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/README.md) |
+| **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/VC_RICH_PING_README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 
 ---
 

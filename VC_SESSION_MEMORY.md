@@ -77,6 +77,15 @@
 | 2025-03-17 | NoClientCheats Mod 实现与构建 | 创建 NoClientCheats 项目；Harmony Prefix + ModConfig；构建部署至 mods/NoClientCheats ✓ |
 | 2025-03-17 | GitHub 发布 Mod：README + Release | 模仿 STS2 mod 仓库撰写 README.md；prepare-release.ps1 打包；VC_GITHUB_RELEASE_GUIDE.md 发布流程；记忆中补充 Release 学习与提示词 ✓ |
 | 2025-03-17 | 仓库 README（vibe coding / 高中生 / AI）+ 构建打包 | 根目录 README 写明 vibe coding、中国高中生、昨天才开始、无系统编程经验、AI 协助；构建并打包 NoClientCheats；Releases 链接改为 Jianbao233/STS2_mod ✓ |
+| 2026-03-18 | 自行查看 log，找到问题并解决；先本机正确加载再考虑 bat | 分析 godot.log；VC_STS2_FULL_IDS.json 移至游戏根；settings.json→settings.cfg；build.ps1 输出 JSON 到根目录；bat 增 fixdatafiles 选项 |
+| 2026-03-18 | 依旧显示错误，仅 JSON 不适配，先修复本机 json | 标准化 manifest 格式；mod_mainfest→mod_manifest；视频格式：id、pck_name、无 dependencies、affects_gameplay 按类型 |
+| 2026-03-18 | 查看 log 哪里出问题 | 定位 4 模组：heybox GetModNameList、NoClientCheats Harmony、DamageMeter pckName、ModConfig First()；均 DLL 代码，非 JSON |
+| 2026-03-18 | 查看游戏源码 modid.json，分析问题怎么解决 | 源码无 modid.json；扫描所有 .json；检测到错误 = assemblyLoadedSuccessfully 任一 false；更新模组加载问题分析报告 |
+| 2026-03-18 | NoClientCheats 更新 Harmony 目标方法并构建 | GetModNameList→GetGameplayRelevantModNameList（v0.99 更名）；ModListFilterPatch.TargetMethod 双方法 fallback |
+| 2026-03-18 | 只有 NoClientCheats 报错，再次修改并构造 | 同上；manifest 需含 id，项目内 manifest 缺 id 会覆盖 mods 目录正确版本 |
+| 2026-03-18 | 依旧未加载 NoClientCheats | 项目 mod_manifest.json 缺 id/has_pck/has_dll；build 复制会覆盖；修复项目 manifest 并重写 mods 目录 |
+| 2026-03-18 | 作者改成煎包 / Cursor Composer 1.5，重新构造 | 更新 NoClientCheats manifest 作者字段 |
+| 2026-03-18 | 三个项目作者统一、JSON 正确格式、版本号、构建打包发布 | ControlPanel/RichPing/NoClientCheats manifest 全字段+作者统一；RichPing 0.1.1、NoClientCheats 1.0.1；RichPing prepare-release.ps1；构建+打包 zip 供 GitHub Release |
 
 ---
 
@@ -86,7 +95,48 @@
 
 ---
 
+## STS2 v0.99 模组 Manifest 与加载（2026-03-18）
+
+### 官方 manifest 格式（必遵）
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `id` | ✅ | 缺则直接拒绝加载；用于查找 {id}.dll / {id}.pck |
+| `pck_name` | - | 旧版兼容，建议与 id 一致 |
+| `name` `version` `author` `description` | - | 展示用 |
+| `has_pck` `has_dll` | - | 布尔，不声明则默认 false，不加载资源 |
+| `affects_gameplay` | - | 纯 UI/显示类 mod 建议 false |
+| `dependencies` | - | 可选；视频示例未包含 |
+
+**文件名**：`mod_manifest.json` 或 `{id}.json` 均可；游戏扫描所有 `.json`，**源码中无 modid.json 字样**。
+
+### 「检测到错误」红字原因
+
+`NDebugInfoLabelManager`：`hasError = ModManager.LoadedMods.Any(m => !m.assemblyLoadedSuccessfully)`。  
+任一模组 `assemblyLoadedSuccessfully == false` 即显示红字，**与 manifest JSON 无关**，来自 DLL 初始化异常。
+
+### v0.99 API 变更（模组需适配）
+
+| 旧 API | 新 API | 影响模组 |
+|--------|--------|----------|
+| `ModManager.GetModNameList` | `ModManager.GetGameplayRelevantModNameList` | sts2-heybox-support、NoClientCheats ModListFilterPatch |
+| `ModManifest.pckName` | 已移除，改用 `id` / `hasPck` | DamageMeter |
+
+### 项目 manifest 与 build 关系
+
+**重要**：`build.ps1` 会复制项目根目录的 `mod_manifest.json` 到 mods 目录。若项目内 manifest **缺少 id**，会覆盖 mods 下正确版本，导致游戏拒绝加载。三个项目 manifest 必须包含完整字段。
+
+### GitHub Release 打包
+
+1. `.\build.ps1` 构建并复制到 mods  
+2. `.\prepare-release.ps1 -Version "x.y.z"` 打包 zip 到 `release/`  
+3. RichPing / NoClientCheats 均有 prepare-release；ControlPanel 暂未单独发布
+
+---
+
 ## 报错特征速查（精简）
+
+**本次对话补充（2026-03-18）**：`Mod manifest ... is missing the 'id' field` → 项目 manifest 缺 id，build 会覆盖 mods；`assemblyLoadedSuccessfully` 红字「检测到错误」→ 任一模组 DLL 初始化失败，查 godot.log，v0.99 关注 GetModNameList→GetGameplayRelevantModNameList、ModManifest.pckName 已移除。
 
 | 特征 | 含义 | 处理方向 |
 |------|------|----------|
@@ -119,7 +169,7 @@
 
 ---
 
-## NoClientCheats Mod · 禁止客机作弊（2025-03-17）
+## NoClientCheats Mod · 禁止客机作弊（2025-03-17 · 2026-03-18 更新）
 
 | 项目 | 说明 |
 |------|------|
@@ -127,12 +177,17 @@
 | **功能** | 多人联机时禁止客机（非房主）使用控制台作弊指令（gold、relic、card 等） |
 | **部署** | 仅房主需安装；客机无需安装 |
 | **实现** | Harmony Prefix Patch `ActionQueueSynchronizer.HandleRequestEnqueueActionMessage`，当 `message.action` 为 `NetConsoleCmdGameAction` 且 cmd 在作弊列表中时跳过原方法 |
+| **ModListFilterPatch** | Postfix `GetGameplayRelevantModNameList`（v0.99 原名 GetModNameList），从 Mod 列表移除 NoClientCheats 使客机不可见；TargetMethod 需优先找新名再 fallback 旧名 |
 | **ModConfig** | `block_enabled` 开关，默认 true；需 ModConfig 方可配置 |
 | **构建** | `运行构建.bat` 或 `.\build.ps1` → 复制到 `{游戏}\mods\NoClientCheats\` |
 
+**v0.99 适配**：`ModManager.GetModNameList` 已更名为 `GetGameplayRelevantModNameList`，ModListFilterPatch.TargetMethod 已更新。
+
+**manifest**：项目内 mod_manifest.json 必须含 id、has_pck、has_dll，否则 build 复制会覆盖 mods 下正确版本导致无法加载。
+
 **网络逻辑**：客机输入作弊指令 → 发送 `RequestEnqueueActionMessage` 给房主 → 房主 `HandleRequestEnqueueActionMessage` 收到 → 若启用且为作弊 cmd 则静默丢弃，不入队、不广播 `ActionEnqueuedMessage`，客机不会执行。
 
-**GitHub 发布**：README.md、prepare-release.ps1、VC_GITHUB_RELEASE_GUIDE.md；Releases 打包逻辑见下文。
+**GitHub 发布**：README.md、prepare-release.ps1、VC_GITHUB_RELEASE_GUIDE.md；`.\prepare-release.ps1 -Version "1.0.1"` 生成 `release/NoClientCheats-v1.0.1.zip`。
 
 ---
 
@@ -242,7 +297,8 @@
 - 「我遇到了 [报错特征]」：可引用报错速查表
 - 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
 - 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
-- 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats 用 `prepare-release.ps1` 打包
+- 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats/RichPing 均用 `prepare-release.ps1 -Version "x.y.z"` 打包
+- 「模组加载/检测到错误」：参考 模组加载问题分析报告.md 第八、九节；manifest 需 id；红字来自 assemblyLoadedSuccessfully
 
 ---
 
