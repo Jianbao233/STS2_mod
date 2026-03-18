@@ -43,10 +43,11 @@ Copy-Item "ControlPanel.pck" -Destination (Join-Path $ModsOutput "ControlPanel.p
 $buildStamp = Get-Date -Format "yyyy-MM-dd HH:mm"
 Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v2 $buildStamp" -Encoding UTF8
 if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ModsOutput "mod_manifest.json") -Force }
+# 复制到游戏根目录，避免被 mod 扫描器当成 manifest 解析报错
 $jsonPath = Join-Path $ProjectRoot "..\VC_STS2_FULL_IDS.json"
 if (Test-Path $jsonPath) {
-    Copy-Item $jsonPath -Destination (Join-Path $ModsOutput "VC_STS2_FULL_IDS.json") -Force
-    Write-Host "Copied VC_STS2_FULL_IDS.json"
+    Copy-Item $jsonPath -Destination (Join-Path $Sts2GamePath "VC_STS2_FULL_IDS.json") -Force
+    Write-Host "Copied VC_STS2_FULL_IDS.json to game root"
 }
 Write-Host "[3/3] Copied to $ModsOutput"
 Write-Host "Build done. F7 toggles Control Panel in game."

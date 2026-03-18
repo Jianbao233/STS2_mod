@@ -1,7 +1,11 @@
 {
+  "id": "ControlPanel",
   "pck_name": "ControlPanel",
+  "version": "0.2.0",
   "name": "控制面板 / Dev Control Panel",
-  "author": "VC",
+  "author": "煎包 / Cursor Composer 1.5",
   "description": "F7 快速开关。自定义卡牌、药水（按作用分类）、战斗遭遇等快捷生成。生成敌人功能参考 ParasiteSpire。\nF7 toggle. Quick spawn cards, potions (by effect), encounters. Spawn enemy thanks to ParasiteSpire reference.",
-  "version": "0.2.0"
+  "has_pck": true,
+  "has_dll": true,
+  "affects_gameplay": true
 }

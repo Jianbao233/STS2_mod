@@ -1,7 +1,11 @@
 {
+  "id": "RichPing",
   "pck_name": "RichPing",
+  "version": "0.1.1",
   "name": "丰富 Ping 文本 / Rich Ping Messages",
   "author": "煎包 / Cursor Composer 1.5",
   "description": "多阶段、多角色 Ping 文本。按楼层(幕)随机发送，支持 ModConfig 及第三方角色接口。\nStage & character-based Ping messages. ModConfig + IRichPingTextProvider API.",
-  "version": "0.1.0"
+  "has_pck": true,
+  "has_dll": true,
+  "affects_gameplay": false
 }

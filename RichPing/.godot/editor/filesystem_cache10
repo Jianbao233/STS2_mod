@@ -1,10 +1,10 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1773682587
+::res://::1773813832
 export_presets.cfg::TextFile::-1::1773657673::0::1::::<><><>0<>0<><>::
 global.json::JSON::-1::1773670472::0::1::::<><><>0<>0<><>::
 HarmonyPatcher.cs::CSharpScript::3086633403376744739::1773680437::0::1::::<><><>0<>0<><>::
 ModConfigIntegration.cs::CSharpScript::7883135630032542645::1773682128::0::1::::<><><>0<>0<><>::
-mod_manifest.json::JSON::-1::1773668827::0::1::::<><><>0<>0<><>::
+mod_manifest.json::JSON::-1::1773813816::0::1::::<><><>0<>0<><>::
 ping_messages.json::JSON::-1::1773681110::0::1::::<><><>0<>0<><>::
 RichPingExternalProvider.cs::CSharpScript::2799427284227757129::1773667848::0::1::::<><><>0<>0<><>::
 RichPingMod.cs::CSharpScript::1540689244024058309::1773682103::0::1::::<><><>0<>0<><>::
@@ -13,7 +13,6 @@ VC_MODCONFIG_CONTROLS.md::TextFile::-1::1773682153::0::1::::<><><>0<>0<><>::
 VC_RICHPING_DEVELOPER_GUIDE.md::TextFile::-1::1773682147::0::1::::<><><>0<>0<><>::
 VC_RICH_PING_README.md::TextFile::-1::1773669428::0::1::::<><><>0<>0<><>::
 VC_RICH_PING_RESEARCH.md::TextFile::-1::1773659107::0::1::::<><><>0<>0<><>::
-VC_SESSION_MEMORY.md::TextFile::-1::1773682165::0::1::::<><><>0<>0<><>::
 VC_STS2_MOD_SUMMARY.md::TextFile::-1::1773678126::0::1::::<><><>0<>0<><>::
 杀戮尖塔角色梗与游戏梗合集.md::TextFile::-1::1773668023::0::1::::<><><>0<>0<><>::
 杀戮尖塔角色死亡Ping文本_幽默梗风格.md::TextFile::-1::1773668005::0::1::::<><><>0<>0<><>::

@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1773757011
+::res://::1773813832
 CardCharacterHelper.cs::CSharpScript::6654945941056159429::1773745032::0::1::::<><><>0<>0<><>::
 CardPoolHelper.cs::CSharpScript::6192008016822489897::1773751873::0::1::::<><><>0<>0<><>::
 ControlPanelMod.cs::CSharpScript::5521864322795265474::1773690060::0::1::::<><><>0<>0<><>::
@@ -11,7 +11,7 @@ HarmonyPatcher.cs::CSharpScript::614659258763905007::1773689621::0::1::::<><><>0
 IconLoader.cs::CSharpScript::3133461115921332428::1773755307::0::1::::<><><>0<>0<><>::
 LocalizationHelper.cs::CSharpScript::2174399668183823192::1773755341::0::1::::<><><>0<>0<><>::
 ModConfigIntegration.cs::CSharpScript::5022299346676059157::1773690082::0::1::::<><><>0<>0<><>::
-mod_manifest.json::JSON::-1::1773756419::0::1::::<><><>0<>0<><>::
+mod_manifest.json::JSON::-1::1773813816::0::1::::<><><>0<>0<><>::
 NControlPanel.cs::CSharpScript::1850903764677797865::1773756710::0::1::::<>CanvasLayer<><>0<>0<><>::
 PotionAndCardData.cs::CSharpScript::6671564945630888116::1773755389::0::1::::<><><>0<>0<><>::
 README.md::TextFile::-1::1773724230::0::1::::<><><>0<>0<><>::
