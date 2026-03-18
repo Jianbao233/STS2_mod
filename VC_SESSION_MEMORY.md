@@ -11,6 +11,7 @@
 - **ControlPanel**：`K:\杀戮尖塔mod制作\STS2_mod\ControlPanel\` — 控制面板 Mod（F7 卡牌/药水/战斗快捷）
 - **sts2 反编译源码**：`K:\杀戮尖塔mod制作\Tools\sts2_decompiled\`（外部参考）
 - **游戏目录**：`K:\SteamLibrary\steamapps\common\Slay the Spire 2\`
+- **用户数据目录**：`%APPDATA%\SlayTheSpire2` 或 `C:\Users\...\AppData\Roaming\SlayTheSpire2`（日志 logs/godot.log）
 
 ---
 
@@ -72,7 +73,8 @@
 | 2025-03-16 | ControlPanel 10 项优化+卡顿修复 | 1)**卡牌角色归属**：CardPoolHelper 从 ModelDb.AllCardPools 反射；2)**卡顿**：延迟构建、占位、上限 200；3)**遗物**：图标下文字、稀有度缓存；4)**药水**：图标缩小、移除删除药水；5)**显示面积**：ExpandFill 自适应；6)**生成敌人**：CreateModelId 小写、Monsters 回退；7)**事件**：GetEventText options 文本；8)**百科大全**：数据爬取参考 |
 | 2025-03-16 | ControlPanel 9 项修复与 UI 优化 | 1)**删除卡牌**：游戏 remove_card 仅支持 Hand/Deck，移除抽牌堆/弃牌堆选项；2)**遗物/能力**：网格 8→10 列、6 列，ExpandFill 自适应；3)**药水**：预览图标 40→28；4)**事件**：GetEventText 改用 pages.INITIAL.description + LocManager 枚举 options；5)**生成敌人**：CombatState 类型显式查找；6)**添加卡牌**：cardPreview 100x140、KeepAspectCentered；7)**能力**：单行显示、9 号字体、6 列；8)参考 STS-EUI、BaseLib-StS2 等 mod 仓库 |
 | 2025-03-16 | ControlPanel 卡牌图/事件文本/UI 锐化 | 1)**卡牌缩略图**：IconLoader 使用 pool/id 路径 `packed/card_portraits/{pool}/{id}.png`，CardPoolHelper 映射角色；2)**事件文本**：LocString 失败时回退到 `extracted/localization/zhs|eng/events.json` 文件读取，BBCode  stripping；3)**EventData**：更新为与 events.json 一致的 ID（ABYSSAL_BATHS、BUGSLAYER、RELIC_TRADER 等）；4)**UI**：边框 2px/更亮、事件右侧 Panel 背景+内边距、卡牌预览 110x154、字体 12px |
-| 2025-03-16 | ControlPanel 生成敌人/UI 自适应/ParasiteSpire 致谢 | 1)**生成敌人**：SpawnEnemyHelper 修复 ModelId 的 Category（MONSTER，从 ModelDb.Monsters 缓存）；2)**遗物**：网格 12 列、ScrollContainer ExpandFill；3)**药水**：右侧预览 32–48px 限制；4)**Buff**：scroll 120 最小高+ExpandFill，8 列；5)**感谢**：标题栏+mod 描述加入 ParasiteSpire 参考致谢 |
+| 2025-03-16 | ControlPanel 生成敌人/UI 自适应/ParasiteSpire 致谢 | 1)**生成敌人**：SpawnEnemyHelper 修复 ModelId 的 Category（MONSTER，从 ModelDb.Monsters 缓存）；2)**遗物**：网格 12 列、ScrollContainer ExpandFill；3)**药水**：右侧预览 40px、FitHeight；4)**Buff**：scroll 120 最小高+ExpandFill，8 列；5)**感谢**：标题栏+mod 描述加入 ParasiteSpire 参考致谢 |
+| 2025-03-16 | ControlPanel 构建错误 TextureRect.CustomMaximumSize | **CS0117**：Godot 4 的 Control/TextureRect 无 CustomMaximumSize；移除该属性，药水预览仅用 CustomMinimumSize(40,40) |
 | 2025-03-17 | 禁止客机作弊 Mod 可行性分析 | 分析 ActionQueueSynchronizer 网络收发；结论：房主 Patch HandleRequestEnqueueActionMessage 可行 |
 | 2025-03-17 | NoClientCheats Mod 实现与构建 | 创建 NoClientCheats 项目；Harmony Prefix + ModConfig；构建部署至 mods/NoClientCheats ✓ |
 | 2025-03-17 | GitHub 发布 Mod：README + Release | 模仿 STS2 mod 仓库撰写 README.md；prepare-release.ps1 打包；VC_GITHUB_RELEASE_GUIDE.md 发布流程；记忆中补充 Release 学习与提示词 ✓ |
@@ -86,6 +88,16 @@
 | 2026-03-18 | 依旧未加载 NoClientCheats | 项目 mod_manifest.json 缺 id/has_pck/has_dll；build 复制会覆盖；修复项目 manifest 并重写 mods 目录 |
 | 2026-03-18 | 作者改成煎包 / Cursor Composer 1.5，重新构造 | 更新 NoClientCheats manifest 作者字段 |
 | 2026-03-18 | 三个项目作者统一、JSON 正确格式、版本号、构建打包发布 | ControlPanel/RichPing/NoClientCheats manifest 全字段+作者统一；RichPing 0.1.1、NoClientCheats 1.0.1；RichPing prepare-release.ps1；构建+打包 zip 供 GitHub Release |
+| 2026-03-18 | 取消整个格式修复项目，相关文件归入废弃文件夹 | 创建 _废弃_Manifest格式修复/；移入 修复模组Manifest格式.bat、STS2_ModManifestFixer.bat、fix_mod_manifests.ps1、_build_single_bat.ps1；README_废弃说明.md |
+| 2026-03-18 | 记忆提示词；MP_SavePlayerRemover 区分模组/原版、多Steam账号、标明存档详情 | 游戏分模组/原版存档；多 Steam 账号；选择时显示：难度、层数、玩家64位ID、角色；存档无 Steam 昵称；写入 VC_SESSION_MEMORY 记忆提示词 |
+
+---
+
+## 废弃项目（2026-03-18）
+
+| 项目 | 路径 | 说明 |
+|------|------|------|
+| Manifest 格式修复工具 | `STS2_mod\_废弃_Manifest格式修复\` | 为遇到 manifest 格式错误的玩家提供 bat 修复；因 CMD 中文解析问题、用户决定取消，文件已归档 |
 
 ---
 
@@ -147,6 +159,7 @@
 | Ping 文本未替换 / ModConfig 无配置项 | ModLoaded 未调用；Register 时机太晚或未调用 | **ModManagerInitPostfix** 在 ModManager.Initialize 完成后调度 init；**严格按 [ModConfig-STS2](https://github.com/xhyrzldf/ModConfig-STS2) README**：Type.GetType + 程序集回退；2 帧延迟；`Array.CreateInstance(_entryType)` 构造 ConfigEntry[] |
 | **CS0136** 无法在此范围中声明名为“X”的局部变量 | 同一方法内，外层与内层（if/else/循环）使用了相同变量名，即使路径互斥 | 内/外层变量改用不同名称，如 `removePileRow` vs `pileRow` |
 | **CS0117** “TextServer”未包含“AutowrapModeOff” | Godot 4 API 误用：`AutowrapModeOff` 不存在 | 正确为 **`TextServer.AutowrapMode.Off`**（枚举 `AutowrapMode` 下的值 `Off`），不是 `AutowrapModeOff` |
+| **CS0117** “TextureRect”未包含“CustomMaximumSize” | Godot 4 的 Control 仅支持 CustomMinimumSize，无 CustomMaximumSize | 移除 CustomMaximumSize；用 CustomMinimumSize 控制尺寸，或外层容器约束 |
 | **CS1929** “object”不包含“GetProperty”/“GetMethod” | 反射时对 `object` 实例直接调用了 `GetProperty`/`GetMethod`（实为 `Type` 的扩展） | 先用 `obj.GetType()` 得到 Type，再 `type.GetProperty(...)` / `type.GetMethod(...)` |
 | **CS1503** 参数 2: 无法从“int”转换为“BindingFlags” | `Type.GetMethod(name, 1, ...)` 中 `1` 被解析为 BindingFlags 参数 | 使用 `GetMethods(BindingFlags)...FirstOrDefault(m => m.Name=="..." && m.IsGenericMethodDefinition)` 等方式查找泛型方法 |
 
@@ -291,6 +304,18 @@
 
 ---
 
+## MP_SavePlayerRemover · 多人存档移除玩家工具（2026-03-18）
+
+| 项目 | 说明 |
+|------|------|
+| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\MP_SavePlayerRemover\` |
+| **功能** | 在游戏外修改 current_run_mp.save，移除指定玩家并清理相关引用（方案 A 外部工具） |
+| **使用** | 先退出游戏 → 运行 remove_players.py 或 exe → 选择存档 → 选择要保留的玩家 |
+| **记忆提示词** | 游戏分**模组模式**与**原版模式**，存档路径不同；用户电脑可有**多个 Steam 账号**；选择存档时需**标明**：难度(ascension)、层数、玩家 64 位 ID、所选角色；存档内**无 Steam 昵称**，仅能显示 64 位 ID |
+| **存档路径** | 原版: `steam\{SteamId}\profile*\saves\`；模组: `steam\{SteamId}\modded\profile*\saves\` |
+
+---
+
 ## 下次对话可用的快速指令
 
 - 「继续 RichPing」：在 RichPing 文件夹内施工
@@ -298,7 +323,7 @@
 - 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
 - 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
 - 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats/RichPing 均用 `prepare-release.ps1 -Version "x.y.z"` 打包
-- 「模组加载/检测到错误」：参考 模组加载问题分析报告.md 第八、九节；manifest 需 id；红字来自 assemblyLoadedSuccessfully
+- 「模组加载/检测到错误」：参考 模组加载问题分析报告.md 第八、九节；manifest 需 id；红字来自 assemblyLoadedSuccessfully（Manifest 格式修复 bat 已废弃，见 _废弃_Manifest格式修复/）
 
 ---
 
