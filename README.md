@@ -19,22 +19,21 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 
 ## Quick Install | 快速安装
 
+**Mod 类**（NoClientCheats、RichPing）：
 1. 找到游戏目录：`Steam\steamapps\common\Slay the Spire 2`
 2. 在 `mods` 文件夹内创建对应 Mod 子目录（如 `mods\NoClientCheats\`）
-3. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 Mod 的 zip，解压到 `mods` 内
+3. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 zip，解压到 `mods` 内
+
+**工具类**（MP_SavePlayerRemover）：解压到任意位置，双击 exe 运行，无需放入游戏目录。
 
 ---
 
 ## Build from Source | 从源码构建
 
-每个子项目有独立的 `build.ps1`：
-
-```powershell
-cd NoClientCheats
-.\build.ps1
-```
-
-需要：.NET 8 SDK、Godot 4.5.1 Mono。
+| 项目 | 命令 | 依赖 |
+|------|------|------|
+| Mod（NoClientCheats、ControlPanel、RichPing） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
+| MP_SavePlayerRemover | `cd MP_SavePlayerRemover` → `.\build_exe.bat` | Python 3.8+、PyInstaller |
 
 ---
 
