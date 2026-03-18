@@ -15,6 +15,14 @@
 
 **流程**：构建 Mod → 打包 zip → 创建 Release → 上传 zip 作为附件 → 用户从 Releases 页下载。
 
+### MP_SavePlayerRemover（独立工具，非 Mod）
+
+| 步骤 | 命令 |
+|------|------|
+| 打包 | `cd MP_SavePlayerRemover` → `.\prepare-release.ps1 -Version "1.0.0"` |
+| 产出 | `release/MP_SavePlayerRemover-v1.0.0.zip`（含 exe + README） |
+| 上传 | 同下方式 A/B，zip 解压后直接运行 exe，无需放入游戏目录 |
+
 ---
 
 ## 二、发布前准备
