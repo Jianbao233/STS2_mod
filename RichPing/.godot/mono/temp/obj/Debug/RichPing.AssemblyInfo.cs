@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RichPing")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e0b837fcf083e30e7ea0aeeed8dcca9c6dead76d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0123b75de64189ecc416fed757502f59449e5366")]
 [assembly: System.Reflection.AssemblyProductAttribute("RichPing")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RichPing")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

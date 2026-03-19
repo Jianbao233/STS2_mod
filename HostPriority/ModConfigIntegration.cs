@@ -5,6 +5,9 @@ using Godot;
 
 namespace HostPriority;
 
+/// <summary>
+/// ModConfig 集成，与 RichPing 完全一致写法，确保模组配置中可见且开关可用。
+/// </summary>
 internal static class ModConfigIntegration
 {
     private static bool _detected;
@@ -49,16 +52,15 @@ internal static class ModConfigIntegration
     public static void Register()
     {
         if (!IsAvailable) return;
-        try
-        {
-            var tree = Engine.GetMainLoop() as SceneTree;
-            if (tree == null) return;
-            tree.ProcessFrame += OnFrame1;
-        }
-        catch (Exception e)
-        {
-            GD.PushWarning($"[HostPriority] ModConfig 注册失败: {e.Message}");
-        }
+        try { DeferredRegister(); }
+        catch (Exception e) { GD.PushWarning($"[HostPriority] ModConfig 注册失败: {e.Message}"); }
+    }
+
+    private static void DeferredRegister()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree == null) return;
+        tree.ProcessFrame += OnFrame1;
     }
 
     private static void OnFrame1()
@@ -74,15 +76,8 @@ internal static class ModConfigIntegration
         {
             tree.ProcessFrame -= OnFrame2;
             if (!IsAvailable) return;
-            try
-            {
-                DoRegister();
-                SyncFromConfig();
-            }
-            catch (Exception e)
-            {
-                GD.PushWarning($"[HostPriority] ModConfig 注册失败: {e.Message}");
-            }
+            try { DoRegister(); }
+            catch (Exception e) { GD.PushWarning($"[HostPriority] ModConfig DoRegister 失败: {e.Message}"); }
         }
     }
 
@@ -92,16 +87,15 @@ internal static class ModConfigIntegration
 
         list.Add(MakeHeader("Host Priority", "房主优先"));
         list.Add(MakeToggle("enabled", "Host Priority", "房主优先",
-            defaultValue: true,
-            descEn: "When enabled, host wins in relic rock-paper-scissors, map path selection, and event option splits. Host-only mod.",
-            descZhs: "开启时，房主在遗物猜拳、地图路径、事件选项分歧中胜出。仅房主需安装。",
-            onChanged: v => { try { HostPriorityMod.Enabled = Convert.ToBoolean(v); } catch { } }));
+            "When enabled, host wins in relic rock-paper-scissors, map path selection, and event option splits. Host-only mod.",
+            "开启时，房主在遗物猜拳、地图路径、事件选项分歧中胜出。仅房主需安装。",
+            true, v => { try { HostPriorityMod.Enabled = Convert.ToBoolean(v); } catch { } }));
+
         list.Add(MakeSeparator());
-        list.Add(MakeHeader("Host-only mod. Clients don't need to install.", "仅房主需安装，客机无需安装。"));
+        list.Add(MakeHeader("Host-only mod.", "仅房主需安装，客机无需安装。"));
 
         var arr = Array.CreateInstance(_entryType, list.Count);
-        for (int i = 0; i < list.Count; i++)
-            arr.SetValue(list[i], i);
+        for (int i = 0; i < list.Count; i++) arr.SetValue(list[i], i);
 
         var register = _apiType.GetMethod("Register", new[] { typeof(string), typeof(string), _entryType.MakeArrayType() });
         if (register != null)
@@ -109,24 +103,23 @@ internal static class ModConfigIntegration
             register.Invoke(null, new object[] { HostPriorityMod.ModId, "房主优先 / Host Priority", arr });
             GD.Print("[HostPriority] ModConfig 注册完成");
         }
+
+        SyncFromConfig();
     }
 
     private static void SyncFromConfig()
     {
-        try
-        {
-            HostPriorityMod.Enabled = GetValue("enabled", true);
-        }
+        try { HostPriorityMod.Enabled = GetValue("enabled", true); }
         catch { }
     }
 
-    private static bool GetValue(string key, bool fallback)
+    private static T GetValue<T>(string key, T fallback)
     {
         if (!IsAvailable) return fallback;
         try
         {
-            var method = _apiType.GetMethod("GetValue").MakeGenericMethod(typeof(bool));
-            return (bool)method.Invoke(null, new object[] { HostPriorityMod.ModId, key });
+            var method = _apiType.GetMethod("GetValue").MakeGenericMethod(typeof(T));
+            return (T)method.Invoke(null, new object[] { HostPriorityMod.ModId, key });
         }
         catch { return fallback; }
     }
@@ -150,7 +143,8 @@ internal static class ModConfigIntegration
     }
 
     private static object MakeToggle(string key, string labelEn, string labelZhs,
-        bool defaultValue = true, string descEn = null, string descZhs = null, Action<object> onChanged = null)
+        string descEn = null, string descZhs = null,
+        bool defaultValue = true, Action<object> onChanged = null)
     {
         var e = Activator.CreateInstance(_entryType);
         SetProp(e, "Key", key);

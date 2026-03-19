@@ -350,17 +350,19 @@ public static class RichPingMod
 
     public static void ReloadConfig() => LoadConfig();
 
-    /// <summary>由 ModConfig 开关变更时调用，按 key 更新运行时选项</summary>
+    /// <summary>由 ModConfig 开关变更时调用，按 key 更新运行时选项。value 可能为 bool/int/string，需安全转换。</summary>
     public static void UpdateFromModConfig(string key, object value)
     {
-        switch (key)
+        try
         {
-            case "use_custom_ping": _useCustomPing = Convert.ToBoolean(value); break;
-            case "use_alive_ping": _useAlivePing = Convert.ToBoolean(value); break;
-            case "use_dead_ping": _useDeadPing = Convert.ToBoolean(value); break;
-            case "random_pick": _randomPick = Convert.ToBoolean(value); break;
-            case "use_stages": _useStages = Convert.ToBoolean(value); break;
-            case "use_character_specific": _useCharacterSpecific = Convert.ToBoolean(value); break;
+            switch (key)
+            {
+                case "use_custom_ping": _useCustomPing = ToBool(value); break;
+                case "use_alive_ping": _useAlivePing = ToBool(value); break;
+                case "use_dead_ping": _useDeadPing = ToBool(value); break;
+                case "random_pick": _randomPick = ToBool(value); break;
+                case "use_stages": _useStages = ToBool(value); break;
+                case "use_character_specific": _useCharacterSpecific = ToBool(value); break;
             case "excluded_messages":
                 _excludedPhrases.Clear();
                 var s = (value?.ToString() ?? "").Trim();
@@ -369,19 +371,36 @@ public static class RichPingMod
                         if (!string.IsNullOrWhiteSpace(p))
                             _excludedPhrases.Add(p.Trim());
                 break;
-            case "char_ironclad_alive": _characterAliveEnabled["IRONCLAD"] = Convert.ToBoolean(value); break;
-            case "char_ironclad_dead": _characterDeadEnabled["IRONCLAD"] = Convert.ToBoolean(value); break;
-            case "char_silent_alive": _characterAliveEnabled["THE_SILENT"] = Convert.ToBoolean(value); break;
-            case "char_silent_dead": _characterDeadEnabled["THE_SILENT"] = Convert.ToBoolean(value); break;
-            case "char_defect_alive": _characterAliveEnabled["DEFECT"] = Convert.ToBoolean(value); break;
-            case "char_defect_dead": _characterDeadEnabled["DEFECT"] = Convert.ToBoolean(value); break;
-            case "char_watcher_alive": _characterAliveEnabled["WATCHER"] = _characterAliveEnabled["THE_HIEROPHANT"] = Convert.ToBoolean(value); break;
-            case "char_watcher_dead": _characterDeadEnabled["WATCHER"] = _characterDeadEnabled["THE_HIEROPHANT"] = Convert.ToBoolean(value); break;
-            case "char_regent_alive": _characterAliveEnabled["THE_REGENT"] = Convert.ToBoolean(value); break;
-            case "char_regent_dead": _characterDeadEnabled["THE_REGENT"] = Convert.ToBoolean(value); break;
-            case "char_necrobinder_alive": _characterAliveEnabled["THE_NECROBINDER"] = Convert.ToBoolean(value); break;
-            case "char_necrobinder_dead": _characterDeadEnabled["THE_NECROBINDER"] = Convert.ToBoolean(value); break;
+            case "char_ironclad_alive": _characterAliveEnabled["IRONCLAD"] = ToBool(value); break;
+            case "char_ironclad_dead": _characterDeadEnabled["IRONCLAD"] = ToBool(value); break;
+            case "char_silent_alive": _characterAliveEnabled["THE_SILENT"] = ToBool(value); break;
+            case "char_silent_dead": _characterDeadEnabled["THE_SILENT"] = ToBool(value); break;
+            case "char_defect_alive": _characterAliveEnabled["DEFECT"] = ToBool(value); break;
+            case "char_defect_dead": _characterDeadEnabled["DEFECT"] = ToBool(value); break;
+            case "char_watcher_alive": _characterAliveEnabled["WATCHER"] = _characterAliveEnabled["THE_HIEROPHANT"] = ToBool(value); break;
+            case "char_watcher_dead": _characterDeadEnabled["WATCHER"] = _characterDeadEnabled["THE_HIEROPHANT"] = ToBool(value); break;
+            case "char_regent_alive": _characterAliveEnabled["THE_REGENT"] = ToBool(value); break;
+            case "char_regent_dead": _characterDeadEnabled["THE_REGENT"] = ToBool(value); break;
+            case "char_necrobinder_alive": _characterAliveEnabled["THE_NECROBINDER"] = ToBool(value); break;
+            case "char_necrobinder_dead": _characterDeadEnabled["THE_NECROBINDER"] = ToBool(value); break;
+            default: break;
+            }
         }
+        catch (Exception ex)
+        {
+            Log.Warn($"[RichPing] UpdateFromModConfig({key}, {value}) 异常: {ex.Message}");
+        }
+    }
+
+    /// <summary>ModConfig 可能传入 bool/int/string，统一转为 bool</summary>
+    private static bool ToBool(object value)
+    {
+        if (value == null) return false;
+        if (value is bool b) return b;
+        if (value is int i) return i != 0;
+        if (value is long l) return l != 0;
+        var s = value.ToString()?.Trim().ToLowerInvariant();
+        return s == "1" || s == "true" || s == "on" || s == "yes";
     }
 
     #endregion
