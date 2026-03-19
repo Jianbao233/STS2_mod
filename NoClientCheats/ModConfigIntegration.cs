@@ -6,7 +6,7 @@ using Godot;
 namespace NoClientCheats;
 
 /// <summary>
-/// ModConfig 集成，零依赖反射。未安装 ModConfig 时模组照常运行（使用默认开启）。
+/// ModConfig 集成，与 RichPing 完全一致写法，确保模组配置中可见且开关可用。
 /// </summary>
 internal static class ModConfigIntegration
 {
@@ -52,16 +52,15 @@ internal static class ModConfigIntegration
     public static void Register()
     {
         if (!IsAvailable) return;
-        try
-        {
-            var tree = Engine.GetMainLoop() as SceneTree;
-            if (tree == null) return;
-            tree.ProcessFrame += OnFrame1;
-        }
-        catch (Exception e)
-        {
-            GD.PushWarning($"[NoClientCheats] ModConfig 注册失败: {e.Message}");
-        }
+        try { DeferredRegister(); }
+        catch (Exception e) { GD.PushWarning($"[NoClientCheats] ModConfig 注册失败: {e.Message}"); }
+    }
+
+    private static void DeferredRegister()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree == null) return;
+        tree.ProcessFrame += OnFrame1;
     }
 
     private static void OnFrame1()
@@ -77,15 +76,8 @@ internal static class ModConfigIntegration
         {
             tree.ProcessFrame -= OnFrame2;
             if (!IsAvailable) return;
-            try
-            {
-                DoRegister();
-                SyncFromConfig();
-            }
-            catch (Exception e)
-            {
-                GD.PushWarning($"[NoClientCheats] ModConfig 注册失败: {e.Message}");
-            }
+            try { DoRegister(); }
+            catch (Exception e) { GD.PushWarning($"[NoClientCheats] ModConfig DoRegister 失败: {e.Message}"); }
         }
     }
 
@@ -93,24 +85,53 @@ internal static class ModConfigIntegration
     {
         var list = new List<object>();
 
-        list.Add(MakeHeader("No Client Cheats", "禁止客机作弊"));
+        list.Add(MakeHeader("Core", "核心功能"));
         list.Add(MakeToggle("block_enabled", "Block Client Cheats", "禁止客机作弊",
-            defaultValue: true,
-            descEn: "When enabled (host only), client cheat commands (gold, relic, card, etc.) are silently dropped. Host can still use cheats.",
-            descZhs: "开启时（仅房主），客机发出的作弊指令（gold、relic、card 等）将被静默丢弃。房主仍可使用作弊。",
-            onChanged: v => { try { NoClientCheatsMod.BlockEnabled = Convert.ToBoolean(v); } catch { } }));
-        list.Add(MakeToggle("hide_from_mod_list", "Hide from Mod List", "屏蔽 Mod 检测",
-            defaultValue: true,
-            descEn: "When enabled, this mod is removed from the mod list sent to clients, so they cannot detect it. Ref: sts2-heybox-support.",
-            descZhs: "开启时，从联机 Mod 列表中移除本 Mod，客机无法检测到。参考 sts2-heybox-support。",
-            onChanged: v => { try { NoClientCheatsMod.HideFromModList = Convert.ToBoolean(v); } catch { } }));
+            "When enabled (host only), client cheat commands are silently dropped.",
+            "开启时（仅房主），客机作弊指令将被静默丢弃。",
+            true, v => { try { NoClientCheatsMod.BlockEnabled = Convert.ToBoolean(v); } catch { } }));
+
+        list.Add(MakeHeader("Notification Popup", "拦截通知弹窗"));
+        list.Add(MakeToggle("show_notification", "Show Popup", "显示弹窗",
+            "When blocked, show a red popup at the top of the screen.",
+            "作弊被拦截时，在屏幕顶部显示红色弹窗。",
+            true, v => { try { NoClientCheatsMod.ShowNotification = Convert.ToBoolean(v); } catch { } }));
+
+        list.Add(MakeSlider("notification_duration", "Popup Duration (sec)", "弹窗停留时间（秒）",
+            1f, 15f, 0.5f, "0.0", 5f,
+            "How long the red popup stays (seconds).", "红色弹窗停留时间（秒）。",
+            v => { try { NoClientCheatsMod.NotificationDuration = Convert.ToSingle(v); } catch { } }));
+
+        list.Add(MakeHeader("History Panel (F6)", "历史面板（F6）"));
+        list.Add(MakeToggle("show_history_panel", "Enable History Panel", "启用历史面板",
+            "Enable F6 to toggle cheat history panel.", "启用 F6 呼出历史面板。",
+            true, v => { try { NoClientCheatsMod.ShowHistoryPanel = Convert.ToBoolean(v); } catch { } }));
+        list.Add(MakeToggle("show_history_on_cheat", "Show Panel on Cheat", "作弊时唤起历史面板",
+            "When a client cheat is blocked, automatically open the history panel.", "客机作弊被拦截时自动打开历史记录面板。",
+            false, v => { try { NoClientCheatsMod.ShowHistoryOnCheat = Convert.ToBoolean(v); } catch { } }));
+
+        var historyOptions = new[] { "10", "15", "20", "25", "30", "35", "40", "45", "50" };
+        list.Add(MakeDropdown("history_max", "Max History Records", "最大历史条数",
+            historyOptions, "25",
+            "Max cheat history records to keep.", "最多保存的历史记录条数。",
+            v => { try { if (v != null) NoClientCheatsMod.HistoryMaxRecords = Convert.ToInt32(v.ToString()); } catch { } }));
+
+        list.Add(MakeToggle("history_key", "History Toggle Key", "历史面板快捷键",
+            "Key to toggle history panel (default F6).", "呼出历史面板的快捷键（默认 F6）。",
+            true, v => { }));
+
         list.Add(MakeSeparator());
-        list.Add(MakeHeader("Host-only mod. Clients don't need to install.", "仅房主需安装，客机无需安装。"));
-        list.Add(MakeHeader("Thanks: sts2-heybox-support, 皮一下就很凡@B站", "致谢：sts2-heybox-support（小黑盒），皮一下就很凡@B站"));
+        list.Add(MakeHeader("Mod Detection", "Mod 检测"));
+        list.Add(MakeToggle("hide_from_mod_list", "Hide from Mod List", "屏蔽 Mod 检测",
+            "When enabled, this mod is removed from the mod list sent to clients.",
+            "开启时，从联机 Mod 列表中移除本 Mod。",
+            true, v => { try { NoClientCheatsMod.HideFromModList = Convert.ToBoolean(v); } catch { } }));
+
+        list.Add(MakeSeparator());
+        list.Add(MakeHeader("Host-only mod.", "仅房主需安装，客机无需安装。"));
 
         var arr = Array.CreateInstance(_entryType, list.Count);
-        for (int i = 0; i < list.Count; i++)
-            arr.SetValue(list[i], i);
+        for (int i = 0; i < list.Count; i++) arr.SetValue(list[i], i);
 
         var register = _apiType.GetMethod("Register", new[] { typeof(string), typeof(string), _entryType.MakeArrayType() });
         if (register != null)
@@ -118,25 +139,29 @@ internal static class ModConfigIntegration
             register.Invoke(null, new object[] { NoClientCheatsMod.ModId, "禁止客机作弊 / No Client Cheats", arr });
             GD.Print("[NoClientCheats] ModConfig 注册完成");
         }
+
+        SyncFromConfig();
     }
 
     private static void SyncFromConfig()
     {
-        try
-        {
-            NoClientCheatsMod.BlockEnabled = GetValue("block_enabled", true);
-            NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true);
-        }
-        catch { }
+        try { NoClientCheatsMod.BlockEnabled = GetValue("block_enabled", true); } catch { }
+        try { NoClientCheatsMod.ShowNotification = GetValue("show_notification", true); } catch { }
+        try { NoClientCheatsMod.ShowHistoryPanel = GetValue("show_history_panel", true); } catch { }
+        try { NoClientCheatsMod.ShowHistoryOnCheat = GetValue("show_history_on_cheat", false); } catch { }
+        try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
+        try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
+        try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }
+        try { var s = GetValue("history_key", "F6"); if (!string.IsNullOrEmpty(s)) NoClientCheatsMod.SetHistoryKey(s); } catch { }
     }
 
-    private static bool GetValue(string key, bool fallback)
+    private static T GetValue<T>(string key, T fallback)
     {
         if (!IsAvailable) return fallback;
         try
         {
-            var method = _apiType.GetMethod("GetValue").MakeGenericMethod(typeof(bool));
-            return (bool)method.Invoke(null, new object[] { NoClientCheatsMod.ModId, key });
+            var method = _apiType.GetMethod("GetValue").MakeGenericMethod(typeof(T));
+            return (T)method.Invoke(null, new object[] { NoClientCheatsMod.ModId, key });
         }
         catch { return fallback; }
     }
@@ -160,13 +185,57 @@ internal static class ModConfigIntegration
     }
 
     private static object MakeToggle(string key, string labelEn, string labelZhs,
-        bool defaultValue = true, string descEn = null, string descZhs = null, Action<object> onChanged = null)
+        string descEn = null, string descZhs = null,
+        bool defaultValue = true, Action<object> onChanged = null)
     {
         var e = Activator.CreateInstance(_entryType);
         SetProp(e, "Key", key);
         SetProp(e, "Label", labelEn);
         SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
         SetProp(e, "Type", ConfigTypeValue("Toggle"));
+        SetProp(e, "DefaultValue", defaultValue);
+        if (descEn != null || descZhs != null)
+        {
+            SetProp(e, "Description", descEn ?? descZhs);
+            SetProp(e, "Descriptions", Dict("en", descEn ?? "", "zhs", descZhs ?? ""));
+        }
+        if (onChanged != null) SetProp(e, "OnChanged", onChanged);
+        return e;
+    }
+
+    private static object MakeSlider(string key, string labelEn, string labelZhs,
+        float min, float max, float step, string format, float defaultValue,
+        string descEn = null, string descZhs = null, Action<object> onChanged = null)
+    {
+        var e = Activator.CreateInstance(_entryType);
+        SetProp(e, "Key", key);
+        SetProp(e, "Label", labelEn);
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
+        SetProp(e, "Type", ConfigTypeValue("Slider"));
+        SetProp(e, "Min", min);
+        SetProp(e, "Max", max);
+        SetProp(e, "Step", step);
+        SetProp(e, "Format", format);
+        SetProp(e, "DefaultValue", defaultValue);
+        if (descEn != null || descZhs != null)
+        {
+            SetProp(e, "Description", descEn ?? descZhs);
+            SetProp(e, "Descriptions", Dict("en", descEn ?? "", "zhs", descZhs ?? ""));
+        }
+        if (onChanged != null) SetProp(e, "OnChanged", onChanged);
+        return e;
+    }
+
+    private static object MakeDropdown(string key, string labelEn, string labelZhs,
+        string[] options, string defaultValue,
+        string descEn = null, string descZhs = null, Action<object> onChanged = null)
+    {
+        var e = Activator.CreateInstance(_entryType);
+        SetProp(e, "Key", key);
+        SetProp(e, "Label", labelEn);
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
+        SetProp(e, "Type", ConfigTypeValue("Dropdown"));
+        SetProp(e, "Options", options);
         SetProp(e, "DefaultValue", defaultValue);
         if (descEn != null || descZhs != null)
         {

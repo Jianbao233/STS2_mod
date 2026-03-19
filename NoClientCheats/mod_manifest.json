@@ -1,11 +1,11 @@
 {
   "id": "NoClientCheats",
   "pck_name": "NoClientCheats",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "name": "禁止客机作弊 / No Client Cheats",
   "author": "煎包 / Cursor Composer 1.5",
-  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。需 ModConfig 方可配置。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install. ModConfig for settings.\n\n致谢 / Thanks:\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（DamageMeter 作者）",
-  "has_pck": true,
+  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.1.0 新功能：\n- 作弊拦截历史面板（F6 呼出/隐藏），可拖拽移动、拖拽边缘调整大小\n- 弹窗与面板内角色名、遗物名均已汉化（使用游戏本地化字符串）\n- 指令显示汉化：relic → 遗物：xxx、gold → 金币 xxx\n\n致谢 / Thanks:\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
+  "has_pck": false,
   "has_dll": true,
   "affects_gameplay": true
 }

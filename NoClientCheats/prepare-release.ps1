@@ -1,10 +1,10 @@
-# Prepare GitHub Release package for NoClientCheats
+﻿# Prepare GitHub Release package for NoClientCheats
 # Usage: .\prepare-release.ps1 [-Version "1.0.0"]
 # 1) Run build.ps1 first to build and deploy the mod
 # 2) This script packs mods\NoClientCheats into NoClientCheats-vX.X.X.zip
 # 3) Output to release/ for gh release create or web upload
 param(
-    [string]$Version = "1.0.0",
+    [string]$Version = "1.1.1",
     [string]$Sts2GamePath = "K:\SteamLibrary\steamapps\common\Slay the Spire 2"
 )
 $ErrorActionPreference = "Stop"

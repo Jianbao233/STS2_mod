@@ -1,4 +1,4 @@
-# NoClientCheats build script
+﻿# NoClientCheats build script
 param(
     [string]$Sts2GamePath = "K:\SteamLibrary\steamapps\common\Slay the Spire 2",
     [string]$GodotExe = ""
@@ -41,7 +41,7 @@ New-Item -ItemType Directory -Path $ModsOutput -Force | Out-Null
 Copy-Item $DllSrc -Destination (Join-Path $ModsOutput "NoClientCheats.dll") -Force
 Copy-Item "NoClientCheats.pck" -Destination (Join-Path $ModsOutput "NoClientCheats.pck") -Force
 $buildStamp = Get-Date -Format "yyyy-MM-dd HH:mm"
-Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v1 $buildStamp" -Encoding UTF8
+Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v1.1.1 $buildStamp" -Encoding UTF8
 if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ModsOutput "mod_manifest.json") -Force }
 Write-Host "[3/3] Copied to $ModsOutput"
 Write-Host "Build done. Host install only. ModConfig for toggle."
