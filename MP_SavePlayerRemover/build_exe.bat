@@ -19,7 +19,7 @@ pip install pyinstaller -q
 
 echo.
 echo [2/2] 打包中...
-pyinstaller --onefile --name MP_SavePlayerRemover --clean remove_players.py
+pyinstaller --onefile --name "MP_SavePlayerRemover-v1.1.0" --clean remove_players.py
 
 if errorlevel 1 (
     echo.
@@ -29,5 +29,5 @@ if errorlevel 1 (
 )
 
 echo.
-echo 完成！exe 位于: dist\MP_SavePlayerRemover.exe
+echo 完成！exe 位于: dist\MP_SavePlayerRemover-v1.1.0.exe
 pause

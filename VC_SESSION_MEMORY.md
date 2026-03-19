@@ -1,4 +1,4 @@
-﻿# VC 会话记忆 · 工作流承接
+# VC 会话记忆 · 工作流承接
 
 > 新对话时请先阅读本文，以延续开发上下文。
 
@@ -91,6 +91,7 @@
 | 2026-03-18 | 取消整个格式修复项目，相关文件归入废弃文件夹 | 创建 _废弃_Manifest格式修复/；移入 修复模组Manifest格式.bat、STS2_ModManifestFixer.bat、fix_mod_manifests.ps1、_build_single_bat.ps1；README_废弃说明.md |
 | 2026-03-18 | 记忆提示词；MP_SavePlayerRemover 区分模组/原版、多Steam账号、标明存档详情 | 游戏分模组/原版存档；多 Steam 账号；选择时显示：难度、层数、玩家64位ID、角色；存档无 Steam 昵称；写入 VC_SESSION_MEMORY 记忆提示词 |
 | 2026-03-18 | 项目主 README 也要修改；所有提示词记录记忆 | 主 README 区分 Mod 类与工具类安装方式；Build 表区分 bbuild.ps1 与 build_exe.bat；MP_SavePlayerRemover 已发布 Release v1.0.0 |
+| 2026-03-19 | v1.1.0：存档玩家和主机 Steam 64位 ID 前加 Steam 名称；保留→删除逻辑 | 存档内无 Steam 昵称，只能从外部 steam_names.json 映射（{steam_id: name}，放存档目录）；v1.1.0 exe: dist/MP_SavePlayerRemover-v1.1.0.exe；删除模式：输入序号删除，all=删除全部，留空=取消 |
 | 2026-03-19 | 阅读所有md文档，识别记忆；Host Priority 项目构建 | 创建 HostPriority 项目记录；bbuild.ps1 部署到游戏 mods ✓ |
 | 2026-03-19 | 地图已选但无法继续；其他玩家投票主机不显示 | 先加 MapSelectionHostVotePostfix 导致房主先选就触发、客机票不显示。用户要求**只干预集齐所有票后的随机决定**：移除 MapSelectionHostVotePostfix，仅保留 MapSelectionPrefix(MoveToMapCoord)，确保最终结果=房主所选，不改变投票收集与显示 |
 | 2026-03-19 | 地图卡住、主机图标重叠、主机只显示客机第一次投票 | 确认为游戏本体多人投票同步/UI：NMapScreen.OnPlayerVoteChanged 对本地玩家直接 return 不刷新；客机改票同步到主机可能缺失。HostPriority 仅干预 MoveToMapCoord 结果；补丁加 try/catch 失败时执行原逻辑防卡关；README 增加「已知现象」说明 |
@@ -340,20 +341,20 @@ dotnet build "K:\杀戮尖塔mod制作\STS2_mod\HostPriority\HostPriority.csproj
 |------|--------|----------|
 | 2025-03-17 | 把 mod 发布到 github，没有经验，模仿其他 mod 的 readme，实现发行版并讲述逻辑，学习发布，记入记忆 | 撰写 README.md（参考 Minty-Spire-2、StS2-Quick-Restart）；prepare-release.ps1 打包脚本；VC_GITHUB_RELEASE_GUIDE.md 发布指南；VC_SESSION_MEMORY 补充 Release 逻辑与流程 |
 | 2025-03-17 | 仓库 README 表达 vibe coding、中国高中生、昨天才开始、无编程经验、AI 创建；构建打包禁止客机作弊 mod 供上传；记入记忆 | 根目录 README 中英双语说明；构建+prepare-release 生成 NoClientCheats-v1.0.0.zip 于 `NoClientCheats/release/`；Releases 指向 Jianbao233/STS2_mod |
-| 2026-03-18 | 项目主 README 也要修改，记得所有提示词记录记忆 | 主 README：Quick Install 区分 Mod 类与工具类；Build from Source 改为表格，区分 bbuild.ps1（Mod）与 build_exe.bat（MP_SavePlayerRemover）；Projects 表已含 MP_SavePlayerRemover |
+| 2026-03-18 | 项目主 README 也要修改，记得所有提示词记录记忆 | 主 README：Quick Install 区分 Mod 类与工具类；Build from Source 改为表格，区分 bbuild.ps1（Mod）与 build_exe.bat（MP_SavePlayerRemover）；Projects 表已含 MP_SavePlayerRemover；Steam 名称映射文件 steam_names.json |
 
 ---
 
-## MP_SavePlayerRemover · 多人存档移除玩家工具（2026-03-18）
+## MP_SavePlayerRemover · 多人存档移除玩家工具（2026-03-19 v1.1.0）
 
 | 项目 | 说明 |
 |------|------|
 | **路径** | `K:\杀戮尖塔mod制作\STS2_mod\MP_SavePlayerRemover\` |
-| **功能** | 在游戏外修改 current_run_mp.save，移除指定玩家并清理相关引用（方案 A 外部工具） |
-| **使用** | 先退出游戏 → 运行 remove_players.py 或 exe → 选择存档 → 选择要保留的玩家 |
-| **记忆提示词** | 游戏分**模组模式**与**原版模式**，存档路径不同；用户电脑可有**多个 Steam 账号**；选择存档时需**标明**：难度(ascension)、层数、玩家 64 位 ID、所选角色；存档内**无 Steam 昵称**，仅能显示 64 位 ID |
+| **功能** | 在游戏外修改 current_run_mp.save，移除指定玩家并清理相关引用 |
+| **使用** | 先退出游戏 → 运行 exe → 选择存档 → 输入要**删除**的玩家序号（all=删除全部） |
+| **Steam 名称映射** | 在存档目录创建 `steam_names.json`（格式: `{"steam_id": "昵称"}`），工具自动加载并显示昵称 |
+| **操作模式** | **v1.1.0 改为删除模式**：输入序号删除（v1.0 为保留模式） |
 | **存档路径** | 原版: `steam\{SteamId}\profile*\saves\`；模组: `steam\{SteamId}\modded\profile*\saves\` |
-| **主 README** | 项目主 README 需区分 Mod 类与工具类安装方式；Build 表区分 bbuild.ps1（Mod）与 build_exe.bat（Python/PyInstaller）；工具类解压任意位置运行 |
 
 ---
 

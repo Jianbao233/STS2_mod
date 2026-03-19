@@ -10,11 +10,12 @@ Standalone tool to remove disconnected or leaving players from STS2 multiplayer 
 
 | 功能 | 说明 |
 |------|------|
-| **Remove Players** | 从存档中移除指定玩家，清理 players、map_point_history、map_drawings 等引用 |
-| **Auto Path Detect** | 自动搜索原版/模组模式的存档路径，支持多 Steam 账号 |
-| **Save Summary** | 选择时标明：难度、层数、玩家角色与 Steam 64位 ID |
-| **Auto Backup** | 修改前自动备份为 `current_run_mp.save.backup.{时间戳}` |
-| **Mod Characters** | 支持 Mod 角色，未知角色显示其 ID |
+| **删除玩家** | 从存档中移除指定玩家，清理 players、map_point_history、map_drawings 等引用 |
+| **Steam 名称显示** | 支持 `steam_names.json` 映射文件，告别纯 ID 认人时代 |
+| **自动路径检测** | 自动搜索原版/模组模式的存档路径，支持多 Steam 账号 |
+| **存档摘要** | 选择时标明：难度、层数、玩家角色与 Steam 64位 ID |
+| **自动备份** | 修改前自动备份为 `current_run_mp.save.backup.{时间戳}` |
+| **Mod 角色支持** | 支持 Mod 角色，未知角色显示其 ID |
 
 ---
 
@@ -37,16 +38,29 @@ Standalone tool to remove disconnected or leaving players from STS2 multiplayer 
 
 1. **先退出游戏**
 2. 运行工具，按提示选择存档（多份时会显示模式、Steam 账号、难度、层数、玩家）
-3. 输入要**保留**的玩家序号，逗号分隔，如 `1,3`
+3. 输入要**删除**的玩家序号，逗号分隔，如 `1,3`（输入 `all` = 删除全部，留空 = 取消）
 4. 确认后自动备份并修改
 5. 启动游戏，继续读档
+
+### Steam 名称映射（可选）
+
+存档内无 Steam 昵称，工具默认仅显示 64 位 ID。
+
+如需显示昵称，在存档目录创建 `steam_names.json`：
+
+```json
+{
+  "76561198679823594": "煎包",
+  "76561199032167696": "小明"
+}
+```
+
+这样玩家列表会显示为 `煎包 (76561198679823594)`，一目了然。
 
 ### 存档路径
 
 - **原版**：`%APPDATA%\SlayTheSpire2\steam\{SteamId}\profile1\saves\`
 - **模组**：`%APPDATA%\SlayTheSpire2\steam\{SteamId}\modded\profile1\saves\`
-
-存档内无 Steam 昵称，仅显示 64 位 ID。可访问 `steamcommunity.com/profiles/{64位ID}` 查看。
 
 ### 备份位置
 
@@ -61,7 +75,7 @@ cd MP_SavePlayerRemover
 .\build_exe.bat
 ```
 
-需要：Python 3.8+、PyInstaller。产出在 `dist/MP_SavePlayerRemover.exe`。
+需要：Python 3.8+、PyInstaller。产出在 `dist/MP_SavePlayerRemover-vX.X.X.exe`。
 
 或直接运行 Python：
 
@@ -74,10 +88,19 @@ python remove_players.py
 ## Release / 发行版
 
 ```powershell
-.\prepare-release.ps1 -Version "1.0.0"
+.\prepare-release.ps1 -Version "1.1.0"
 ```
 
-产出 `release/MP_SavePlayerRemover-v1.0.0.zip`，可上传至 GitHub Releases。
+产出 `release/MP_SavePlayerRemover-v1.1.0.zip`，可上传至 GitHub Releases。
+
+---
+
+## Changelog / 版本记录
+
+| 版本 | 变更 |
+|------|------|
+| v1.1.0 | 新增 Steam 名称映射显示；删除模式替代保留模式（更直观） |
+| v1.0.0 | 初始版本 |
 
 ---
 

@@ -1,14 +1,11 @@
 # Prepare GitHub Release package for MP_SavePlayerRemover
-# Usage: .\prepare-release.ps1 [-Version "1.0.0"]
-# 1) Runs build_exe.bat logic to produce exe (or uses existing dist/)
-# 2) Packs exe + README into MP_SavePlayerRemover-vX.X.X.zip
-# 3) Output to release/ for gh release create or web upload
+# Usage: .\prepare-release.ps1 [-Version "1.1.0"]
 param(
-    [string]$Version = "1.0.0"
+    [string]$Version = "1.1.0"
 )
 $ErrorActionPreference = "Stop"
 $ScriptDir = $PSScriptRoot
-$DistExe = Join-Path $ScriptDir "dist\MP_SavePlayerRemover.exe"
+$DistExe = Join-Path $ScriptDir "dist\MP_SavePlayerRemover-v$Version.exe"
 $ReleaseDir = Join-Path $ScriptDir "release"
 $ZipName = "MP_SavePlayerRemover-v$Version.zip"
 $ZipPath = Join-Path $ReleaseDir $ZipName
@@ -18,7 +15,7 @@ if (-not (Test-Path $DistExe)) {
     Write-Host "Building exe (dist\MP_SavePlayerRemover.exe not found)..."
     Set-Location $ScriptDir
     pip install pyinstaller -q 2>$null
-    pyinstaller --onefile --name MP_SavePlayerRemover --clean remove_players.py 2>&1 | Out-Null
+    pyinstaller --onefile --name "MP_SavePlayerRemover-v$Version" --clean remove_players.py 2>&1 | Out-Null
     if (-not (Test-Path $DistExe)) {
         Write-Host "Build failed. Run build_exe.bat manually."
         exit 1
