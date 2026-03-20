@@ -23,7 +23,7 @@ if (-not (Test-Path $ExePath)) {
     } else {
         # 备用：直接用 pyinstaller
         if (Get-Command pyinstaller -ErrorAction SilentlyContinue) {
-            pyinstaller --onefile --name "MP_PlayerManager-v$Version" --console=1 manage_players.py
+            pyinstaller --onefile --name "MP_PlayerManager-v$Version" --console manage_players.py
         } else {
             Write-Host "[错误] 未找到 build_exe.bat 且 pyinstaller 不可用"
             exit 1

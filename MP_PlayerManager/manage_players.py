@@ -28,6 +28,8 @@ CHARACTER_NAMES: Dict[str, str] = {
     "CHARACTER.DEPRIVED": "剥夺者",
     "CHARACTER.WATCHER": "观者",
     "CHARACTER.HERMIT": "隐者",
+    # Mod 角色占位符（实际 ID 由 mod 的 player_template.json 提供）
+    "MOD.EXAMPLE_CHAR": "[Mod 角色] 未检测到 mod",
 }
 
 
@@ -37,6 +39,51 @@ def get_character_display(char_id: str) -> str:
     if char_id and char_id.startswith("CHARACTER."):
         return char_id.replace("CHARACTER.", "")
     return char_id or "未知"
+
+
+
+
+def get_initial_deck(character_id: str) -> List[Dict[str, Any]]:
+    """返回指定角色的初始牌组"""
+    card_ids = INITIAL_STARTER_DECKS.get(character_id, [])
+    return [
+        {"id": cid, "floor_added_to_deck": 1}
+        for cid in card_ids
+    ]
+
+
+# ============================================================
+# 角色最大HP映射
+# ============================================================
+CHARACTER_MAX_HP: Dict[str, int] = {
+    "CHARACTER.IRONCLAD": 80,
+    "CHARACTER.SILENT": 70,
+    "CHARACTER.DEFECT": 75,
+    "CHARACTER.NECROBINDER": 72,
+    "CHARACTER.REGENT": 78,
+    "CHARACTER.DEPRIVED": 68,
+    "CHARACTER.WATCHER": 72,
+    "CHARACTER.HERMIT": 74,
+    # Mod 角色（初始默认无，需 mod 提供 player_template.json）
+    "MOD.EXAMPLE_CHAR": 70,
+}
+
+
+# ============================================================
+# 角色初始遗物
+# ============================================================
+CHARACTER_STARTER_RELICS: Dict[str, str] = {
+    "CHARACTER.IRONCLAD": "RELIC.BURNING_BLOOD",
+    "CHARACTER.SILENT": "RELIC.WHIP_LASH",
+    "CHARACTER.DEFECT": "RELIC.CRACKED_CORE",
+    "CHARACTER.NECROBINDER": "RELIC.NECRONOMICON",
+    "CHARACTER.REGENT": "RELIC.TOME_OF_honor",
+    "CHARACTER.DEPRIVED": "RELIC.NEW_POWER",
+    "CHARACTER.WATCHER": "RELIC.PURE_WATER",
+    "CHARACTER.HERMIT": "RELIC.BANDAGES",
+    # Mod 角色（初始默认无）
+    "MOD.EXAMPLE_CHAR": "",
+}
 
 
 # ============================================================
@@ -100,46 +147,99 @@ INITIAL_STARTER_DECKS: Dict[str, List[str]] = {
         "CARD.DEFEND_H", "CARD.DEFEND_H",
         "CARD.SHRUG_IT_OFF",
     ],
-}
-
-
-def get_initial_deck(character_id: str) -> List[Dict[str, Any]]:
-    """返回指定角色的初始牌组"""
-    card_ids = INITIAL_STARTER_DECKS.get(character_id, [])
-    return [
-        {"id": cid, "floor_added_to_deck": 1}
-        for cid in card_ids
-    ]
-
-
-# ============================================================
-# 角色最大HP映射
-# ============================================================
-CHARACTER_MAX_HP: Dict[str, int] = {
-    "CHARACTER.IRONCLAD": 80,
-    "CHARACTER.SILENT": 70,
-    "CHARACTER.DEFECT": 75,
-    "CHARACTER.NECROBINDER": 72,
-    "CHARACTER.REGENT": 78,
-    "CHARACTER.DEPRIVED": 68,
-    "CHARACTER.WATCHER": 72,
-    "CHARACTER.HERMIT": 74,
+    # Mod 角色（初始默认无牌组）
+    "MOD.EXAMPLE_CHAR": [],
 }
 
 
 # ============================================================
-# 角色初始遗物
+# Mod 角色模板自动发现
 # ============================================================
-CHARACTER_STARTER_RELICS: Dict[str, str] = {
-    "CHARACTER.IRONCLAD": "RELIC.BURNING_BLOOD",
-    "CHARACTER.SILENT": "RELIC.WHIP_LASH",
-    "CHARACTER.DEFECT": "RELIC.CRACKED_CORE",
-    "CHARACTER.NECROBINDER": "RELIC.NECRONOMICON",
-    "CHARACTER.REGENT": "RELIC.TOME_OF_honor",
-    "CHARACTER.DEPRIVED": "RELIC.NEW_POWER",
-    "CHARACTER.WATCHER": "RELIC.PURE_WATER",
-    "CHARACTER.HERMIT": "RELIC.BANDAGES",
-}
+# 游戏 mods 目录（用于自动发现 mod 提供的主角）
+DEFAULT_MODS_DIR = Path(r"K:\SteamLibrary\steamapps\common\Slay the Spire 2\mods")
+
+
+def load_mod_character_templates(mods_dir: Optional[Path] = None) -> Dict[str, Dict[str, Any]]:
+    """
+    扫描 mods 目录，从各 mod 文件夹的 player_template.json 加载角色模板。
+
+    player_template.json 格式（放在 mod 文件夹根目录）：
+
+        {
+            "character_id": "MOD.MY_CHAR",
+            "name": "我的角色",
+            "max_hp": 75,
+            "starter_relic": "RELIC.MY_CHAR_RELIC",
+            "starter_deck": [
+                "CARD.MY_STRIKE",
+                "CARD.MY_STRIKE",
+                "CARD.MY_STRIKE",
+                "CARD.MY_DEFEND",
+                "CARD.MY_DEFEND",
+                "CARD.MY_DEFEND",
+                "CARD.MY_SPECIAL"
+            ]
+        }
+
+    所有字段均可选，不提供则使用默认值（无初始遗物、无初始牌组）。
+    """
+    templates: Dict[str, Dict[str, Any]] = {}
+
+    # 修复：不传参时使用默认 mods 目录
+    effective_mods_dir = mods_dir if mods_dir is not None else DEFAULT_MODS_DIR
+    if not effective_mods_dir:
+        print(f"  [提示] 未指定 mods 目录，跳过 mod 角色扫描")
+        return templates
+    if not effective_mods_dir.exists():
+        print(f"  [提示] mods 目录不存在，跳过 mod 角色扫描: {effective_mods_dir}")
+        print(f"  提示: 使用 --mods-dir 参数指定 mods 目录")
+        return templates
+
+    for mod_dir in effective_mods_dir.iterdir():
+        if not mod_dir.is_dir():
+            continue
+        template_file = mod_dir / "player_template.json"
+        if not template_file.exists():
+            continue
+        try:
+            with open(template_file, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            if not isinstance(raw, dict):
+                continue
+            cid = raw.get("character_id")
+            if not cid:
+                print(f"  [警告] {template_file} 缺少 character_id 字段，跳过")
+                continue
+
+            # 注册到全局角色名
+            name = raw.get("name") or cid
+            if cid not in CHARACTER_NAMES:
+                CHARACTER_NAMES[cid] = name
+
+            # 注册初始遗物（无则留空字符串）
+            if cid not in CHARACTER_STARTER_RELICS:
+                CHARACTER_STARTER_RELICS[cid] = raw.get("starter_relic") or ""
+
+            # 注册初始牌组（无则留空）
+            deck_ids = raw.get("starter_deck") or []
+            INITIAL_STARTER_DECKS[cid] = deck_ids
+
+            # 注册最大HP
+            if cid not in CHARACTER_MAX_HP:
+                CHARACTER_MAX_HP[cid] = raw.get("max_hp") or 70
+
+            templates[cid] = {
+                "from_mod": mod_dir.name,
+                "name": name,
+                "max_hp": raw.get("max_hp") or 70,
+                "starter_relic": raw.get("starter_relic") or "",
+                "starter_deck": deck_ids,
+            }
+            print(f"  已加载 mod 角色模板: {cid}（来自 {mod_dir.name}）")
+        except Exception as e:
+            print(f"  [错误] 读取 {template_file} 失败: {e}")
+
+    return templates
 
 
 def get_max_hp(character_id: str) -> int:
@@ -259,6 +359,48 @@ def backup_save(path: Path) -> Path:
 # ============================================================
 # 核心修改逻辑
 # ============================================================
+def inject_player_into_map_history(data: dict, player: dict) -> None:
+    """
+    将新玩家注入到 map_point_history 的所有已有记录中。
+    这样游戏在 LoadIntoLatestMapCoord 时能查到该玩家的 stats，不会崩溃。
+    """
+    new_id = player.get("net_id")
+    if not new_id:
+        return
+
+    for floor in data.get("map_point_history", []):
+        for entry in floor:
+            stats = entry.get("player_stats", [])
+            # 已存在则跳过
+            if any(s.get("player_id") == new_id for s in stats):
+                continue
+
+            # 构建该玩家的初始记录
+            new_stat: Dict[str, Any] = {
+                "player_id": new_id,
+                "current_gold": player.get("gold", 0),
+                "current_hp": player.get("current_hp", player.get("max_hp", 0)),
+                "max_hp": player.get("max_hp", 0),
+                "damage_taken": 0,
+                "gold_gained": 0,
+                "gold_lost": 0,
+                "gold_spent": 0,
+                "gold_stolen": 0,
+                "hp_healed": player.get("max_hp", 0),
+                "max_hp_gained": 0,
+                "max_hp_lost": 0,
+                "cards_gained": [],
+                "relic_choices": [],
+                "event_choices": [],
+            }
+
+            # ancient 类型节点有 ancient_choice
+            if entry.get("map_point_type") == "ancient":
+                new_stat["ancient_choice"] = []
+
+            stats.append(new_stat)
+
+
 def remove_players_from_save(data: dict, remove_net_ids: Set) -> tuple:
     """移除玩家及相关引用"""
     original_count = len(data.get("players", []))
@@ -408,6 +550,10 @@ def add_player_copy(
         new_player["net_id"] += 1
 
     data["players"].append(new_player)
+
+    # 注入 map_point_history（防止进游戏后崩溃）
+    inject_player_into_map_history(data, new_player)
+
     return True
 
 
@@ -480,6 +626,10 @@ def add_player_starter(
         new_player["net_id"] += 1
 
     data["players"].append(new_player)
+
+    # 注入 map_point_history（防止进游戏后崩溃）
+    inject_player_into_map_history(data, new_player)
+
     return True
 
 
@@ -661,7 +811,8 @@ def op_possess(data: dict, save_path: Path, steam_names: Dict[str, str]):
         print("\n夺舍失败")
 
 
-def op_add_player(data: dict, save_path: Path, steam_names: Dict[str, str]):
+def op_add_player(data: dict, save_path: Path, steam_names: Dict[str, str],
+                  mods_dir_arg: Optional[Path] = None):
     """添加新玩家操作"""
     players = data.get("players", [])
 
@@ -781,11 +932,66 @@ def op_add_player(data: dict, save_path: Path, steam_names: Dict[str, str]):
 
     # ---- 初始牌组模式 ----
     elif choice == "2":
-        char_list = list(CHARACTER_NAMES.items())
-        print("\n选择角色：")
-        for ci, (cid, cname) in enumerate(char_list, 1):
+        mod_templates = load_mod_character_templates(mods_dir_arg)
+        mod_count = len(mod_templates)
+
+        # 内置角色：铁甲战士、静默猎手、故障机器人、亡灵契约师、储君
+        base_chars = [
+            ("CHARACTER.IRONCLAD", "铁甲战士"),
+            ("CHARACTER.SILENT", "静默猎手"),
+            ("CHARACTER.DEFECT", "故障机器人"),
+            ("CHARACTER.NECROBINDER", "亡灵契约师"),
+            ("CHARACTER.REGENT", "储君"),
+        ]
+
+        print("\n选择角色（输入序号）：")
+        print()
+        print("  ── 内置角色 ──")
+        for ci, (cid, cname) in enumerate(base_chars, 1):
             marker = " ← 默认" if cid == "CHARACTER.WATCHER" else ""
-            print(f"  [{ci}] {cid} -> {cname}{marker}")
+            print(f"  [{ci}] {cname}  ({cid}){marker}")
+
+        if mod_templates:
+            print()
+            print(f"  ── Mod 角色（{mod_count} 个）──")
+            for ci, (cid, info) in enumerate(sorted(mod_templates.items()), len(base_chars) + 1):
+                print(f"  [{ci}] {info['name']}  ({cid})  ← {info['from_mod']}")
+            print()
+            print("  Mod 作者想注册新角色？")
+            print("  → https://github.com/Jianbao233/STS2_mod  (README.md → Mod 角色接口)")
+        else:
+            print()
+            print("  ── Mod 角色 ──")
+            print("  （当前无 mod 提供角色模板，未检测到 player_template.json）")
+            print()
+            print("  ┌─────────────────────────────────────────────┐")
+            print("  │  Mod 作者？让你的角色出现在这里！             │")
+            print("  └─────────────────────────────────────────────┘")
+            print()
+            print("  只需两步即可自动注册你的自定义角色：")
+            print()
+            print("  [1] 在你的 mod 文件夹根目录新建 player_template.json")
+            print("      格式示例：")
+            print()
+            print('      {')
+            print('          "character_id": "MOD.MY_CHAR",')
+            print('          "name": "我的角色",')
+            print('          "max_hp": 75,')
+            print('          "starter_relic": "RELIC.MY_CHAR_RELIC",')
+            print('          "starter_deck": [')
+            print('              "CARD.STRIKE_XXX", "CARD.STRIKE_XXX",')
+            print('              "CARD.DEFEND_XXX", "CARD.DEFEND_XXX",')
+            print('              "CARD.MY_SPECIAL"')
+            print('          ]')
+            print('      }')
+            print()
+            print("  [2] 重启本工具，角色会自动出现在上方列表")
+            print()
+            print("  完整文档（含字段说明）：")
+            print("  → https://github.com/Jianbao233/STS2_mod")
+            print("  → README.md → Mod 角色接口（Mod 作者指南）")
+            print()
+            print("  注意：character_id 必须以 MOD. 开头，如 MOD.MY_CHAR")
         print("  [0] 取消")
         print("> ", end="")
         char_input = input().strip()
@@ -794,15 +1000,30 @@ def op_add_player(data: dict, save_path: Path, steam_names: Dict[str, str]):
             return
 
         matched = None
+
+        # 先尝试序号匹配
         try:
             ci = int(char_input)
-            if 1 <= ci <= len(char_list):
-                matched = char_list[ci - 1][0]
+            if 1 <= ci <= len(base_chars):
+                matched = base_chars[ci - 1][0]
+            elif mod_templates and len(base_chars) < ci <= len(base_chars) + len(mod_templates):
+                sorted_mods = sorted(mod_templates.items())
+                matched = sorted_mods[ci - len(base_chars) - 1][0]
         except ValueError:
-            for cid, cname in char_list:
-                if char_input.lower() in cname.lower() or char_input.lower() in cid.lower():
+            pass
+
+        # 再尝试关键字匹配
+        if not matched:
+            char_input_lower = char_input.lower()
+            for cid, cname in base_chars:
+                if char_input_lower in cname.lower() or char_input_lower in cid.lower():
                     matched = cid
                     break
+            if not matched:
+                for cid, info in mod_templates.items():
+                    if char_input_lower in info["name"].lower() or char_input_lower in cid.lower():
+                        matched = cid
+                        break
 
         if not matched:
             print("未识别角色，默认为观者（WATCHER）")
@@ -811,7 +1032,7 @@ def op_add_player(data: dict, save_path: Path, steam_names: Dict[str, str]):
         char_name = CHARACTER_NAMES.get(matched, matched)
         max_hp = get_max_hp(matched)
         deck_cards = get_initial_deck(matched)
-        starter_relic = CHARACTER_STARTER_RELICS.get(matched, "RELIC.BURNING_BLOOD")
+        starter_relic = CHARACTER_STARTER_RELICS.get(matched, "")
 
         # 添加预览确认
         print()
@@ -820,8 +1041,9 @@ def op_add_player(data: dict, save_path: Path, steam_names: Dict[str, str]):
         print("=" * 48)
         print(f"  新玩家:   {steam_name or '(无昵称)'} (ID: {steam_id})")
         print(f"  角色:     {char_name} ({matched})")
-        print(f"  初始牌组: {len(deck_cards)} 张基础牌")
-        print(f"  初始遗物: {starter_relic}")
+        print(f"  初始牌组: {len(deck_cards)} 张")
+        relic_display = starter_relic if starter_relic else "（无）"
+        print(f"  初始遗物: {relic_display}")
         print(f"  初始金币: 100")
         print(f"  生命值:   {max_hp}/{max_hp}（满血）")
         print("=" * 48)
@@ -917,7 +1139,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="STS2 多人存档玩家管理工具")
     parser.add_argument("--path", "-p", help="指定存档路径")
     parser.add_argument("--list-only", "-l", action="store_true", help="仅列出玩家")
+    parser.add_argument("--mods-dir", "-m", help="指定 mods 目录（默认: K:\\SteamLibrary\\steamapps\\common\\Slay the Spire 2\\mods）")
     args = parser.parse_args()
+
+    # 解析 mods 目录
+    mods_dir_arg: Optional[Path] = None
+    if args.mods_dir:
+        mods_dir_arg = Path(args.mods_dir.strip().strip('"'))
+        if not mods_dir_arg.exists():
+            print(f"\n[警告] 指定的 mods 目录不存在: {mods_dir_arg}")
+            print("  Mod 角色模板将无法加载！")
+
 
     print_header()
 
@@ -998,7 +1230,7 @@ def main() -> None:
             except Exception:
                 pass
             steam_names = load_steam_names(save_dir)
-            op_add_player(data, save_path, steam_names)
+            op_add_player(data, save_path, steam_names, mods_dir_arg)
         elif choice == "3":
             try:
                 data = load_save(save_path)

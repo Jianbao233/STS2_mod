@@ -29,7 +29,7 @@ if exist build rmdir /s /q build
 
 REM 打包
 echo [3/3] 打包为 exe...
-pyinstaller --onefile --name "MP_PlayerManager-v1.0.0" --console=1 --clean manage_players.py
+pyinstaller --onefile --name "MP_PlayerManager-v1.0.0" --console --clean manage_players.py
 
 if exist "dist\MP_PlayerManager-v1.0.0.exe" (
     echo.

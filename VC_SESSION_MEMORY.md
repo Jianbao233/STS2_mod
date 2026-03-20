@@ -376,6 +376,18 @@ dotnet build "K:\杀戮尖塔mod制作\STS2_mod\HostPriority\HostPriority.csproj
 | **添加-初始模式** | 选择角色，以初始牌组（基础牌+100金币+满血）加入 |
 | **移除** | 删除玩家 + 清理 map_point_history/map_drawings |
 
+### Mod 角色模板接口（player_template.json）
+
+MP_PlayerManager 支持通过 mod 文件夹根目录的 `player_template.json` 注册自定义角色（README.md 有完整格式说明）。
+
+**已注册的 Mod 角色：**
+
+|| 模组 | character_id | 初始遗物 | 初始牌组 |
+||------|------|------|------|
+|| Watcher（观者）| `CHARACTER.WATCHER` | `RELIC.PURE_WATER` | 4×STRIKE_P + 4×DEFEND_P + ERUPTION_P + VIGILANCE + GREED（11张）|
+
+> Watcher 模板数据从 `current_run_mp.save` 中已使用观者的玩家数据提取：max_hp=72，遗物 RELIC.PURE_WATER + RELIC.CURSED_PEARL（诅咒珍珠为额外获取，非初始遗物）。
+
 ### 技术实现
 
 - 纯 Python，无依赖（标准库 json/base64/gzip/shutil）
@@ -403,11 +415,55 @@ dotnet build "K:\杀戮尖塔mod制作\STS2_mod\HostPriority\HostPriority.csproj
 
 ---
 
+## BaseLib-StS2 · 分析与借鉴（2026-03-20）
+
+> 仓库：[Alchyr/BaseLib-StS2](https://github.com/Alchyr/BaseLib-StS2)（⭐105）  
+> 报告：`K:\杀戮尖塔mod制作\STS2_mod\VC_BASELIB_ANALYSIS_REPORT.md`
+
+### 核心架构（6 大子系统）
+
+| 子系统 | 目录 | 核心价值 |
+|--------|------|---------|
+| **内容抽象** | `Abstracts/` | `CustomCharacterModel`、`CustomCardModel`、`CustomPile` 等抽象基类，子类继承后自动注册到游戏数据库 |
+| **配置系统** | `Config/` | **SimpleModConfig**——子类只需声明 `public static` 属性 + attribute 标记，自动生成完整 UI（Toggle/Slider/Dropdown + HoverTip） |
+| **扩展方法** | `Extensions/` | `DynamicVarExtensions.CalculateBlock()`（统一战斗状态检查）、`WithTooltip()`（标准化悬浮提示 key 映射） |
+| **IL 补丁工具** | `Utils/Patching/` | `InstructionPatcher` + `InstructionMatcher` 链式 API，大幅降低 Transpiler 编写门槛 |
+| **Mod 互操作** | `Patches/Features/ModInteropPatch.cs` + `Utils/ModInterop/` | `[ModInterop]` 特性，运行时生成 IL 跨 mod 调用，无需编译期依赖 |
+| **日志系统** | `BaseLibScenes/NLogWindow.cs` + `BaseLib/scenes/LogWindow.tscn` | 全局静态 `AddLog()` API + 滚动日志窗口，支持多窗口同步 |
+
+### 优先级借鉴点
+
+| 优先级 | 内容 | 对工作区的意义 |
+|--------|------|-------------|
+| ⭐⭐⭐⭐⭐ | `SimpleModConfig` 配置系统 | 代码量减少 70%；RichPing/NoClientCheats 各配置项用 3 行属性 + 2 行 attribute 替代手写 UI |
+| ⭐⭐⭐⭐ | `ConfigAttributes` | `[SliderRange]`、`[ConfigSection]`、`[HoverTipsByDefault]` 零成本 UI 增强 |
+| ⭐⭐⭐ | `DynamicVarExtensions` | ControlPanel 伤害/格挡显示可改用 `.CalculateBlock()` 替代手写 `CombatManager` 判断 |
+| ⭐⭐⭐ | `CustomCharacterModel` | 未来做自定义角色 mod（类似 Watcher MOD）时直接继承 BaseLib 体系 |
+| ⭐⭐ | `InstructionPatcher` | 长期高级补丁编写；短期暂不需要 |
+
+### Notes.txt 技术价值
+
+`Notes.txt`（8KB）包含对 STS2 内部机制的详细 IL 分析，特别是：
+- `CardPileCmd.Add` 完整 IL 流程（卡牌移动逻辑）
+- `NCombatUi` 战斗 UI 渲染流程
+- `Hook.ModifyCardPlayResultPileTypeAndPosition` 等高级 Hook 位置
+
+建议作为 STS2_mod 的参考文档存档（已含在报告中）。
+
+### 实施路线图
+
+1. **立即**：抽取 `Config/` 到 `STS2_mod/SharedConfig/`，RichPing 继承 `SimpleModConfig` 重构配置
+2. **下次**：引入 `DynamicVarExtensions` 到 ControlPanel；`ConfigAttributes` 扩展到 NoClientCheats
+3. **长期**：基于 `CustomCharacterModel` 重建卡牌管理；引入 `InstructionPatcher`
+
+---
+
 ## 下次对话可用的快速指令
 
 - 「继续 RichPing」：在 RichPing 文件夹内施工
 - 「我遇到了 [报错特征]」：可引用报错速查表
 - 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
+- 「BaseLib 借鉴」：参考 `VC_BASELIB_ANALYSIS_REPORT.md`；优先考虑 `SimpleModConfig` 配置系统重构
 - 「存档解析/修改工具」：参考 VC_STS2_SAVE_FILE_ANALYSIS.md；所有 .save 文件均为 JSON；单人 `current_run.save`，多人 `current_run_mp.save`；多人存档删除玩家需同步清理 deck/relics/potions/grab_bag；源码见 `MegaCrit.Sts2.Core.Saves`/`MegaCrit.Sts2.Core.Saves.Runs`
 - 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
 - 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats/RichPing 均用 `prepare-release.ps1 -Version "x.y.z"` 打包
@@ -556,7 +612,7 @@ elic XXX → 「遗物：XXX」。
 |------|--------|----------|
 | 2026-03-20 | 角色名需汉化，左下角UI显示有问题 | CheatLocHelper 本地化；标题计数修复；窗口自适应 |
 | 2026-03-20 | 将历史记录窗口像伤害统计mod那样可以随意更改大小 | 参考 MeterWindow 实现：ResizeEdge/DetectEdges、标题栏拖拽、全局 _Input |
-| 2026-03-20 | 更新记忆文件和readme，更新版本号，构建新版本号的mod并制作release包，上传至github | v1.1.1 构建并发布 |
+| 2026-03-20 | 了解工作区项目内容，访问 BaseLib-StS2 GitHub，编写 baselib 可借鉴之处报告，记入记忆 | 创建 VC_BASELIB_ANALYSIS_REPORT.md；完成全面分析并追加记忆 |
 
 ### 构建
 

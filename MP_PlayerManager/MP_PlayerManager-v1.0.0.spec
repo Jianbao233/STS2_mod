@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['K:\\杀戮尖塔mod制作\\STS2_mod\\MP_PlayerManager\\manage_players.py'],
+    ['manage_players.py'],
     pathex=[],
     binaries=[],
     datas=[],
