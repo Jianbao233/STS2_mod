@@ -77,6 +77,11 @@ cd NoClientCheats
 
 ## Changelog / 更新日志
 
+### v1.1.2（2026-03-21）
+
+- **修复初始化时机 Bug**：原版本在 `ModInitializer` 阶段加载配置时 `LocManager` 尚未初始化，导致配置加载失败。新版本采用**静态构造函数 + 两帧延迟**方案，三重保险确保在 `LocManager` 就绪后才初始化，完全兼容 ModConfig v0.1.5 及更新版本
+- 已知问题：如发现面板无法唤起，更新最新的 ModConfig（[B站 @皮一下就很凡](https://github.com/piyixiajiuhenfen/STS2_mod/releases)）
+
 ### v1.1.1（2026-03-20）
 
 - 修复历史面板 `RefreshList()` 误删空状态标签 `_emptyLabel` 的问题，面板不再崩溃

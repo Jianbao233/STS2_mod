@@ -32,6 +32,10 @@ internal static class ClientCheatBlockPrefix
 
     static bool Prefix(object __instance, object message, ulong senderId)
     {
+        // 第三重保险：若 ModManagerInitPostfix 的两条路径都因 GetMainLoop()==null 而未执行，
+        // 作弊拦截触发时兜底尝试初始化（确保终局也能创建 UI 节点）
+        ModManagerInitPostfix.TryScheduleInit();
+
         if (message == null) return true;
 
         object action = null;

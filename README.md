@@ -8,10 +8,9 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 
 ## Projects | 子项目
 
-| Mod / Tool | 说明 | Links |
-|------------|------|-------|
+| ~~MP_SavePlayerRemover~~ | ~~多人存档玩家移除工具~~（已废弃，功能已被 MP_PlayerManager 整合） | ~~[README](MP_SavePlayerRemover/README.md)~~ |
 | **NoClientCheats** | 多人联机禁止客机作弊；仅房主需安装 | [README](NoClientCheats/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
-| **MP_PlayerManager** | 多人存档玩家管理：夺舍/添加/移除玩家 | [README](MP_PlayerManager/README.md) |
+| **MP_PlayerManager** | 多人存档玩家管理：夺舍/添加/移除玩家 | [README](MP_PlayerManager/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ControlPanel** | F7 控制面板：卡牌/药水/遗物/战斗快捷 | [README](ControlPanel/README.md) |
 | **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/VC_RICH_PING_README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 
@@ -24,7 +23,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 2. 在 `mods` 文件夹内创建对应 Mod 子目录（如 `mods\NoClientCheats\`）
 3. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 zip，解压到 `mods` 内
 
-**工具类**（MP_SavePlayerRemover）：解压到任意位置，双击 exe 运行，无需放入游戏目录。
+**工具类**（~~MP_SavePlayerRemover~~ → 已废弃，使用 MP_PlayerManager）：解压到任意位置，双击 exe 运行，无需放入游戏目录。
 
 ---
 
@@ -34,6 +33,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 |------|------|------|
 | Mod（NoClientCheats、ControlPanel、RichPing） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
 | MP_PlayerManager | `cd MP_PlayerManager` → `.\build_exe.bat` 或 `pyinstaller ... manage_players.py` | Python 3.8+、PyInstaller |
+| ~~MP_SavePlayerRemover~~ | ~~已废弃，使用 MP_PlayerManager~~ | ~~Python 3.8+、PyInstaller~~ |
 
 ---
 

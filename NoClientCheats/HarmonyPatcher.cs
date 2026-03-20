@@ -7,20 +7,24 @@ namespace NoClientCheats;
 
 /// <summary>
 /// ModManager.Initialize 完成后调度 NoClientCheats 初始化与 ModConfig 注册。
-/// 
-/// 注意：static ctor 中 Engine.GetMainLoop() 在游戏加载早期为 null，
-/// 所以只在 Postfix（Initialize 已完成）中注册两帧延迟回调来执行初始化。
+///
+/// 三重保险：
+/// 1. static ctor：PatchAll 时尝试注册（此时 Engine 可能为 null，失败则静默）
+/// 2. Postfix：ModManager.Initialize 完成后注册（Engine 应该已就绪）
+/// 3. CheatBlockPrefix.TryScheduleInit：作弊拦截首次触发时兜底尝试（确保终局调用）
 /// </summary>
 [HarmonyPatch]
 internal static class ModManagerInitPostfix
 {
+    private static bool _initScheduled;
+
     /// <summary>
-    /// static ctor 不可靠（GetMainLoop 此时为 null），不用于注册初始化。
-    /// 仅用于确保 PatchAll 能发现本类。
+    /// static ctor 在 PatchAll 加载本类时执行。
+    /// 早期 Engine.GetMainLoop() 可能为 null，失败则静默忽略，依赖 Postfix。
     /// </summary>
     static ModManagerInitPostfix()
     {
-        // 占位：仅让 HarmonyPatchAll 发现本类。实际初始化在 Postfix 中。
+        TryScheduleInit();
     }
 
     static MethodBase TargetMethod()
@@ -32,16 +36,23 @@ internal static class ModManagerInitPostfix
 
     static void Postfix()
     {
+        TryScheduleInit();
+    }
+
+    /// <summary>
+    /// 尝试注册两帧延迟初始化回调。无论哪条路径先调用，初始化只执行一次。
+    /// </summary>
+    internal static void TryScheduleInit()
+    {
+        if (_initScheduled) return;
         try
         {
             var tree = Engine.GetMainLoop() as SceneTree;
-            if (tree != null)
-                tree.ProcessFrame += OnInitFrame1;
+            if (tree == null) return;
+            _initScheduled = true;
+            tree.ProcessFrame += OnInitFrame1;
         }
-        catch (Exception e)
-        {
-            GD.PushError($"[NoClientCheats] ModManagerInitPostfix.Postfix failed: {e.Message}");
-        }
+        catch { }
     }
 
     private static void OnInitFrame1()
