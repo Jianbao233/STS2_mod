@@ -8,6 +8,8 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 
 ## Projects | 子项目
 
+| 项目 | 说明 | 链接 |
+|------|------|------|
 | ~~MP_SavePlayerRemover~~ | ~~多人存档玩家移除工具~~（已废弃，功能已被 MP_PlayerManager 整合） | ~~[README](MP_SavePlayerRemover/README.md)~~ |
 | **NoClientCheats** | 多人联机禁止客机作弊；仅房主需安装 | [README](NoClientCheats/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **MP_PlayerManager** | 多人存档玩家管理：夺舍/添加/移除玩家 | [README](MP_PlayerManager/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
@@ -19,6 +21,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high sch
 ## Quick Install | 快速安装
 
 **Mod 类**（NoClientCheats、RichPing）：
+
 1. 找到游戏目录：`Steam\steamapps\common\Slay the Spire 2`
 2. 在 `mods` 文件夹内创建对应 Mod 子目录（如 `mods\NoClientCheats\`）
 3. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 zip，解压到 `mods` 内
