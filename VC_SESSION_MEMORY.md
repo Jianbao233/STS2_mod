@@ -358,11 +358,57 @@ dotnet build "K:\杀戮尖塔mod制作\STS2_mod\HostPriority\HostPriority.csproj
 
 ---
 
+## MP_PlayerManager · 多人存档玩家管理（2026-03-20 新建）
+
+|| 项目 | 说明 |
+|------|------|------|
+| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\MP_PlayerManager\` |
+| **功能** | 离线管理多人存档：夺舍玩家 / 添加新玩家 / 移除玩家 |
+| **部署** | 独立 exe，放任意目录运行，无需放入游戏目录 |
+| **exe** | `dist\MP_PlayerManager-v1.0.0.exe`（8.4MB） |
+
+### 功能
+
+| 操作 | 说明 |
+|------|------|
+| **夺舍** | 输入离线玩家序号 + 接替者 Steam64位ID，继承牌组/遗物/金币状态继续游戏 |
+| **添加-复制模式** | 选择源玩家，复制 deck/relics/gold/rng/odds/grab_bag，满血加入；可换角色 |
+| **添加-初始模式** | 选择角色，以初始牌组（基础牌+100金币+满血）加入 |
+| **移除** | 删除玩家 + 清理 map_point_history/map_drawings |
+
+### 技术实现
+
+- 纯 Python，无依赖（标准库 json/base64/gzip/shutil）
+- 自动扫描 `%APPDATA%\SlayTheSpire2\steam\{SteamId}\{modded/}profile*/saves/current_run_mp.save`
+- 备份：`current_run_mp.save.backup.{timestamp}`
+- `steam_names.json` 可选，显示 Steam 昵称
+
+### 关键字段（基于实测存档 v14）
+
+- `players[].net_id` — 数值型 Steam ID（如 76561198679823594）
+- `players[].steam_id` — 字符串型 Steam ID（与上同）
+- `players[].character_id` — 角色 ID（如 `CHARACTER.WATCHER`）
+- `players[].display_data.steam_name` — Steam 昵称（可选）
+- `players[].deck[]` — 牌组（`{id, floor_added_to_deck}`）
+- `players[].relics[]` — 遗物（`{id, floor_added_to_deck}`）
+- `players[].relic_grab_bag.relic_id_lists` — 遗物获取袋
+- `players[].rng` — 随机数状态；`players[].odds` — 概率状态
+- `map_point_history[]` — 各层玩家统计（需清理被移除玩家的引用）
+- `map_drawings` — Base64+Gzip 编码的地图涂鸦
+
+### 构建
+
+- `build_exe.bat` → `dist\MP_PlayerManager-v1.0.0.exe`
+- `prepare-release.ps1 -Version "1.0.0"` → `release\MP_PlayerManager-v1.0.0.zip`
+
+---
+
 ## 下次对话可用的快速指令
 
 - 「继续 RichPing」：在 RichPing 文件夹内施工
 - 「我遇到了 [报错特征]」：可引用报错速查表
 - 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
+- 「存档解析/修改工具」：参考 VC_STS2_SAVE_FILE_ANALYSIS.md；所有 .save 文件均为 JSON；单人 `current_run.save`，多人 `current_run_mp.save`；多人存档删除玩家需同步清理 deck/relics/potions/grab_bag；源码见 `MegaCrit.Sts2.Core.Saves`/`MegaCrit.Sts2.Core.Saves.Runs`
 - 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
 - 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats/RichPing 均用 `prepare-release.ps1 -Version "x.y.z"` 打包
 - 「模组加载/检测到错误」：参考 模组加载问题分析报告.md 第八、九节；manifest 需 id；红字来自 assemblyLoadedSuccessfully（Manifest 格式修复 bat 已废弃，见 _废弃_Manifest格式修复/）
