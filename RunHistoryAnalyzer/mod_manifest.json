@@ -1,0 +1,9 @@
+{
+  "id": "RunHistoryAnalyzer",
+  "name": "RunHistoryAnalyzer",
+  "version": "0.1.0",
+  "description": "历史记录异常检测 Mod — 分析单机/联机模式中的异常跑图记录",
+  "author": "",
+  "website": "",
+  "dependencies": []
+}

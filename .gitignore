@@ -1,0 +1,23 @@
+# Godot build outputs (per-project)
+.godot/
+*.pck
+*.import
+project.godot.lock
+
+# Build output
+release/
+*.zip
+dist/
+
+# IDE
+.vs/
+*.user
+*.suo
+*.cache
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+build/
+*.egg-info/
