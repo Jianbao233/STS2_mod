@@ -1,0 +1,29 @@
+{
+    // 基础配置示例（仅作为格式参考，实际使用时放在各自的 mod 文件夹下）
+    "ExampleMod": {
+        "example_bool": {
+            "title": "Example Boolean Setting",
+            "hover": {
+                "desc": "This is an example boolean setting."
+            }
+        },
+        "example_slider": {
+            "title": "Example Slider Setting",
+            "hover": {
+                "desc": "Adjusts an example slider value. Range: 0-100."
+            }
+        },
+        "example_enum": {
+            "title": "Example Enum Setting",
+            "hover": {
+                "desc": "Choose an example enum option."
+            },
+            "OptionA": {
+                "title": "Option A"
+            },
+            "OptionB": {
+                "title": "Option B"
+            }
+        }
+    }
+}

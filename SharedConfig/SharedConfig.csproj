@@ -1,0 +1,23 @@
+<Project Sdk="Godot.NET.Sdk/4.5.1">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>SharedConfig</RootNamespace>
+    <AssemblyName>SharedConfig</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>Modding Community</Authors>
+    <Description>Shared config &amp; extension utilities extracted from BaseLib-StS2, usable without BaseLib dependency.</Description>
+    <!-- 禁用 SDK 自动生成 AssemblyInfo，避免与项目中的 AssemblyTitle 等属性冲突 -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <!-- 手动提供 System.* usings（Godot.NET.Sdk 默认禁用 implicit usings） -->
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Text.RegularExpressions" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+</Project>

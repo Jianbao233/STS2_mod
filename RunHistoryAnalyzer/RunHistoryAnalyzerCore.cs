@@ -14,6 +14,13 @@ namespace RunHistoryAnalyzer;
 /// </summary>
 public static class RunHistoryAnalyzerCore
 {
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+        PropertyNameCaseInsensitive = false
+    };
+
     private static readonly List<IAnomalyRule> _rules = new()
     {
         // P0：数学等式，零模糊
@@ -36,7 +43,25 @@ public static class RunHistoryAnalyzerCore
     /// </summary>
     public static AnalyzeResult Analyze(string filePath)
     {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath))
+            return new AnalyzeResult(filePath, null, new List<Anomaly>(), "文件不存在或路径无效");
+
+        if (!File.Exists(filePath))
+        {
+            try
+            {
+                var norm = filePath.Replace("\\", "/");
+                if (norm.StartsWith("user://", StringComparison.Ordinal))
+                {
+                    var abs = ProjectSettings.GlobalizePath(norm);
+                    if (File.Exists(abs))
+                        filePath = abs;
+                }
+            }
+            catch { /* keep filePath */ }
+        }
+
+        if (!File.Exists(filePath))
             return new AnalyzeResult(filePath, null, new List<Anomaly>(), "文件不存在或路径无效");
 
         try
@@ -52,7 +77,7 @@ public static class RunHistoryAnalyzerCore
 
             // 加载 JSON
             string json = File.ReadAllText(filePath);
-            var history = JsonSerializer.Deserialize<RunHistoryData>(json);
+            var history = JsonSerializer.Deserialize<RunHistoryData>(json, _jsonOptions);
 
             if (history == null)
                 return new AnalyzeResult(filePath, null, new List<Anomaly>(), "JSON 解析失败");
@@ -80,6 +105,8 @@ public static class RunHistoryAnalyzerCore
 
             // 更新缓存
             _cache[filePath] = new CachedResult(lastWriteTime, result);
+
+            Godot.GD.Print($"[RunHistoryAnalyzer] 分析完成: {anomalies.Count} 条异常 | {System.IO.Path.GetFileName(filePath)}");
 
             return result;
         }

@@ -16,6 +16,14 @@ public static class RunHistoryAnalyzerMod
     /// <summary>当前在历史记录详情面板中选中的 .run 文件路径。</summary>
     public static string CurrentSelectedFilePath = "";
 
+    /// <summary>ModConfig：显示/隐藏分析工具栏（默认 F6）。</summary>
+    public static Key ToggleToolbarKey = Key.F6;
+
+    /// <summary>
+    /// 为 false 时强制隐藏右下角分析按钮（仍保留选中路径，按快捷键可再显示）。
+    /// </summary>
+    public static bool AnalyzerToolbarVisible = true;
+
     /// <summary>分析按钮实例。</summary>
     internal static AnalyzeButton? AnalyzeBtn;
 
@@ -37,8 +45,34 @@ public static class RunHistoryAnalyzerMod
         var tree = Engine.GetMainLoop() as SceneTree;
         tree?.Root?.AddChild(AnalyzeBtn);
         tree?.Root?.AddChild(ResultWindow);
+        tree?.Root?.AddChild(new RunHistoryAnalyzerHotkey());
+
+        ModConfigIntegration.Register();
 
         GD.Print($"[RunHistoryAnalyzer] Loaded.");
+    }
+
+    /// <summary>从 ModConfig 下拉项更新快捷键（如 "F6"）。</summary>
+    public static void SetToggleToolbarKey(string keyName)
+    {
+        if (string.IsNullOrWhiteSpace(keyName)) return;
+        try
+        {
+            ToggleToolbarKey = (Key)Enum.Parse(typeof(Key), keyName.Trim(), ignoreCase: true);
+        }
+        catch
+        {
+            ToggleToolbarKey = Key.F6;
+        }
+    }
+
+    /// <summary>切换分析工具栏显示；隐藏时同时关闭报告窗口。</summary>
+    public static void ToggleAnalyzerToolbar()
+    {
+        AnalyzerToolbarVisible = !AnalyzerToolbarVisible;
+        AnalyzeBtn?.ApplyToolbarVisibility();
+        if (!AnalyzerToolbarVisible)
+            ResultWindow?.Hide();
     }
 
     internal static void ApplyHarmonyPatches()

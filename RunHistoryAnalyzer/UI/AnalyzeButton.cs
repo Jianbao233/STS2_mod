@@ -92,13 +92,17 @@ public partial class AnalyzeButton : CanvasLayer
             ContentMarginBottom = 8f
         });
 
-        // 定位在屏幕右下角
-        var screenSize = DisplayServer.WindowGetSize();
-        _btn.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _btn.OffsetLeft = screenSize.X - 130 - 16;   // 右下角
-        _btn.OffsetTop = screenSize.Y - 260 - 220;
-        _btn.OffsetRight = screenSize.X - 16;
-        _btn.OffsetBottom = screenSize.Y - 220;
+        // 右下角固定尺寸 — 勿用 FullRect，否则会铺满整个视口导致「巨型按钮」
+        const float margin = 16f;
+        const float bw = 110f;
+        const float bh = 36f;
+        _btn.SetAnchorsPreset(Control.LayoutPreset.BottomRight);
+        _btn.OffsetLeft = -bw - margin;
+        _btn.OffsetTop = -bh - margin;
+        _btn.OffsetRight = -margin;
+        _btn.OffsetBottom = -margin;
+        _btn.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        _btn.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
 
         AddChild(_btn);
     }
@@ -110,8 +114,21 @@ public partial class AnalyzeButton : CanvasLayer
     {
         _currentFilePath = filePath;
         _cachedResult = null;
+        ApplyToolbarVisibility();
+    }
 
-        if (string.IsNullOrEmpty(filePath))
+    /// <summary>
+    /// 根据当前路径与 <see cref="RunHistoryAnalyzerMod.AnalyzerToolbarVisible"/> 决定按钮是否可见。
+    /// </summary>
+    public void ApplyToolbarVisibility()
+    {
+        if (string.IsNullOrEmpty(_currentFilePath))
+        {
+            Hide();
+            return;
+        }
+
+        if (!RunHistoryAnalyzerMod.AnalyzerToolbarVisible)
         {
             Hide();
             return;

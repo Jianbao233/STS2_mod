@@ -11,4 +11,14 @@
   <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
+
+  <!-- 每次编译后自动同步到游戏 mods 目录 -->
+  <Target Name="SyncToGame" AfterTargets="Build">
+    <PropertyGroup>
+      <GameModsDir>K:\SteamLibrary\steamapps\common\Slay the Spire 2\mods\RunHistoryAnalyzer</GameModsDir>
+      <BuildOutDir>$(MSBuildThisFileDirectory).godot\mono\temp\bin\$(Configuration)</BuildOutDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(BuildOutDir)\RunHistoryAnalyzer.dll" DestinationFolder="$(GameModsDir)" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)mod_manifest.json" DestinationFolder="$(GameModsDir)" />
+  </Target>
 </Project>

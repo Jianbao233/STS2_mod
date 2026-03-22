@@ -27,6 +27,9 @@ public partial class AnalyzeResultWindow : Window
 
     public override void _Ready()
     {
+        // 避免在游戏开场/主菜单阶段以空白窗口形式闪现；仅在分析完成后 ShowResult 显示。
+        Visible = false;
+
         CloseRequested += () => Hide();
         Title = "分析报告";
         Size = new Vector2I((int)WINDOW_WIDTH, (int)WINDOW_HEIGHT);
@@ -37,6 +40,7 @@ public partial class AnalyzeResultWindow : Window
         Position = (screenSize - Size) / 2;
 
         _BuildUI();
+        Hide();
     }
 
     public override void _Input(InputEvent ev)
@@ -65,12 +69,13 @@ public partial class AnalyzeResultWindow : Window
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
-        root.AddThemeConstantOverride("separation", 0);
+        root.AddThemeConstantOverride("separation", 4);
+        // 填满窗口客户区；勿设 OffsetRight/Bottom 为正像素值，否则会撑破布局导致控件溢出
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         root.OffsetLeft = 0;
         root.OffsetTop = 0;
-        root.OffsetRight = (int)WINDOW_WIDTH;
-        root.OffsetBottom = (int)WINDOW_HEIGHT;
+        root.OffsetRight = 0;
+        root.OffsetBottom = 0;
         AddChild(root);
 
         // ── 标题栏 ──
@@ -83,6 +88,7 @@ public partial class AnalyzeResultWindow : Window
         };
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.95f, 1f));
         _titleLabel.AddThemeFontSizeOverride("font_size", 16);
+        _titleLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _titleLabel.AddThemeStyleboxOverride("normal", _MakeTitleStyle());
         root.AddChild(_titleLabel);
 
@@ -95,6 +101,8 @@ public partial class AnalyzeResultWindow : Window
             VerticalAlignment = VerticalAlignment.Center
         };
         _summaryLabel.AddThemeFontSizeOverride("font_size", 14);
+        _summaryLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _summaryLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         root.AddChild(_summaryLabel);
 
         // ── 分隔线 ──
@@ -113,6 +121,7 @@ public partial class AnalyzeResultWindow : Window
             SizeFlagsVertical = SizeFlags.ExpandFill
         };
         scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+        scroll.ClipContents = true;
         root.AddChild(scroll);
 
         _anomalyList = new VBoxContainer
@@ -158,10 +167,12 @@ public partial class AnalyzeResultWindow : Window
         if (_result.HasError)
         {
             _titleLabel.Text = "分析失败";
-            _summaryLabel.Text = _result.ErrorMessage ?? "未知错误";
-            _summaryLabel.AddThemeColorOverride("font_color", new Color(1f, 0.3f, 0.3f, 1f));
+            var err = _result.ErrorMessage ?? "未知错误";
+            // 摘要一行说明，长错误正文只在下方区域展示，避免重复 + 窄宽度竖排字
+            _summaryLabel.Text = "解析或分析过程出错，详见下方";
+            _summaryLabel.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.45f, 1f));
             _ClearAnomalyList();
-            _AddEmptyState("分析失败");
+            _AddCenteredScrollMessage(err, isError: true);
             _exportButton.Disabled = true;
             return;
         }
@@ -206,7 +217,7 @@ public partial class AnalyzeResultWindow : Window
         }
         else
         {
-            _AddEmptyState("该局历史记录未检测到明显异常");
+            _AddCenteredScrollMessage("该局历史记录未检测到明显异常", isError: false, useOkIcon: true);
         }
     }
 
@@ -318,25 +329,35 @@ public partial class AnalyzeResultWindow : Window
         }
     }
 
-    private void _AddEmptyState(string message)
+    /// <summary>在滚动区内横向铺满、文字居中换行（避免 CenterContainer+Label 宽度过窄导致一字一行）。</summary>
+    private void _AddCenteredScrollMessage(string message, bool isError, bool useOkIcon = false)
     {
-        var center = new CenterContainer
+        var margin = new MarginContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
             CustomMinimumSize = new Vector2(0, 80)
         };
-        _anomalyList.AddChild(center);
+        margin.AddThemeConstantOverride("margin_left", 12);
+        margin.AddThemeConstantOverride("margin_right", 12);
+        margin.AddThemeConstantOverride("margin_top", 8);
+        margin.AddThemeConstantOverride("margin_bottom", 8);
+        _anomalyList.AddChild(margin);
 
         var label = new Label
         {
-            Text = $"✓  {message}",
+            Text = useOkIcon ? $"✓  {message}" : message,
             HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Top,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
-        label.AddThemeColorOverride("font_color", new Color(0.4f, 0.85f, 0.4f, 1f));
-        label.AddThemeFontSizeOverride("font_size", 15);
-        center.AddChild(label);
+        label.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        label.AddThemeFontSizeOverride("font_size", 13);
+        if (isError)
+            label.AddThemeColorOverride("font_color", new Color(1f, 0.5f, 0.5f, 1f));
+        else
+            label.AddThemeColorOverride("font_color", new Color(0.45f, 0.9f, 0.5f, 1f));
+
+        margin.AddChild(label);
     }
 
     private void _OnExportPressed()

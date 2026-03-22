@@ -14,6 +14,7 @@ public class RunHistoryData
     public int SchemaVersion { get; set; }
 
     [JsonPropertyName("platform_type")]
+    [JsonConverter(typeof(PlatformTypeJsonConverter))]
     public int PlatformType { get; set; }
 
     [JsonPropertyName("game_mode")]
@@ -178,9 +179,13 @@ public class MapPointHistoryEntry
 
 /// <summary>
 /// 某玩家在某个节点上的统计（GoldGained/Spent/Hp/卡牌/遗物等流水账）。
+/// 字段类型与游戏 <c>PlayerMapPointHistoryEntry</c> 一致（如 upgraded_cards 为 ModelId 字符串列表，不是 SerializableCard）。
 /// </summary>
 public class PlayerMapPointHistoryEntry
 {
+    [JsonPropertyName("player_id")]
+    public ulong PlayerId { get; set; }
+
     // 金币
     [JsonPropertyName("current_gold")]
     public int CurrentGold { get; set; }
@@ -226,56 +231,63 @@ public class PlayerMapPointHistoryEntry
     [JsonPropertyName("cards_removed")]
     public List<SerializableCard> CardsRemoved { get; set; } = new();
 
+    /// <summary>升级卡牌（JSON 为 ModelId 字符串，如 CARD.xxx）。</summary>
     [JsonPropertyName("upgraded_cards")]
-    public List<SerializableCard> UpgradedCards { get; set; } = new();
+    public List<string> UpgradedCards { get; set; } = new();
+
+    [JsonPropertyName("downgraded_cards")]
+    public List<string> DowngradedCards { get; set; } = new();
 
     [JsonPropertyName("cards_transformed")]
-    public List<SerializableCard> CardsTransformed { get; set; } = new();
+    public List<CardTransformationHistoryEntry> CardsTransformed { get; set; } = new();
 
     // 遗物
     [JsonPropertyName("relic_choices")]
     public List<ModelChoiceHistoryEntry> RelicChoices { get; set; } = new();
 
     [JsonPropertyName("bought_relics")]
-    public List<SerializableRelic> BoughtRelics { get; set; } = new();
+    public List<string> BoughtRelics { get; set; } = new();
 
     [JsonPropertyName("relics_removed")]
-    public List<SerializableRelic> RelicsRemoved { get; set; } = new();
+    public List<string> RelicsRemoved { get; set; } = new();
 
     // 药水
     [JsonPropertyName("potion_choices")]
     public List<ModelChoiceHistoryEntry> PotionChoices { get; set; } = new();
 
     [JsonPropertyName("potion_used")]
-    public List<SerializablePotion> PotionUsed { get; set; } = new();
+    public List<string> PotionUsed { get; set; } = new();
+
+    [JsonPropertyName("potion_discarded")]
+    public List<string> PotionDiscarded { get; set; } = new();
 
     [JsonPropertyName("bought_potions")]
-    public List<SerializablePotion> BoughtPotions { get; set; } = new();
+    public List<string> BoughtPotions { get; set; } = new();
 
     [JsonPropertyName("bought_colorless")]
-    public List<SerializableCard> BoughtColorless { get; set; } = new();
+    public List<string> BoughtColorless { get; set; } = new();
 }
 
 /// <summary>
-/// 卡牌选择历史（3选1等）。
+/// 卡牌选择历史（与游戏一致：单张 card + was_picked）。
 /// </summary>
 public class CardChoiceHistoryEntry
 {
     [JsonPropertyName("was_picked")]
     public bool WasPicked { get; set; }
 
-    [JsonPropertyName("cards")]
-    public List<SerializableCard> Cards { get; set; } = new();
+    [JsonPropertyName("card")]
+    public SerializableCard Card { get; set; } = new();
 }
 
 /// <summary>
-/// 遗物/药水选择历史。
+/// 遗物/药水选择历史（字段名为 choice，值为 ModelId 字符串）。
 /// </summary>
 public class ModelChoiceHistoryEntry
 {
     [JsonPropertyName("was_picked")]
     public bool WasPicked { get; set; }
 
-    [JsonPropertyName("chosen_id")]
-    public string ChosenId { get; set; } = "";
+    [JsonPropertyName("choice")]
+    public string Choice { get; set; } = "";
 }

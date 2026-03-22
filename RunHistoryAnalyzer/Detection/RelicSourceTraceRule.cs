@@ -33,13 +33,13 @@ public class RelicSourceTraceRule : Models.IAnomalyRule
                 // 遗物选择
                 foreach (var choice in stat.RelicChoices)
                 {
-                    if (choice.WasPicked && !string.IsNullOrEmpty(choice.ChosenId))
-                        acquiredByChoice.Add(choice.ChosenId);
+                    if (choice.WasPicked && !string.IsNullOrEmpty(choice.Choice))
+                        acquiredByChoice.Add(choice.Choice);
                 }
 
-                // 商店购买
-                foreach (var relic in stat.BoughtRelics)
-                    allAcquiredRelicIds.Add(relic.Id);
+                // 商店购买（JSON 为 ModelId 字符串）
+                foreach (var relicId in stat.BoughtRelics)
+                    allAcquiredRelicIds.Add(relicId);
             }
 
             // 最终遗物

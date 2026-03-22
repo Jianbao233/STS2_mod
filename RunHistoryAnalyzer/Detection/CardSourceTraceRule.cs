@@ -38,19 +38,16 @@ public class CardSourceTraceRule : Models.IAnomalyRule
                 foreach (var card in stat.CardsGained)
                     allAcquiredCardIds.Add(card.Id);
 
-                // 卡牌选择：只有 wasPicked=true 的才计入
+                // 卡牌选择：was_picked=true 时，choice.card 为选中牌
                 foreach (var choice in stat.CardChoices)
                 {
-                    if (choice.WasPicked)
-                    {
-                        foreach (var card in choice.Cards)
-                            acquiredByChoice.Add(card.Id);
-                    }
+                    if (choice.WasPicked && !string.IsNullOrEmpty(choice.Card.Id))
+                        acquiredByChoice.Add(choice.Card.Id);
                 }
 
-                // 商店购买（无色卡）
-                foreach (var card in stat.BoughtColorless)
-                    allAcquiredCardIds.Add(card.Id);
+                // 商店购买（无色卡，JSON 为 ModelId 字符串）
+                foreach (var cardId in stat.BoughtColorless)
+                    allAcquiredCardIds.Add(cardId);
             }
 
             // 最终卡组

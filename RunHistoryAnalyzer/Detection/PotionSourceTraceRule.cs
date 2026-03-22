@@ -32,13 +32,13 @@ public class PotionSourceTraceRule : Models.IAnomalyRule
                 // 药水选择
                 foreach (var choice in stat.PotionChoices)
                 {
-                    if (choice.WasPicked && !string.IsNullOrEmpty(choice.ChosenId))
-                        acquiredPotionIds.Add(choice.ChosenId);
+                    if (choice.WasPicked && !string.IsNullOrEmpty(choice.Choice))
+                        acquiredPotionIds.Add(choice.Choice);
                 }
 
-                // 商店购买
-                foreach (var potion in stat.BoughtPotions)
-                    acquiredPotionIds.Add(potion.Id);
+                // 商店购买（JSON 为 ModelId 字符串）
+                foreach (var potionId in stat.BoughtPotions)
+                    acquiredPotionIds.Add(potionId);
             }
 
             var finalPotions = player.Potions;

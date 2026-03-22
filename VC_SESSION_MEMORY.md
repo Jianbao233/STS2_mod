@@ -1,4 +1,4 @@
-﻿# VC 会话记忆 · 工作流承接
+# VC 会话记忆 · 工作流承接
 
 > 新对话时请先阅读本文，以延续开发上下文。
 
@@ -507,3 +507,57 @@ BaseLib-StS2 是 STS2 的基础库型 Mod，核心贡献：内容抽象体系（
 ---\n\n## 2026-03-21 NoClientCheats v1.1.2 修复\n\n**玩家反馈**：模组配置页面正常显示，但 F6 历史面板无法唤出、弹窗通知未出现。\n\n**根本原因**：HarmonyPatcher.cs static 构造器在 Engine.GetMainLoop() 返回 null 时注册 ProcessFrame 回调，导致 EnsureInitialized() 从未被调用，CheatNotification 和 CheatHistoryPanel 节点从未创建。\n\n**修复**：移除 static 构造器中的所有初始化逻辑；在 ModManager.Initialize Postfix 中注册两帧延迟回调，统一执行 EnsureInitialized() 和 ApplyHarmonyPatches()。
 
 ### 排查关键\n\n日志中 ModConfig 注册完成后才出现 [NoClientCheats] Loaded → EnsureInitialized() 未被及时调用 → 向前找到 HarmonyPatcher static ctor 中 Engine.GetMainLoop() 返回 null → 回调从未注册\n\n---\n\n**v1.1.2 Release**：https://github.com/Jianbao233/STS2_mod/releases/tag/v1.1.2
+
+---
+
+## 2026-03-21 RunHistoryAnalyzer 新建 · 历史记录作弊检测
+
+### 项目信息
+
+| 项目 | 说明 |
+|------|------|
+| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\RunHistoryAnalyzer\` |
+| **目标** | 从"百科大全 → 历史记录"模块入手，检测玩家作弊（内存修改/控制台/存档编辑）产生的异常记录 |
+| **数据选择** | **历史记录（RunHistory）优于存档（SerializableRun）**：流水账天然支持守恒定律验证和来源追溯，JSON格式可直接解析 |
+
+### 已有分析文档
+
+| 文件 | 说明 |
+|------|------|
+| `ANALYSIS_REPORT.md` | 早期可行性分析：作弊手段分类、三层检测架构、守恒定律、来源追溯、无敌检测 |
+| `ARCHIVE_VS_HISTORY_COMPARISON.md` | 存档vs历史记录详细对比：SerializableRun/Player/ActModel/Room完整字段表，RunHistoryUtilities转换逻辑 |
+| `FEASIBILITY_ANALYSIS.md` | **核心报告**：从历史记录检测异常数据的完整可行性分析，含代码示例与优先级矩阵 |
+| `UI_DESIGN.md` | **UI设计方案**：按需检测+分析按钮+结果窗口+TXT导出报告 |
+
+### 核心结论
+
+- **SerializableRun**：存"结果"（快照HP/金币/RNG状态/EncounterState），适合验证遭遇状态篡改
+- **RunHistory**：存"过程"（GoldGained/Spent/DamageTaken/CardChoices等流水账），适合验证金币/HP守恒和来源追溯
+- **守恒定律 P0**：金币 `初始+ΣGained-ΣSpent=最终`，HP `初始-ΣDamage+ΣHealed=最终`，证据链最强
+- **来源追溯 P1**：CardChoices[wasPicked]精确记录每张卡/遗物/药水的来源
+- **行为异常 P2-P3**：无敌检测（DamageTaken=0）、异常通关时间、路线合理性
+- **局限**：完美伪造（同时修改所有字段一致）无法检测；高手与作弊难以区分
+
+### 关键源码
+
+| 文件 | 说明 |
+|------|------|
+| `MegaCrit.Sts2.Core.Runs.RunHistory` | 历史记录主类 |
+| `MegaCrit.Sts2.Core.Runs.RunHistoryPlayer` | 历史记录玩家数据 |
+| `MegaCrit.Sts2.Core.Runs.PlayerMapPointHistoryEntry` | **流水账核心**：GoldGained/Spent, DamageTaken, CardChoices等 |
+| `MegaCrit.Sts2.Core.Runs.RunHistoryUtilities` | **存档→历史记录转换函数** |
+| `MegaCrit.Sts2.Core.Runs.History.CardChoiceHistoryEntry` | 卡牌选择历史，含wasPicked字段 |
+| `MegaCrit.Sts2.Core.Runs.History.ModelChoiceHistoryEntry` | 遗物/药水选择历史，含wasPicked字段 |
+
+**源码前缀**：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260318\sts2\`
+
+### 提示词记录
+
+| 时间 | 提示词 | 结果概要 |
+|------|--------|----------|
+| 2026-03-21 | 阅读NCC与SharedConfig，阅读百科大全-历史记录模块源码，整理报告 | 完成源码分析，生成 ANALYSIS_REPORT.md |
+| 2026-03-21 | 将报告整理成文档，新建mod项目文件夹；分析历史记录异常检测可行性 | 创建 RunHistoryAnalyzer 项目 |
+| 2026-03-21 | 存档内有关卡牌遗物血量的去留是如何呈现的 | 分析SerializableCard/Relic/PlayerMapPointHistoryEntry各字段写入逻辑 |
+| 2026-03-21 | 历史记录与存档有何不同，详细程度对比如何 | 分析SerializableRun vs RunHistory字段差异，生成 ARCHIVE_VS_HISTORY_COMPARISON.md |
+| 2026-03-21 | 从历史记录入手检测异常，可行性分析并生成文档；创建分记忆 | 生成 FEASIBILITY_ANALYSIS.md；主记忆和分记忆均已更新 |
+| 2026-03-21 | 行为异常模式误报高，废弃；构思UI实现方案，按需检测+按钮+结果窗口+导出报告 | 废弃无敌/时间/路线检测；生成 UI_DESIGN.md；按需检测+分析按钮+结果窗口+TXT导出 |
