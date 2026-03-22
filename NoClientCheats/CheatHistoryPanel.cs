@@ -28,6 +28,8 @@ public partial class CheatHistoryPanel : CanvasLayer
         Bottom = 8
     }
 
+    PanelContainer _titleBar;
+
     Panel _window;
     VBoxContainer _vbox;
     VBoxContainer _listContainer;
@@ -49,45 +51,93 @@ public partial class CheatHistoryPanel : CanvasLayer
     bool _titleDragPending;
     Vector2 _titleDragStart;
 
-    // ── 生命周期 ─────────────────────────────────────────────────────────
-    public override void _Ready()
-    {
-        ProcessMode = ProcessModeEnum.Always;
-        Layer = 800;
-        _BuildUI();
-        HidePanel();
-        // 热键轮询全部由 InputHandlerNode 处理，此处不再启用 SetProcessInput
-    }
+    const float TitleBarHeight = 32f;
 
-    // ── 拖拽/缩放（_Input 仅处理鼠标，不碰键盘）──────────────────────────
     public override void _Input(InputEvent ev)
     {
         if (_window == null || !GodotObject.IsInstanceValid(_window) || !_window.Visible) return;
 
-        // 拖拽/缩放时在全局接收鼠标释放与移动，避免移出窗口后丢失
-        if (ev is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
+        // ── 左键按下：判断是拖拽标题栏还是缩放边缘 ──
+        if (ev is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && mb.Pressed)
         {
-            if (_isResizing || _isDragging)
+            var mousePos = mb.GlobalPosition;
+            if (_IsOverTitleBar(mousePos))
             {
-                _isResizing = false;
-                _isDragging = false;
-                _resizeEdges = ResizeEdge.None;
-                _titleDragPending = false;
+                _titleDragPending = true;
+                _titleDragStart = mousePos;
+            }
+            else
+            {
+                var local = _window.GetLocalMousePosition();
+                var edge = _DetectEdges(local);
+                if (edge != ResizeEdge.None)
+                {
+                    _isResizing = true;
+                    _resizeEdges = edge;
+                    _resizeStartPos = mousePos;
+                    _resizeStartPanelPos = _window.Position;
+                    _resizeStartWidth = _window.Size.X;
+                    _resizeStartHeight = _window.Size.Y;
+                }
             }
             return;
         }
 
+        // ── 左键抬起：结束拖拽或缩放 ──
+        if (ev is InputEventMouseButton mb2 && mb2.ButtonIndex == MouseButton.Left && !mb2.Pressed)
+        {
+            if (_isResizing) { _isResizing = false; _resizeEdges = ResizeEdge.None; }
+            if (_isDragging || _titleDragPending) { _isDragging = false; _titleDragPending = false; }
+            return;
+        }
+
+        // ── 鼠标移动：执行拖拽 / 缩放；动态更新光标 ──
         if (ev is InputEventMouseMotion mm)
         {
+            var mousePos = mm.GlobalPosition;
+
+            // 缩放
             if (_isResizing)
             {
-                _ApplyResize(mm.GlobalPosition);
+                _ApplyResize(mousePos);
+                return;
             }
-            else if (_isDragging)
+
+            // 拖拽
+            if (_titleDragPending)
             {
-                _window.Position = mm.GlobalPosition + _dragOffset;
+                if (!_isDragging && _titleDragStart.DistanceTo(mousePos) > 4f)
+                {
+                    _isDragging = true;
+                    _dragOffset = _window.Position - mousePos;
+                }
+                if (_isDragging)
+                    _window.Position = mousePos + _dragOffset;
+                return;
+            }
+
+            // 鼠标悬停：更新光标形状（边缘=resize，标题栏=move，其他=默认）
+            var localPos = _window.GetLocalMousePosition();
+            if (localPos.Y >= 0 && localPos.Y < TitleBarHeight)
+            {
+                _window.MouseDefaultCursorShape = Control.CursorShape.Move;
+            }
+            else
+            {
+                var edge = _DetectEdges(localPos);
+                _window.MouseDefaultCursorShape = edge != ResizeEdge.None
+                    ? _GetResizeCursor(edge)
+                    : Control.CursorShape.Arrow;
             }
         }
+    }
+
+    bool _IsOverTitleBar(Vector2 globalPos)
+    {
+        if (_titleBar == null || !GodotObject.IsInstanceValid(_titleBar)) return false;
+        var titleBarGlobalY = _titleBar.GetGlobalPosition().Y;
+        // 标题栏高度固定 TitleBarHeight
+        return globalPos.Y >= titleBarGlobalY && globalPos.Y < titleBarGlobalY + TitleBarHeight;
     }
 
     // ── 显示/隐藏（由 InputHandlerNode 或按钮触发）───────────────────────
@@ -208,67 +258,12 @@ public partial class CheatHistoryPanel : CanvasLayer
     }
 
     // ── 面板鼠标事件（缩放）─────────────────────────────────────────────
-    void _OnPanelGuiInput(InputEvent ev)
-    {
-        if (_window == null) return;
-        if (ev is InputEventMouseButton mb)
-        {
-            if (mb.ButtonIndex != MouseButton.Left) return;
-            if (!mb.Pressed)
-            {
-                if (_isResizing) { _isResizing = false; _resizeEdges = ResizeEdge.None; }
-                return;
-            }
-            var local = _window.GetLocalMousePosition();
-            var edge = _DetectEdges(local);
-            if (edge != ResizeEdge.None)
-            {
-                _isResizing = true;
-                _resizeEdges = edge;
-                _resizeStartPos = (ev as InputEventMouseButton).GlobalPosition;
-                _resizeStartPanelPos = _window.Position;
-                _resizeStartWidth = _window.Size.X;
-                _resizeStartHeight = _window.Size.Y;
-            }
-            return;
-        }
-        if (ev is InputEventMouseMotion mm)
-        {
-            var edge = _DetectEdges(_window.GetLocalMousePosition());
-            _window.MouseDefaultCursorShape = edge != ResizeEdge.None ? _GetResizeCursor(edge) : Control.CursorShape.Arrow;
-            if (_isResizing) _ApplyResize(mm.GlobalPosition);
-        }
-    }
+    // 已迁移到 _Input 统一处理，此处保留空函数供外部引用
+    void _OnPanelGuiInput(InputEvent ev) { }
 
     // ── 标题栏鼠标事件（拖拽移动）───────────────────────────────────────
-    void _OnTitleGuiInput(InputEvent ev)
-    {
-        if (_window == null) return;
-        if (ev is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
-        {
-            if (mb.Pressed)
-            {
-                _titleDragPending = true;
-                _titleDragStart = mb.GlobalPosition;
-            }
-            else
-            {
-                _isDragging = false;
-                _titleDragPending = false;
-            }
-            return;
-        }
-        if (ev is InputEventMouseMotion mm && _titleDragPending)
-        {
-            if (!_isDragging && _titleDragStart.DistanceTo(mm.GlobalPosition) > 4f)
-            {
-                _isDragging = true;
-                _dragOffset = _window.Position - mm.GlobalPosition;
-            }
-            if (_isDragging)
-                _window.Position = mm.GlobalPosition + _dragOffset;
-        }
-    }
+    // 已迁移到 _Input 统一处理，此处保留空函数供外部引用
+    void _OnTitleGuiInput(InputEvent ev) { }
 
     // ── UI 构建 ────────────────────────────────────────────────────────
     void _BuildUI()
@@ -299,7 +294,7 @@ public partial class CheatHistoryPanel : CanvasLayer
             CornerRadiusBottomRight = 8
         };
         _window.AddThemeStyleboxOverride("panel", winStyle);
-        _window.GuiInput += _OnPanelGuiInput;
+        // 拖拽/缩放统一在 _Input 处理，删除 GuiInput 注册
 
         _vbox = new VBoxContainer { Name = "VBox", MouseFilter = Control.MouseFilterEnum.Ignore };
         _vbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -314,6 +309,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         var titleBar = new PanelContainer { Name = "TitleBar", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         titleBar.CustomMinimumSize = new Vector2(0, 32);
         _vbox.AddChild(titleBar);
+        _titleBar = titleBar;
 
         var titleStyle = new StyleBoxFlat
         {
@@ -339,7 +335,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.9f, 1f));
         _titleLabel.AddThemeFontSizeOverride("font_size", 14);
         _titleLabel.MouseDefaultCursorShape = Control.CursorShape.Move;
-        _titleLabel.GuiInput += _OnTitleGuiInput;
+        // 拖拽在 CanvasLayer._Input 统一处理，不再注册 GuiInput
         titleRow.AddChild(_titleLabel);
 
         // 居中按钮

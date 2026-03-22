@@ -15,6 +15,8 @@ internal static class ModConfigIntegration
     private static Type _apiType;
     private static Type _entryType;
     private static Type _configType;
+    private static Type _managerType;
+    private static MethodInfo _managerSetValue;
 
     internal static bool IsAvailable
     {
@@ -43,7 +45,8 @@ internal static class ModConfigIntegration
                 if (_apiType == null) _apiType = asm.GetType("ModConfig.ModConfigApi");
                 if (_entryType == null) _entryType = asm.GetType("ModConfig.ConfigEntry");
                 if (_configType == null) _configType = asm.GetType("ModConfig.ConfigType");
-                if (_apiType != null && _entryType != null && _configType != null) break;
+                if (_managerType == null) _managerType = asm.GetType("ModConfig.ModConfigManager");
+                if (_apiType != null && _entryType != null && _configType != null && _managerType != null) break;
             }
             catch { }
         }
@@ -78,6 +81,12 @@ internal static class ModConfigIntegration
             if (!IsAvailable) return;
             try { DoRegister(); }
             catch (Exception e) { GD.PushWarning($"[NoClientCheats] ModConfig DoRegister 失败: {e.Message}"); }
+            // 提前获取 ModConfigManager.SetValue 以便绕过 OnChanged
+            if (_managerType != null && _managerSetValue == null)
+                _managerSetValue = _managerType.GetMethod(
+                    "SetValue",
+                    BindingFlags.NonPublic | BindingFlags.Static,
+                    null, new[] { typeof(string), typeof(string), typeof(object) }, null);
         }
     }
 
@@ -188,34 +197,37 @@ internal static class ModConfigIntegration
 
     private static object ConfigTypeValue(string name) => Enum.Parse(_configType, name);
 
-    // ── KeyBind 模拟按钮 ────────────────────────────────────────────────
-    // ModConfig 没有 Button 类型，但 KeyBind 底层就是 Button + OnChanged 回调。
-    // 方案：DefaultValue=0（Unbound），OnChanged 里触发动作后立即 SetValue(0) 重置。
-    // Label 直接设按钮文字（AddKeyBind 会用 ResolveLabel 读它）。
-    // 之后 RegisterLiveBinding 检测到值变化会更新按钮文字——用 ActionButton 专用 label 覆盖。
+    // ── 操作按钮 ─────────────────────────────────────────────────────────
+    // 使用 Toggle 类型（DefaultValue=true），OnChanged 触发动作后
+    // 直接用 ModConfigManager.SetValue 写回 true，不走 ModConfigApi.SetValue
+    // 因而不会再次触发 OnChanged，彻底避免递归。
+    private static readonly object _buttonValueTrue = true;
+    private static readonly object _buttonValueFalse = false;
+
     private static object MakeActionButton(string key, string labelEn, string labelZhs,
         string descEn, string descZhs, Action action)
     {
         var e = Activator.CreateInstance(_entryType);
         SetProp(e, "Key", key);
-        SetProp(e, "Label", labelEn);          // 按钮文字（英）
-        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));  // 按钮文字（汉）
-        SetProp(e, "Type", ConfigTypeValue("KeyBind"));
-        SetProp(e, "DefaultValue", 0L);         // 0 = Unbound（始终保持）
+        SetProp(e, "Label", labelEn);
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
+        SetProp(e, "Type", ConfigTypeValue("Toggle"));
+        SetProp(e, "DefaultValue", _buttonValueTrue); // toggle 默认 true
         SetProp(e, "Description", descEn);
         SetProp(e, "Descriptions", Dict("en", descEn, "zhs", descZhs));
-        // OnChanged：值变化时触发动作，然后重置回 0
         SetProp(e, "OnChanged", new Action<object>(v => {
-            try
-            {
-                action();
-            }
+            try { action(); }
             catch (Exception ex)
             {
                 GD.PushWarning($"[NoClientCheats] Action button '{key}' error: {ex.Message}");
             }
-            // 立即重置回 Unbound，触发 LiveBinding 刷新按钮文字
-            SetValue(key, 0L);
+            // 直接调用 ModConfigManager.SetValue 绕过 OnChanged，把值重置为 true
+            // 不走 ModConfigApi.SetValue，因而不会再次触发 OnChanged
+            try
+            {
+                _managerSetValue?.Invoke(null, new object[] { NoClientCheatsMod.ModId, key, _buttonValueTrue });
+            }
+            catch { }
         }));
         return e;
     }
