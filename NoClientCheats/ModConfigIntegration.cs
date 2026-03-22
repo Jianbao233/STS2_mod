@@ -121,9 +121,14 @@ internal static class ModConfigIntegration
             "Max cheat history records to keep.", "最多保存的历史记录条数。",
             v => { try { if (v != null) NoClientCheatsMod.HistoryMaxRecords = Convert.ToInt32(v.ToString()); } catch { } }));
 
-        list.Add(MakeKeyBind("history_key", "History Toggle Key", "历史面板快捷键",
-            (long)Key.F9,
-            v => { try { if (v != null) NoClientCheatsMod.SetHistoryKeyFromLong(Convert.ToInt64(v)); } catch { } }));
+        // ── 操作按钮（KeyBind 类型模拟按钮，点击触发动作后立即重置为 Unbound）──
+        list.Add(MakeHeader("Actions", "操作"));
+        list.Add(MakeActionButton("btn_open_history", "Open History Panel", "打开历史面板",
+            "Open the cheat interception history panel.", "呼出历史记录面板。",
+            () => NoClientCheatsMod.ShowHistoryPanelUI()));
+        list.Add(MakeActionButton("btn_center_window", "Center Window", "窗口居中",
+            "Move the history panel back to the center of the screen.", "将历史面板窗口移回屏幕中央。",
+            () => NoClientCheatsMod.CenterHistoryWindow()));
 
         list.Add(MakeSeparator());
         list.Add(MakeHeader("Mod Detection", "Mod 检测"));
@@ -157,7 +162,6 @@ internal static class ModConfigIntegration
         try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
         try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }
-        try { NoClientCheatsMod.SetHistoryKeyFromLong(GetValue("history_key", (long)Key.F9)); } catch { }
     }
 
     private static T GetValue<T>(string key, T fallback)
@@ -171,7 +175,50 @@ internal static class ModConfigIntegration
         catch { return fallback; }
     }
 
+    private static void SetValue(string key, object value)
+    {
+        if (!IsAvailable) return;
+        try
+        {
+            var method = _apiType.GetMethod("SetValue");
+            method?.Invoke(null, new[] { NoClientCheatsMod.ModId, key, value });
+        }
+        catch { }
+    }
+
     private static object ConfigTypeValue(string name) => Enum.Parse(_configType, name);
+
+    // ── KeyBind 模拟按钮 ────────────────────────────────────────────────
+    // ModConfig 没有 Button 类型，但 KeyBind 底层就是 Button + OnChanged 回调。
+    // 方案：DefaultValue=0（Unbound），OnChanged 里触发动作后立即 SetValue(0) 重置。
+    // Label 直接设按钮文字（AddKeyBind 会用 ResolveLabel 读它）。
+    // 之后 RegisterLiveBinding 检测到值变化会更新按钮文字——用 ActionButton 专用 label 覆盖。
+    private static object MakeActionButton(string key, string labelEn, string labelZhs,
+        string descEn, string descZhs, Action action)
+    {
+        var e = Activator.CreateInstance(_entryType);
+        SetProp(e, "Key", key);
+        SetProp(e, "Label", labelEn);          // 按钮文字（英）
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));  // 按钮文字（汉）
+        SetProp(e, "Type", ConfigTypeValue("KeyBind"));
+        SetProp(e, "DefaultValue", 0L);         // 0 = Unbound（始终保持）
+        SetProp(e, "Description", descEn);
+        SetProp(e, "Descriptions", Dict("en", descEn, "zhs", descZhs));
+        // OnChanged：值变化时触发动作，然后重置回 0
+        SetProp(e, "OnChanged", new Action<object>(v => {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                GD.PushWarning($"[NoClientCheats] Action button '{key}' error: {ex.Message}");
+            }
+            // 立即重置回 Unbound，触发 LiveBinding 刷新按钮文字
+            SetValue(key, 0L);
+        }));
+        return e;
+    }
 
     private static object MakeHeader(string labelEn, string labelZhs)
     {

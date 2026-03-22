@@ -102,6 +102,15 @@ public static class NoClientCheatsMod
         _historyPanel = null;
     }
 
+    /// <summary>将历史面板窗口居中（ModConfig 按钮调用）。</summary>
+    internal static void CenterHistoryWindow()
+    {
+        if (!ShowHistoryPanel) return;
+        EnsureHistoryPanelCreated();
+        if (GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.CallDeferred("CenterWindow");
+    }
+
     internal static void ApplyHarmonyPatches()
     {
         if (_harmonyPatched) return;
