@@ -6,8 +6,9 @@ namespace NoClientCheats;
 
 /// <summary>
 /// 左下角作弊拦截历史记录面板。
-/// 默认隐藏；按快捷键（F6）呼出/隐藏。
-/// 可拖拽标题栏移动、拖拽边缘调整大小，内容随窗口自适应（参考伤害统计 mod 窗口）。
+/// 默认隐藏；热键（F9）呼出/隐藏（由 InputHandlerNode 轮询触发）。
+/// 可拖拽标题栏移动、拖拽边缘调整大小，内容随窗口自适应。
+/// 窗口按需延迟创建（首次 Toggle/Show 时）。
 /// </summary>
 public partial class CheatHistoryPanel : CanvasLayer
 {
@@ -48,42 +49,23 @@ public partial class CheatHistoryPanel : CanvasLayer
     bool _titleDragPending;
     Vector2 _titleDragStart;
 
+    // ── 生命周期 ─────────────────────────────────────────────────────────
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Always;
         Layer = 800;
         _BuildUI();
         HidePanel();
-        SetProcessInput(true);
-        SetProcess(true);
+        // 热键轮询全部由 InputHandlerNode 处理，此处不再启用 SetProcessInput
     }
 
-    private bool _prevKeyPressed;
-
-    public override void _Process(double delta)
-    {
-        if (!NoClientCheatsMod.ShowHistoryPanel) return;
-        bool pressed = Input.IsKeyPressed(NoClientCheatsMod.HistoryToggleKey);
-        if (pressed && !_prevKeyPressed)
-            TogglePanel();
-        _prevKeyPressed = pressed;
-    }
-
+    // ── 拖拽/缩放（_Input 仅处理鼠标，不碰键盘）──────────────────────────
     public override void _Input(InputEvent ev)
     {
-        if (ev is InputEventKey key && key.Pressed && !key.Echo)
-        {
-            if (NoClientCheatsMod.ShowHistoryPanel && key.Keycode == NoClientCheatsMod.HistoryToggleKey)
-            {
-                GetViewport().SetInputAsHandled();
-                TogglePanel();
-            }
-            return;
-        }
-
-        // 拖拽/缩放时在全局接收鼠标移动与释放，避免移出窗口后丢失
         if (_window == null || !GodotObject.IsInstanceValid(_window) || !_window.Visible) return;
-        if (ev is InputEventMouseButton mb && !mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+
+        // 拖拽/缩放时在全局接收鼠标释放与移动，避免移出窗口后丢失
+        if (ev is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
         {
             if (_isResizing || _isDragging)
             {
@@ -91,26 +73,24 @@ public partial class CheatHistoryPanel : CanvasLayer
                 _isDragging = false;
                 _resizeEdges = ResizeEdge.None;
                 _titleDragPending = false;
-                GetViewport().SetInputAsHandled();
             }
             return;
         }
+
         if (ev is InputEventMouseMotion mm)
         {
             if (_isResizing)
             {
                 _ApplyResize(mm.GlobalPosition);
-                GetViewport().SetInputAsHandled();
             }
             else if (_isDragging)
             {
                 _window.Position = mm.GlobalPosition + _dragOffset;
-                GetViewport().SetInputAsHandled();
             }
         }
     }
 
-    /// <summary>切换显示/隐藏。</summary>
+    // ── 显示/隐藏（由 InputHandlerNode 或按钮触发）───────────────────────
     public void TogglePanel()
     {
         if (_isVisible) HidePanel();
@@ -132,12 +112,24 @@ public partial class CheatHistoryPanel : CanvasLayer
         _isVisible = false;
     }
 
-    /// <summary>刷新列表内容（从全局历史队列读取）。</summary>
+    /// <summary>将窗口居中到屏幕中央。</summary>
+    public void CenterWindow()
+    {
+        if (_window == null || !GodotObject.IsInstanceValid(_window)) return;
+        var screen = (Engine.GetMainLoop() as SceneTree)?.Root?.GetViewport();
+        if (screen == null) return;
+        var rect = screen.GetVisibleRect();
+        _window.Position = new Vector2(
+            (rect.Size.X - _window.Size.X) / 2f,
+            (rect.Size.Y - _window.Size.Y) / 2f
+        );
+    }
+
+    // ── 刷新 ───────────────────────────────────────────────────────────
     public void RefreshList()
     {
         if (_listContainer == null || !GodotObject.IsInstanceValid(_listContainer)) return;
 
-        // 只移除动态行，保留 _emptyLabel，避免访问已释放节点导致异常
         foreach (var child in _listContainer.GetChildren())
         {
             if (child == _emptyLabel) continue;
@@ -155,7 +147,6 @@ public partial class CheatHistoryPanel : CanvasLayer
 
         _emptyLabel.Visible = false;
 
-        // 取最近的 N 条（最新在上）
         int start = Math.Max(0, records.Count - NoClientCheatsMod.HistoryMaxRecords);
         for (int i = start; i < records.Count; i++)
         {
@@ -170,6 +161,7 @@ public partial class CheatHistoryPanel : CanvasLayer
             _hintLabel.Text = $"  {NoClientCheatsMod.GetHistoryKeyDisplayName()} 呼出/隐藏  |  记录保存本局  |  总计 {_totalCount} 条";
     }
 
+    // ── 缩放边缘检测 ────────────────────────────────────────────────────
     ResizeEdge _DetectEdges(Vector2 localPos)
     {
         if (_window == null) return ResizeEdge.None;
@@ -215,6 +207,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         _window.Position = pos;
     }
 
+    // ── 面板鼠标事件（缩放）─────────────────────────────────────────────
     void _OnPanelGuiInput(InputEvent ev)
     {
         if (_window == null) return;
@@ -247,6 +240,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         }
     }
 
+    // ── 标题栏鼠标事件（拖拽移动）───────────────────────────────────────
     void _OnTitleGuiInput(InputEvent ev)
     {
         if (_window == null) return;
@@ -259,7 +253,6 @@ public partial class CheatHistoryPanel : CanvasLayer
             }
             else
             {
-                if (_isDragging) { }
                 _isDragging = false;
                 _titleDragPending = false;
             }
@@ -277,6 +270,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         }
     }
 
+    // ── UI 构建 ────────────────────────────────────────────────────────
     void _BuildUI()
     {
         var root = GetTree().Root;
@@ -307,7 +301,6 @@ public partial class CheatHistoryPanel : CanvasLayer
         _window.AddThemeStyleboxOverride("panel", winStyle);
         _window.GuiInput += _OnPanelGuiInput;
 
-        // 内容区：锚定满矩形 + 边距，随窗口大小自适应
         _vbox = new VBoxContainer { Name = "VBox", MouseFilter = Control.MouseFilterEnum.Ignore };
         _vbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _vbox.OffsetLeft = 8;
@@ -317,6 +310,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         _vbox.AddThemeConstantOverride("separation", 4);
         _window.AddChild(_vbox);
 
+        // ── 标题栏 ──
         var titleBar = new PanelContainer { Name = "TitleBar", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         titleBar.CustomMinimumSize = new Vector2(0, 32);
         _vbox.AddChild(titleBar);
@@ -348,18 +342,20 @@ public partial class CheatHistoryPanel : CanvasLayer
         _titleLabel.GuiInput += _OnTitleGuiInput;
         titleRow.AddChild(_titleLabel);
 
-        var closeBtn = new Button
+        // 居中按钮
+        var centerBtn = new Button
         {
-            Text = "✕",
+            Text = "⊡",
             Flat = true,
-            CustomMinimumSize = new Vector2(32, 32),
-            TooltipText = $"关闭（{NoClientCheatsMod.GetHistoryKeyDisplayName()} 重新呼出）"
+            CustomMinimumSize = new Vector2(28, 32),
+            TooltipText = "居中"
         };
-        closeBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
-        closeBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f, 1f));
-        closeBtn.Pressed += () => HidePanel();
-        titleRow.AddChild(closeBtn);
+        centerBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
+        centerBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.85f, 0.4f, 1f));
+        centerBtn.Pressed += () => CenterWindow();
+        titleRow.AddChild(centerBtn);
 
+        // 清空按钮
         var clearBtn = new Button
         {
             Text = "清空",
@@ -371,6 +367,19 @@ public partial class CheatHistoryPanel : CanvasLayer
         clearBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.5f, 0.2f, 1f));
         clearBtn.Pressed += () => { NoClientCheatsMod.ClearHistory(); RefreshList(); };
         titleRow.AddChild(clearBtn);
+
+        // 关闭按钮
+        var closeBtn = new Button
+        {
+            Text = "✕",
+            Flat = true,
+            CustomMinimumSize = new Vector2(32, 32),
+            TooltipText = $"关闭（{NoClientCheatsMod.GetHistoryKeyDisplayName()} 重新呼出）"
+        };
+        closeBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
+        closeBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f, 1f));
+        closeBtn.Pressed += () => HidePanel();
+        titleRow.AddChild(closeBtn);
 
         // ── 快捷键提示 ──
         var hintRow = new HBoxContainer { Name = "HintRow", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

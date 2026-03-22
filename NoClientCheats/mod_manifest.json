@@ -1,10 +1,10 @@
 {
   "id": "NoClientCheats",
   "pck_name": "NoClientCheats",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "name": "禁止客机作弊 / No Client Cheats",
   "author": "煎包 / Cursor Composer 1.5",
-  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.1.0 新功能：\n- 作弊拦截历史面板（F6 呼出/隐藏），可拖拽移动、拖拽边缘调整大小\n- 弹窗与面板内角色名、遗物名均已汉化（使用游戏本地化字符串）\n- 指令显示汉化：relic → 遗物：xxx、gold → 金币 xxx\n\n致谢 / Thanks:\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
+  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.1.3:\n- 重构热键机制：新建独立 InputHandlerNode，纯 _Process 轮询，彻底根治 F9 快捷键失效问题\n- 通知弹窗底部新增「查看历史」按钮，可直接呼出面板\n- 标题栏新增「居中」按钮\n- 历史面板改为按需延迟创建（首次呼出时才建节点）\n- 默认快捷键改为 F9（更稳定）\n\nv1.1.2:\n- 历史面板快捷键改为按键绑定，可在 ModConfig 中自由配置\n\nv1.1.0:\n- 作弊拦截历史面板（F9 呼出/隐藏），可拖拽移动、拖拽边缘调整大小\n- 弹窗与面板内角色名、遗物名均已汉化（使用游戏本地化字符串）\n- 指令显示汉化：relic -> 遗物：xxx、gold -> 金币 xxx\n\n致谢 / Thanks：\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": true

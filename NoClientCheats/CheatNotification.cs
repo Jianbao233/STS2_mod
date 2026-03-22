@@ -79,7 +79,7 @@ public partial class CheatNotification : CanvasLayer
         var screenW = (float)DisplayServer.WindowGetSize().X;
         int index = _visible.Count;
         float baseY = 80f;
-        float itemH = 38f;
+        float itemH = 40f;
         float y = baseY + index * (itemH + 6f);
 
         var root = GetTree().Root;
@@ -87,9 +87,9 @@ public partial class CheatNotification : CanvasLayer
         var panel = new Panel
         {
             Name = "CheatNotifyPopup",
-            CustomMinimumSize = new Vector2(560, 0),
-            Size = new Vector2(560, itemH),
-            GlobalPosition = new Vector2((screenW - 560) / 2f, y)
+            CustomMinimumSize = new Vector2(640, 0),
+            Size = new Vector2(640, itemH),
+            GlobalPosition = new Vector2((screenW - 640) / 2f, y)
         };
         panel.Modulate = new Color(1, 1, 1, 0);
 
@@ -108,17 +108,44 @@ public partial class CheatNotification : CanvasLayer
         };
         panel.AddThemeStyleboxOverride("panel", style);
 
+        // 内容行：左侧文字 + 右侧按钮
+        var row = new HBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.Fill,
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        row.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        row.AddThemeConstantOverride("separation", 12);
+        panel.AddChild(row);
+
         var mid = string.IsNullOrEmpty(displayChar) ? "" : $"  |  角色：{displayChar}  |  ";
         var label = new Label
         {
             Text = $"[禁止作弊]  {senderName}{mid}  {displayCmd}",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            SizeFlagsHorizontal = Control.SizeFlags.Expand | Control.SizeFlags.ShrinkCenter
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.Fill,
+            VerticalAlignment = VerticalAlignment.Center
         };
         label.AddThemeColorOverride("font_color", new Color(1f, 0.25f, 0.25f, 1f));
         label.AddThemeFontSizeOverride("font_size", 14);
-        panel.AddChild(label);
+        row.AddChild(label);
+
+        // 查看历史按钮
+        var histBtn = new Button
+        {
+            Text = "查看历史  →",
+            Flat = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd,
+            SizeFlagsVertical = Control.SizeFlags.Fill,
+            CustomMinimumSize = new Vector2(100, 0),
+            TooltipText = "呼出拦截历史面板"
+        };
+        histBtn.AddThemeColorOverride("font_color", new Color(0.85f, 0.75f, 0.55f, 1f));
+        histBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.9f, 0.6f, 1f));
+        histBtn.Pressed += () => NoClientCheatsMod.ShowHistoryPanelUI();
+        row.AddChild(histBtn);
+
         root.AddChild(panel);
 
         var item = new _Item

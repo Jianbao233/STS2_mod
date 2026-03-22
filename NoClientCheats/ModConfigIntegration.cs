@@ -102,10 +102,15 @@ internal static class ModConfigIntegration
             "How long the red popup stays (seconds).", "红色弹窗停留时间（秒）。",
             v => { try { NoClientCheatsMod.NotificationDuration = Convert.ToSingle(v); } catch { } }));
 
-        list.Add(MakeHeader("History Panel (F6)", "历史面板（F6）"));
+        list.Add(MakeHeader("History Panel (F9)", "历史面板（F9）"));
         list.Add(MakeToggle("show_history_panel", "Enable History Panel", "启用历史面板",
-            "Enable F6 to toggle cheat history panel.", "启用 F6 呼出历史面板。",
-            true, v => { try { NoClientCheatsMod.ShowHistoryPanel = Convert.ToBoolean(v); } catch { } }));
+            "Enable F9 to toggle cheat history panel.", "启用 F9 呼出历史面板。",
+            true, v => {
+                try { NoClientCheatsMod.ShowHistoryPanel = Convert.ToBoolean(v); }
+                catch { }
+                if (!NoClientCheatsMod.ShowHistoryPanel)
+                    NoClientCheatsMod.DestroyHistoryPanel();
+            }));
         list.Add(MakeToggle("show_history_on_cheat", "Show Panel on Cheat", "作弊时唤起历史面板",
             "When a client cheat is blocked, automatically open the history panel.", "客机作弊被拦截时自动打开历史记录面板。",
             false, v => { try { NoClientCheatsMod.ShowHistoryOnCheat = Convert.ToBoolean(v); } catch { } }));

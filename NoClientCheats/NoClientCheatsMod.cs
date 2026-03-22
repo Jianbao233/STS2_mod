@@ -26,26 +26,80 @@ public static class NoClientCheatsMod
 
     private static CheatNotification _notificationNode;
     private static CheatHistoryPanel _historyPanel;
+    private static InputHandlerNode _inputHandler;
 
     private static readonly List<CheatRecord> _historyRecords = new();
     private static readonly object _historyLock = new();
 
+    // ── 公开入口 ─────────────────────────────────────────────────────────
+    /// <summary>切换历史面板显示状态（由 InputHandlerNode 每帧轮询调用）。</summary>
+    public static void ToggleHistoryPanel()
+    {
+        if (!ShowHistoryPanel) return;
+        EnsureHistoryPanelCreated();
+        if (_historyPanel != null && GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.TogglePanel();
+    }
+
+    /// <summary>显示历史面板。</summary>
+    public static void ShowHistoryPanelUI()
+    {
+        if (!ShowHistoryPanel) return;
+        EnsureHistoryPanelCreated();
+        if (_historyPanel != null && GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.ShowPanel();
+    }
+
+    // ── 初始化（仅执行一次）──────────────────────────────────────────────
     internal static void EnsureInitialized()
     {
         if (_initialized) return;
         _initialized = true;
+
         ModConfigIntegration.Register();
 
+        // 通知弹窗立即创建（节点很轻量，随时可能触发）
         _notificationNode = new CheatNotification();
-        _historyPanel = new CheatHistoryPanel();
-
         var tree = Engine.GetMainLoop() as SceneTree;
-        tree?.Root?.AddChild(_notificationNode);
-        tree?.Root?.AddChild(_historyPanel);
+        tree?.Root?.CallDeferred(Node.MethodName.AddChild, _notificationNode);
+
+        // InputHandler 立即创建并常驻（热键始终监听）
+        EnsureInputHandler();
 
         GD.Print($"[NoClientCheats] Loaded. Block={BlockEnabled} Hide={HideFromModList} "
             + $"Notify={ShowNotification} Dur={NotificationDuration}s "
-            + $"History={HistoryMaxRecords} key=F6");
+            + $"History={HistoryMaxRecords} key={GetHistoryKeyDisplayName()}");
+    }
+
+    /// <summary>确保 InputHandlerNode 存在且已加入树中。</summary>
+    internal static void EnsureInputHandler()
+    {
+        if (!GodotObject.IsInstanceValid(_inputHandler))
+        {
+            _inputHandler = new InputHandlerNode();
+        }
+        if (_inputHandler.GetParent() == null)
+        {
+            var tree = Engine.GetMainLoop() as SceneTree;
+            tree?.Root?.CallDeferred(Node.MethodName.AddChild, _inputHandler);
+        }
+    }
+
+    /// <summary>确保历史面板节点已创建（延迟到首次使用时）。</summary>
+    internal static void EnsureHistoryPanelCreated()
+    {
+        if (GodotObject.IsInstanceValid(_historyPanel)) return;
+        _historyPanel = new CheatHistoryPanel();
+        var tree = Engine.GetMainLoop() as SceneTree;
+        tree?.Root?.CallDeferred(Node.MethodName.AddChild, _historyPanel);
+    }
+
+    /// <summary>销毁历史面板（可在不需要时释放资源）。</summary>
+    internal static void DestroyHistoryPanel()
+    {
+        if (GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.QueueFree();
+        _historyPanel = null;
     }
 
     internal static void ApplyHarmonyPatches()
@@ -64,13 +118,8 @@ public static class NoClientCheatsMod
         }
     }
 
-    // ── 拦截记录（通知弹窗 + 历史）────────────────────────────────────────
+    // ── 拦截记录 ────────────────────────────────────────────────────────
     /// <summary>记录一次作弊拦截，触发通知弹窗（若开启）并写入历史。</summary>
-    /// <param name="senderId">作弊发送者 Steam ID</param>
-    /// <param name="senderName">玩家 Steam 名</param>
-    /// <param name="characterName">所玩角色（可为空）</param>
-    /// <param name="cheatCommand">被拦截的作弊指令</param>
-    /// <param name="wasBlocked">是否实际被拦截</param>
     public static void RecordCheat(ulong senderId, string senderName, string characterName, string cheatCommand, bool wasBlocked)
     {
         var time = DateTime.Now.ToString("HH:mm:ss");
@@ -86,9 +135,8 @@ public static class NoClientCheatsMod
         if (wasBlocked && ShowNotification)
             CheatNotification.Show(senderName, characterName ?? "", cheatCommand);
 
-        _historyPanel?.CallDeferred("RefreshList");
-        if (wasBlocked && ShowHistoryOnCheat)
-            _historyPanel?.CallDeferred("ShowPanel");
+        if (GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.CallDeferred("RefreshList");
     }
 
     /// <summary>返回当前所有历史记录（最新在末尾）。</summary>
@@ -110,10 +158,11 @@ public static class NoClientCheatsMod
     {
         lock (_historyLock)
             _historyRecords.Clear();
-        _historyPanel?.CallDeferred("RefreshList");
+        if (GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.CallDeferred("RefreshList");
     }
 
-    /// <summary>从字符串设置历史面板快捷键（如 "F6"、"F9"）。</summary>
+    /// <summary>从字符串设置历史面板快捷键（如 "F9"）。</summary>
     public static void SetHistoryKey(string keyName)
     {
         if (string.IsNullOrWhiteSpace(keyName)) return;
