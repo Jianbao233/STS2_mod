@@ -55,6 +55,18 @@ public partial class CheatHistoryPanel : CanvasLayer
         _BuildUI();
         HidePanel();
         SetProcessInput(true);
+        SetProcess(true);
+    }
+
+    private bool _prevKeyPressed;
+
+    public override void _Process(double delta)
+    {
+        if (!NoClientCheatsMod.ShowHistoryPanel) return;
+        bool pressed = Input.IsKeyPressed(NoClientCheatsMod.HistoryToggleKey);
+        if (pressed && !_prevKeyPressed)
+            TogglePanel();
+        _prevKeyPressed = pressed;
     }
 
     public override void _Input(InputEvent ev)
@@ -155,7 +167,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         if (_titleLabel != null && GodotObject.IsInstanceValid(_titleLabel))
             _titleLabel.Text = $"  作弊拦截记录  ({_totalCount} 条)";
         if (_hintLabel != null && GodotObject.IsInstanceValid(_hintLabel))
-            _hintLabel.Text = $"  F6 呼出/隐藏  |  记录保存本局  |  总计 {_totalCount} 条";
+            _hintLabel.Text = $"  {NoClientCheatsMod.GetHistoryKeyDisplayName()} 呼出/隐藏  |  记录保存本局  |  总计 {_totalCount} 条";
     }
 
     ResizeEdge _DetectEdges(Vector2 localPos)
@@ -341,7 +353,7 @@ public partial class CheatHistoryPanel : CanvasLayer
             Text = "✕",
             Flat = true,
             CustomMinimumSize = new Vector2(32, 32),
-            TooltipText = "关闭（F6 重新呼出）"
+            TooltipText = $"关闭（{NoClientCheatsMod.GetHistoryKeyDisplayName()} 重新呼出）"
         };
         closeBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
         closeBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f, 1f));
@@ -368,7 +380,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         _hintLabel = new Label
         {
             Name = "Hint",
-            Text = "  F6 呼出/隐藏  |  记录保存本局  |  总计 0 条",
+            Text = $"  {NoClientCheatsMod.GetHistoryKeyDisplayName()} 呼出/隐藏  |  记录保存本局  |  总计 0 条",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ShrinkEnd
         };

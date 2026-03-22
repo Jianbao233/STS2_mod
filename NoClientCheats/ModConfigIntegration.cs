@@ -116,9 +116,9 @@ internal static class ModConfigIntegration
             "Max cheat history records to keep.", "最多保存的历史记录条数。",
             v => { try { if (v != null) NoClientCheatsMod.HistoryMaxRecords = Convert.ToInt32(v.ToString()); } catch { } }));
 
-        list.Add(MakeToggle("history_key", "History Toggle Key", "历史面板快捷键",
-            "Key to toggle history panel (default F6).", "呼出历史面板的快捷键（默认 F6）。",
-            true, v => { }));
+        list.Add(MakeKeyBind("history_key", "History Toggle Key", "历史面板快捷键",
+            (long)Key.F9,
+            v => { try { if (v != null) NoClientCheatsMod.SetHistoryKeyFromLong(Convert.ToInt64(v)); } catch { } }));
 
         list.Add(MakeSeparator());
         list.Add(MakeHeader("Mod Detection", "Mod 检测"));
@@ -152,7 +152,7 @@ internal static class ModConfigIntegration
         try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
         try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }
-        try { var s = GetValue("history_key", "F6"); if (!string.IsNullOrEmpty(s)) NoClientCheatsMod.SetHistoryKey(s); } catch { }
+        try { NoClientCheatsMod.SetHistoryKeyFromLong(GetValue("history_key", (long)Key.F9)); } catch { }
     }
 
     private static T GetValue<T>(string key, T fallback)
@@ -242,6 +242,19 @@ internal static class ModConfigIntegration
             SetProp(e, "Description", descEn ?? descZhs);
             SetProp(e, "Descriptions", Dict("en", descEn ?? "", "zhs", descZhs ?? ""));
         }
+        if (onChanged != null) SetProp(e, "OnChanged", onChanged);
+        return e;
+    }
+
+    private static object MakeKeyBind(string key, string labelEn, string labelZhs,
+        long defaultValue, Action<object> onChanged = null)
+    {
+        var e = Activator.CreateInstance(_entryType);
+        SetProp(e, "Key", key);
+        SetProp(e, "Label", labelEn);
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
+        SetProp(e, "Type", ConfigTypeValue("KeyBind"));
+        SetProp(e, "DefaultValue", defaultValue);
         if (onChanged != null) SetProp(e, "OnChanged", onChanged);
         return e;
     }

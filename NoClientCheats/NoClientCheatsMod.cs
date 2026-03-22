@@ -18,7 +18,7 @@ public static class NoClientCheatsMod
     internal static bool ShowHistoryOnCheat = false;
     internal static float NotificationDuration = 5.0f;
     internal static int HistoryMaxRecords = 25;
-    internal static Key HistoryToggleKey = Key.F6;
+    internal static Key HistoryToggleKey = Key.F9;
 
     // ── 内部状态 ─────────────────────────────────────────────────────────
     private static bool _initialized;
@@ -119,6 +119,24 @@ public static class NoClientCheatsMod
         if (string.IsNullOrWhiteSpace(keyName)) return;
         var kl = (Key)Enum.Parse(typeof(Key), keyName, ignoreCase: true);
         HistoryToggleKey = kl;
+    }
+
+    /// <summary>从 long（Godot KeyCode）设置历史面板快捷键。</summary>
+    public static void SetHistoryKeyFromLong(long keyCode)
+    {
+        HistoryToggleKey = (Key)keyCode;
+    }
+
+    /// <summary>返回当前历史面板快捷键的显示名称。</summary>
+    public static string GetHistoryKeyDisplayName()
+    {
+        return HistoryToggleKey switch
+        {
+            Key.F1 => "F1", Key.F2 => "F2", Key.F3 => "F3", Key.F4 => "F4",
+            Key.F5 => "F5", Key.F6 => "F6", Key.F7 => "F7", Key.F8 => "F8",
+            Key.F9 => "F9", Key.F10 => "F10", Key.F11 => "F11", Key.F12 => "F12",
+            _ => HistoryToggleKey.ToString()
+        };
     }
 }
 
