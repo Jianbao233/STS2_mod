@@ -1,10 +1,10 @@
 {
   "id": "NoClientCheats",
   "pck_name": "NoClientCheats",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "name": "禁止客机作弊 / No Client Cheats",
   "author": "煎包 / Cursor Composer 1.5",
-  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.1.4:\n- 修复操作按钮 OnChanged 不触发问题（改用 Godot 原生 .Pressed 委托）\n- 移除 ModConfig 中的操作按钮，历史面板由标题栏 Godot 原生按钮控制\n- 快捷键从 F9 改为 F6\n- 调试模式（Debug 构建）进入游戏自动弹出历史面板\n- SyncFromConfig 加 IsAvailable 保护\n- show_history_panel 开关不再销毁面板，只控制快捷键是否响应\n\nv1.1.3:\n- 重构热键机制：新建独立 InputHandlerNode，纯 _Process 轮询\n- ModConfig 新增操作按钮：打开历史面板 / 窗口居中\n- 标题栏新增居中按钮\n\n致谢 / Thanks：\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
+  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.1.5:\n- 新增游戏顶栏呼出按钮：Hook NTopBar._Ready，在顶栏 PauseButton 左侧注入「记录」按钮\n- 顶栏按钮点击直接呼出/隐藏历史面板，不依赖 ModConfig\n- 移除 show_history_panel 开关（面板始终存在，F6/顶栏按钮控制显隐）\n- 新增 show_topbar_button 开关（控制顶栏按钮是否显示）\n- 恢复 btn_open_history/btn_center_window ModConfig 操作按钮（Toggle 类型）\n- CheatHistoryPanel._BuildUI() 终于被 _Ready() 调用（之前从未触发，窗口从不出现）\n\nv1.1.4:\n- 修复操作按钮 OnChanged 不触发问题\n\n致谢 / Thanks：\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": true

@@ -112,15 +112,13 @@ internal static class ModConfigIntegration
             v => { try { NoClientCheatsMod.NotificationDuration = Convert.ToSingle(v); } catch { } }));
 
         list.Add(MakeHeader("History Panel (F6)", "历史面板（F6）"));
-        list.Add(MakeToggle("show_history_panel", "Enable History Panel", "启用历史面板",
-            "Enable F6 to toggle cheat history panel.", "启用 F6 呼出历史面板。",
-            false, v => {
-                try { NoClientCheatsMod.ShowHistoryPanel = Convert.ToBoolean(v); }
-                catch { }
-                // 不再在此销毁面板；ShowHistoryPanelUI 由快捷键呼出，按需创建
-            }));
-        list.Add(MakeToggle("show_history_on_cheat", "Show Panel on Cheat", "作弊时唤起历史面板",
-            "When a client cheat is blocked, automatically open the history panel.", "客机作弊被拦截时自动打开历史记录面板。",
+        list.Add(MakeToggle("show_topbar_button", "Show Top Bar Button", "顶栏呼出按钮",
+            "Show a '记录' button in the game top bar to toggle history panel.",
+            "在游戏顶栏显示呼出按钮。",
+            true, v => { try { NoClientCheatsMod.ShowTopBarButton = Convert.ToBoolean(v); } catch { } }));
+        list.Add(MakeToggle("show_history_on_cheat", "Show Panel on Cheat", "作弊时唤起面板",
+            "When a client cheat is blocked, automatically open the history panel.",
+            "客机作弊被拦截时自动打开历史记录面板。",
             false, v => { try { NoClientCheatsMod.ShowHistoryOnCheat = Convert.ToBoolean(v); } catch { } }));
 
         var historyOptions = new[] { "10", "15", "20", "25", "30", "35", "40", "45", "50" };
@@ -134,7 +132,14 @@ internal static class ModConfigIntegration
             (long)Key.F6,
             v => { try { if (v != null) NoClientCheatsMod.SetHistoryKeyFromLong(Convert.ToInt64(v)); } catch { } }));
 
-        // ── 操作按钮：改用 Godot 原生按钮（面板标题栏），ModConfig 配置项已移除 ──
+        // ── 操作按钮（Toggle 类型：DefaultValue=false，点 false→true 触发后重置）──
+        list.Add(MakeHeader("Actions", "操作"));
+        list.Add(MakeActionButton("btn_open_history", "Open History Panel", "呼出历史面板",
+            "Open the cheat interception history panel.", "呼出历史记录面板。",
+            () => NoClientCheatsMod.ShowHistoryPanelUI()));
+        list.Add(MakeActionButton("btn_center_window", "Center Window", "窗口居中",
+            "Move the history panel back to the center of the screen.", "将历史面板窗口移回屏幕中央。",
+            () => NoClientCheatsMod.CenterHistoryWindow()));
 
         list.Add(MakeSeparator());
         list.Add(MakeHeader("Mod Detection", "Mod 检测"));
@@ -164,6 +169,7 @@ internal static class ModConfigIntegration
         if (!IsAvailable) return;
         try { NoClientCheatsMod.BlockEnabled = GetValue("block_enabled", true); } catch { }
         try { NoClientCheatsMod.ShowNotification = GetValue("show_notification", true); } catch { }
+        try { NoClientCheatsMod.ShowTopBarButton = GetValue("show_topbar_button", true); } catch { }
         try { NoClientCheatsMod.ShowHistoryOnCheat = GetValue("show_history_on_cheat", false); } catch { }
         try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }

@@ -13,7 +13,8 @@ public static class NoClientCheatsMod
     internal static bool BlockEnabled = true;
     internal static bool HideFromModList = true;
     internal static bool ShowNotification = true;
-    internal static bool ShowHistoryPanel = true;
+    /// <summary>顶栏按钮是否显示（控制游戏顶栏呼出按钮）。</summary>
+    internal static bool ShowTopBarButton = true;
     /// <summary>客机作弊被拦截时是否自动唤起历史记录面板。</summary>
     internal static bool ShowHistoryOnCheat = false;
     internal static float NotificationDuration = 5.0f;
@@ -35,7 +36,6 @@ public static class NoClientCheatsMod
     /// <summary>切换历史面板显示状态（由 InputHandlerNode 每帧轮询调用）。</summary>
     public static void ToggleHistoryPanel()
     {
-        if (!ShowHistoryPanel) return;
         EnsureHistoryPanelCreated();
         if (_historyPanel != null && GodotObject.IsInstanceValid(_historyPanel))
             _historyPanel.TogglePanel();
@@ -44,8 +44,7 @@ public static class NoClientCheatsMod
     /// <summary>显示历史面板。</summary>
     public static void ShowHistoryPanelUI()
     {
-        if (!ShowHistoryPanel) return;
-        EnsureHistoryPanelCreated(); // 确保节点存在
+        EnsureHistoryPanelCreated();
         if (_historyPanel != null && GodotObject.IsInstanceValid(_historyPanel))
             _historyPanel.ShowPanel();
     }
@@ -57,13 +56,6 @@ public static class NoClientCheatsMod
         _initialized = true;
 
         ModConfigIntegration.Register();
-
-#if DEBUG
-        // 调试：游戏加载时自动弹出历史面板，方便验证注册成功
-        EnsureHistoryPanelCreated();
-        if (GodotObject.IsInstanceValid(_historyPanel))
-            _historyPanel.ShowPanel();
-#endif
 
         // 通知弹窗立即创建（节点很轻量，随时可能触发）
         _notificationNode = new CheatNotification();
@@ -112,7 +104,6 @@ public static class NoClientCheatsMod
     /// <summary>将历史面板窗口居中（ModConfig 按钮调用）。</summary>
     internal static void CenterHistoryWindow()
     {
-        if (!ShowHistoryPanel) return;
         EnsureHistoryPanelCreated();
         if (GodotObject.IsInstanceValid(_historyPanel))
             _historyPanel.CallDeferred("CenterWindow");
