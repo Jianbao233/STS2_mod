@@ -1,0 +1,346 @@
+{
+  "generated_at": "2026-03-22",
+  "generated_by": "tools/analyze_run_ancient_stats.py",
+  "run_files_scanned": [
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773052903.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773059271.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773059516.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773064000.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773066353.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773070205.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773078449.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773118268.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773122420.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773122454.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773122763.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773136050.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773137480.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773137538.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773141038.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773147240.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773148537.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773149747.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773163685.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773166915.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773202369.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773205778.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773220985.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773222000.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773228866.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773255138.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773255181.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773255212.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773290302.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773343798.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773381133.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773397304.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773399520.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773414226.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773414272.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773414313.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773484674.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773490470.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773599019.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773604963.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773663513.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773671998.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773675067.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773677326.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773723718.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773759445.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773771912.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773829787.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773829940.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773829990.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773834248.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773834811.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773836144.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773843192.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773849968.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773850284.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773850527.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773850707.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773858361.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773895245.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773915952.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773919310.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773919369.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773919406.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1773948181.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1774027369.run",
+    "C:\\Users\\Administrator\\AppData\\Roaming\\SlayTheSpire2\\steam\\76561198679823594\\modded\\profile1\\saves\\history\\1774071804.run"
+  ],
+  "total_runs_analyzed": 67,
+  "failed_runs": 0,
+  "total_nodes_analyzed": 1260,
+  "per_node_type": {
+    "monster": {
+      "node_count": 752,
+      "gold_gained": {
+        "count": 752,
+        "min": 0.0,
+        "max": 1000.0,
+        "mean": 16.17,
+        "median": 14.0,
+        "p50": 14.0,
+        "p75": 18.0,
+        "p90": 20.0,
+        "p95": 24.0,
+        "p99": 51.49
+      },
+      "relic_picks": {
+        "count": 752,
+        "min": 0.0,
+        "max": 10.0,
+        "mean": 0.03,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 1.0
+      }
+    },
+    "event": {
+      "node_count": 313,
+      "gold_gained": {
+        "count": 313,
+        "min": 0.0,
+        "max": 162.0,
+        "mean": 9.31,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 19.2,
+        "p95": 100.0,
+        "p99": 119.52
+      },
+      "relic_picks": {
+        "count": 313,
+        "min": 0.0,
+        "max": 4.0,
+        "mean": 0.18,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 1.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    "shop": {
+      "node_count": 147,
+      "gold_gained": {
+        "count": 147,
+        "min": 0.0,
+        "max": 2400.0,
+        "mean": 105.35,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 45.0,
+        "p95": 1000.0,
+        "p99": 2000.0
+      },
+      "relic_picks": {
+        "count": 147,
+        "min": 0.0,
+        "max": 3.0,
+        "mean": 0.59,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 1.0,
+        "p90": 3.0,
+        "p95": 3.0,
+        "p99": 3.0
+      }
+    },
+    "rest_site": {
+      "node_count": 401,
+      "gold_gained": {
+        "count": 401,
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "relic_picks": {
+        "count": 401,
+        "min": 0.0,
+        "max": 1.0,
+        "mean": 0.02,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 1.0
+      }
+    },
+    "treasure": {
+      "node_count": 173,
+      "gold_gained": {
+        "count": 173,
+        "min": 0.0,
+        "max": 763.0,
+        "mean": 58.5,
+        "median": 46.0,
+        "p50": 46.0,
+        "p75": 49.0,
+        "p90": 51.0,
+        "p95": 52.0,
+        "p99": 646.4
+      },
+      "relic_picks": {
+        "count": 173,
+        "min": 0.0,
+        "max": 1.0,
+        "mean": 0.99,
+        "median": 1.0,
+        "p50": 1.0,
+        "p75": 1.0,
+        "p90": 1.0,
+        "p95": 1.0,
+        "p99": 1.0
+      }
+    },
+    "elite": {
+      "node_count": 178,
+      "gold_gained": {
+        "count": 178,
+        "min": 0.0,
+        "max": 60.0,
+        "mean": 34.12,
+        "median": 37.5,
+        "p50": 37.5,
+        "p75": 43.0,
+        "p90": 45.0,
+        "p95": 53.0,
+        "p99": 56.15
+      },
+      "relic_picks": {
+        "count": 178,
+        "min": 0.0,
+        "max": 2.0,
+        "mean": 0.92,
+        "median": 1.0,
+        "p50": 1.0,
+        "p75": 1.0,
+        "p90": 1.0,
+        "p95": 1.0,
+        "p99": 2.0
+      }
+    },
+    "boss": {
+      "node_count": 126,
+      "gold_gained": {
+        "count": 126,
+        "min": 0.0,
+        "max": 120.0,
+        "mean": 64.82,
+        "median": 90.0,
+        "p50": 90.0,
+        "p75": 100.0,
+        "p90": 100.0,
+        "p95": 101.5,
+        "p99": 115.0
+      },
+      "relic_picks": {
+        "count": 126,
+        "min": 0.0,
+        "max": 2.0,
+        "mean": 0.02,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      }
+    },
+    "ancient": {
+      "node_count": 189,
+      "gold_gained": {
+        "count": 189,
+        "min": 0.0,
+        "max": 999.0,
+        "mean": 19.9,
+        "median": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 96.0,
+        "p99": 412.92
+      },
+      "relic_picks": {
+        "count": 189,
+        "min": 0.0,
+        "max": 5.0,
+        "mean": 1.05,
+        "median": 1.0,
+        "p50": 1.0,
+        "p75": 1.0,
+        "p90": 1.0,
+        "p95": 1.0,
+        "p99": 2.12
+      }
+    }
+  },
+  "relic_picks_distribution": {
+    "monster": {
+      "0": 741,
+      "1": 10,
+      "10": 1
+    },
+    "event": {
+      "0": 264,
+      "1": 46,
+      "2": 1,
+      "3": 1,
+      "4": 1
+    },
+    "shop": {
+      "0": 99,
+      "1": 26,
+      "2": 5,
+      "3": 17
+    },
+    "rest_site": {
+      "0": 393,
+      "1": 8
+    },
+    "treasure": {
+      "0": 2,
+      "1": 171
+    },
+    "elite": {
+      "0": 23,
+      "1": 147,
+      "2": 8
+    },
+    "boss": {
+      "0": 125,
+      "2": 1
+    },
+    "ancient": {
+      "0": 1,
+      "1": 182,
+      "2": 4,
+      "3": 1,
+      "5": 1
+    }
+  },
+  "database_info": {
+    "schema_version": 1,
+    "game_version_range": ">=0.99",
+    "generated_at": "2026-03-22",
+    "relic_count": 100,
+    "event_count": 34,
+    "npc_count": 11
+  }
+}

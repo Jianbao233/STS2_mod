@@ -4,6 +4,9 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>RichPing</RootNamespace>
     <AssemblyName>RichPing</AssemblyName>
+    <Version>0.1.1</Version>
+    <FileVersion>0.1.1</FileVersion>
+    <AssemblyVersion>0.1.1</AssemblyVersion>
   </PropertyGroup>
   <!-- 使用 Sts2Stubs 替代 sts2 引用：Godot 4.5.1 为 .NET 8，sts2 为 .NET 9，直接引用会导致加载失败 -->
   <ItemGroup>

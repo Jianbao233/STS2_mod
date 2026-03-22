@@ -1,7 +1,7 @@
 {
   "id": "RunHistoryAnalyzer",
   "pck_name": "RunHistoryAnalyzer",
-  "version": "0.1.4",
+  "version": "0.1.7",
   "name": "历史记录异常检测 / Run History Analyzer",
   "author": "",
   "description": "历史记录异常检测 Mod — 分析单机/联机模式中的异常跑图记录\nRun History Anomaly Detection — Analyzes abnormal run records in single-player and multiplayer modes.",

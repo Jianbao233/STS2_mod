@@ -6,19 +6,36 @@
     <Nullable>enable</Nullable>
     <RootNamespace>RunHistoryAnalyzer</RootNamespace>
     <AssemblyName>RunHistoryAnalyzer</AssemblyName>
+    <Version>0.1.7</Version>
+    <FileVersion>0.1.7</FileVersion>
+    <AssemblyVersion>0.1.7</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
 
-  <!-- 每次编译后自动同步到游戏 mods 目录 -->
+  <!--
+    编译结束后把「本次实际生成的」DLL 拷到游戏 mods（用 $(TargetPath)，避免与 Godot/配置 输出路径不一致）。
+    若游戏正在运行且锁住 DLL，Copy 会失败 — 请先退出游戏再构建。
+    last_build.txt 由本 Target 写入，便于与 DLL 时间戳对照。
+  -->
   <Target Name="SyncToGame" AfterTargets="Build">
     <PropertyGroup>
       <GameModsDir>K:\SteamLibrary\steamapps\common\Slay the Spire 2\mods\RunHistoryAnalyzer</GameModsDir>
-      <BuildOutDir>$(MSBuildThisFileDirectory).godot\mono\temp\bin\$(Configuration)</BuildOutDir>
+      <GameModsDll>$(GameModsDir)\$(TargetFileName)</GameModsDll>
+      <SyncStampFile>$(GameModsDir)\last_build.txt</SyncStampFile>
+      <SyncStampLine>$([System.DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss')) | $(Configuration) | $(TargetFileName) | from $(TargetPath)</SyncStampLine>
     </PropertyGroup>
-    <Copy SourceFiles="$(BuildOutDir)\RunHistoryAnalyzer.dll" DestinationFolder="$(GameModsDir)" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)mod_manifest.json" DestinationFolder="$(GameModsDir)" />
+    <Error Condition="!Exists('$(TargetPath)')" Text="SyncToGame: 找不到生成输出 $(TargetPath)，请确认已成功编译主程序集。" />
+    <MakeDir Directories="$(GameModsDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(GameModsDll)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)mod_manifest.json" DestinationFolder="$(GameModsDir)" SkipUnchangedFiles="false" />
+    <!-- .pck 由 Godot 编辑器导出，随 C# 构建同步到 mods -->
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)$(TargetFileName).pck"
+          DestinationFiles="$(GameModsDir)\$(TargetFileName).pck"
+          SkipUnchangedFiles="false"
+          Condition="Exists('$(MSBuildThisFileDirectory)$(TargetFileName).pck')" />
+    <WriteLinesToFile File="$(SyncStampFile)" Lines="$(SyncStampLine)" Overwrite="true" Encoding="UTF-8" />
   </Target>
 </Project>

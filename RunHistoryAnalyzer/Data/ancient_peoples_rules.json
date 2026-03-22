@@ -1,0 +1,2230 @@
+{
+  "schema_version": 1,
+  "game_version_range": ">=0.99",
+  "generated_at": "2026-03-22",
+  "generated_by": "tools/extract_ancient_candidates.py",
+  "source_lang": "zhs",
+  "relic_effects": [
+    {
+      "id": "AMETHYST_AUBERGINE",
+      "title_zh": "紫水晶茄子",
+      "title_en": "Amethyst Aubergine",
+      "description_zh": "敌人额外掉落[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Enemies drop [blue]{Gold}[/blue] additional [gold]Gold[/gold].",
+      "tags": [
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "ARCANE_SCROLL",
+      "title_zh": "奥术卷轴",
+      "title_en": "Arcane Scroll",
+      "description_zh": "拾起时，将一张随机[gold]稀有牌[/gold]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, obtain a random [gold]Rare Card[/gold] to add to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "ARCHAIC_TOOTH",
+      "title_zh": "古老牙齿",
+      "title_en": "Archaic Tooth",
+      "description_zh": "拾起时，将{StarterCard.StringValue:cond:[gold]{StarterCard}[/gold][gold]变化[/gold]为[gold]{AncientCard}[/gold]|一张初始卡牌[gold]变化[/gold]为先古版本}",
+      "description_en": "Upon pickup, [gold]Transform[/gold] {StarterCard.StringValue:cond:[gold]{StarterCard}[/gold] into [gold]{AncientCard}[/gold]|a starter card with an ancient version}.",
+      "tags": [
+        "on_pickup",
+        "starter_to_ancient",
+        "ancient_named"
+      ],
+      "effects": {
+        "starter_to_ancient": true
+      },
+      "note_zh": "将初始卡牌变化为先古版本",
+      "note_en": "Transforms starter card into Ancient version"
+    },
+    {
+      "id": "ASTROLABE",
+      "title_zh": "星盘",
+      "title_en": "Astrolabe",
+      "description_zh": "拾起时，选择[blue]{Cards}[/blue]张牌进行[gold]变化[/gold]，然后将这些牌[gold]升级[/gold]",
+      "description_en": "Upon pickup, [gold]Transform[/gold] [blue]{Cards}[/blue] {Cards:plural:card|cards}, then [gold]Upgrade[/gold] them.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BAG_OF_PREPARATION",
+      "title_zh": "准备背包",
+      "title_en": "Bag of Preparation",
+      "description_zh": "在每场战斗开始时，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of each combat, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BEAUTIFUL_BRACELET",
+      "title_zh": "华美手镯",
+      "title_en": "Beautiful Bracelet",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中选择[blue]{Cards}[/blue]张牌，[gold]附魔[/gold]：[purple]迅捷[/purple][blue]3[/blue]",
+      "description_en": "Upon pickup, choose [blue]{Cards}[/blue] {Cards:plural:card|cards} in your [gold]Deck[/gold]. [gold]Enchant[/gold] them with [purple]Swift[/purple] [blue]3[/blue].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BIG_HAT",
+      "title_zh": "大帽子",
+      "title_en": "Big Hat",
+      "description_zh": "在每场战斗开始时，将[blue]{Cards}[/blue]张随机[gold]虚无[/gold]牌加入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, add [blue]{Cards}[/blue] random [gold]Ethereal[/gold] {Cards:plural:card|cards} into your [gold]Hand[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BIG_MUSHROOM",
+      "title_zh": "大蘑菇",
+      "title_en": "Big Mushroom",
+      "description_zh": "拾起时，将你的最大生命值提升[blue]{MaxHp}[/blue]",
+      "description_en": "Upon pickup, raise your Max HP by [blue]{MaxHp}[/blue]. At the start of each combat, draw [blue]{Cards}[/blue] fewer {Cards:plural:card|cards}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BIIIG_HUG",
+      "title_zh": "大～抱抱",
+      "title_en": "Biiig Hug",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中移除[blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, remove [blue]{Cards}[/blue] cards from your [gold]Deck[/gold]. Whenever you shuffle your [gold]Draw Pile[/gold], add a [gold]Soot[/gold] into your [gold]Draw Pile[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BING_BONG",
+      "title_zh": "冰梆",
+      "title_en": "Bing Bong",
+      "description_zh": "每当你往[gold]牌组[/gold]中增添卡牌时，都将额外添加一张相同的牌",
+      "description_en": "Whenever you add a card to your [gold]Deck[/gold], add one additional copy.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BLACK_STAR",
+      "title_zh": "黑星",
+      "title_en": "Black Star",
+      "description_zh": "[gold]精英[/gold]敌人在被打败时多掉落一件遗物",
+      "description_en": "[gold]Elites[/gold] drop an additional Relic when defeated.",
+      "tags": [
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "BLESSED_ANTLER",
+      "title_zh": "赐福鹿角",
+      "title_en": "Blessed Antler",
+      "description_zh": "在每回合开始时获得{Energy:energyIcons()}",
+      "description_en": "Gain {Energy:energyIcons()} at the start of each turn. At the start of each combat, shuffle [blue]{Cards}[/blue] [gold]Dazed[/gold] into your [gold]Draw Pile[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BLOOD_SOAKED_ROSE",
+      "title_zh": "血染玫瑰",
+      "title_en": "Blood-Soaked Rose",
+      "description_zh": "拾起时，将[blue]1[/blue]张[red]执迷[/red]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, add [blue]1[/blue] [red]Enthralled[/red] to your [gold]Deck[/gold]. Gain {Energy:energyIcons()} at the start of each turn.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BOOKMARK",
+      "title_zh": "书签",
+      "title_en": "Bookmark",
+      "description_zh": "在每个回合结束时，将随机一张[gold]被保留[/gold]的牌，直到被打出前耗能减少[blue]1[/blue]",
+      "description_en": "At the end of each turn, lower the cost of a random [gold]Retained[/gold] card by [blue]1[/blue] until played.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BOOK_OF_FIVE_RINGS",
+      "title_zh": "五轮书",
+      "title_en": "Book of Five Rings",
+      "description_zh": "你每将[blue]{Cards}[/blue]张牌加入你的[gold]牌组[/gold]时，回复[green]{Heal}[/green]点生命",
+      "description_en": "Every [blue]{Cards}[/blue] {Cards:plural:card|cards} you add to your [gold]Deck[/gold], heal [green]{Heal}[/green] HP.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "BOOMING_CONCH",
+      "title_zh": "轰鸣海螺",
+      "title_en": "Booming Conch",
+      "description_zh": "在[gold]精英[/gold]战的战斗开始时，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of [gold]Elite[/gold] combats, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "CALLING_BELL",
+      "title_zh": "召唤铃铛",
+      "title_en": "Calling Bell",
+      "description_zh": "拾起时，获得一个独特的[red]诅咒[/red]和[blue]{Relics}[/blue]件[gold]遗物[/gold]",
+      "description_en": "Upon pickup, obtain a unique [red]Curse[/red] and [blue]{Relics}[/blue] [gold]Relics[/gold].",
+      "tags": [
+        "on_pickup",
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "CENTENNIAL_PUZZLE",
+      "title_zh": "百年积木",
+      "title_en": "Centennial Puzzle",
+      "description_zh": "你在每场战斗中第一次损失生命值时，抽[blue]{Cards}[/blue]张牌",
+      "description_en": "The first time you lose HP each combat, draw [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "CHOICES_PARADOX",
+      "title_zh": "选择悖论",
+      "title_en": "Choices Paradox",
+      "description_zh": "在每场战斗开始时，你可以从[blue]{Cards}[/blue]张随机牌中选择[blue]1[/blue]张放入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, add [blue]1[/blue] of [blue]{Cards}[/blue] random cards into your [gold]Hand[/gold]. Add [gold]Retain[/gold] to the chosen card.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "CLAWS",
+      "title_zh": "利爪",
+      "title_en": "Claws",
+      "description_zh": "拾起时，将至多[blue]{Cards}[/blue]张牌[gold]变化[/gold]为[gold]撕咬[/gold]",
+      "description_en": "Upon pickup, [gold]Transform[/gold] up to [blue]{Cards}[/blue] {Cards:plural:card|cards} into [gold]Maul[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "CROSSBOW",
+      "title_zh": "十字弓",
+      "title_en": "Crossbow",
+      "description_zh": "在你的回合开始时，将一张随机[gold]攻击牌[/gold]加入你的[gold]手牌[/gold]",
+      "description_en": "At the start of your turn, add a random [gold]Attack[/gold] into your [gold]Hand[/gold]. It costs [blue]0[/blue]{energyPrefix:energyIcons(1)} this turn.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "CURSED_PEARL",
+      "title_zh": "诅咒珍珠",
+      "title_en": "Cursed Pearl",
+      "description_zh": "拾起时，获得一张[red]贪婪[/red]，获得[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Upon pickup, receive [red]Greed[/red]. Gain [blue]{Gold}[/blue] [gold]Gold[/gold].",
+      "tags": [
+        "on_pickup",
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "DEPRECATED_RELIC",
+      "title_zh": "弃用遗物",
+      "title_en": "Deprecated Relic",
+      "description_zh": "这件遗物已经从游戏中被移除",
+      "description_en": "This relic is no longer in the game. It's just here for legacy purposes.",
+      "tags": [
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "DISTINGUISHED_CAPE",
+      "title_zh": "卓越斗篷",
+      "title_en": "Distinguished Cape",
+      "description_zh": "拾起时，失去[red]9[/red]点最大生命值",
+      "description_en": "Upon pickup, lose [red]9[/red] Max HP. Add [blue]{Cards}[/blue] [gold]{Cards:plural:Apparition|Apparitions}[/gold] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "DREAM_CATCHER",
+      "title_zh": "捕梦网",
+      "title_en": "Dream Catcher",
+      "description_zh": "每当你[gold]休息[/gold]时，可以添加一张牌到你的[gold]牌组[/gold]",
+      "description_en": "Whenever you [gold]Rest[/gold], you may add a card to your [gold]Deck[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "ETERNAL_FEATHER",
+      "title_zh": "永恒羽毛",
+      "title_en": "Eternal Feather",
+      "description_zh": "你的[gold]牌组[/gold]中每有[blue]{Cards}[/blue]张牌，当你进入[gold]休息处[/gold]时就会回复[green]{Heal}[/green]点生命",
+      "description_en": "For every {Cards:plural:card|[blue]{}[/blue] cards} in your [gold]Deck[/gold], heal [green]{Heal}[/green] HP whenever you enter a [gold]Rest Site[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "FIDDLE",
+      "title_zh": "小提琴",
+      "title_en": "Fiddle",
+      "description_zh": "在每个回合开始时，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of each turn, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}. You may not draw cards during your turn.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "FRAGRANT_MUSHROOM",
+      "title_zh": "芳香蘑菇",
+      "title_en": "Fragrant Mushroom",
+      "description_zh": "拾起时，失去[red]{HpLoss}[/red]点生命，然后随机[gold]升级[/gold][blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, lose [red]{HpLoss}[/red] HP and [gold]Upgrade[/gold] [blue]{Cards}[/blue] random {Cards:plural:card|cards}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "FRESNEL_LENS",
+      "title_zh": "菲涅耳透镜",
+      "title_en": "Fresnel Lens",
+      "description_zh": "每当你将一张带有[gold]格挡[/gold]的牌加入你的[gold]牌组[/gold]时，为那张牌[gold]附魔[/gold]：[purple]灵巧[/purple][blue]{NimbleAmount}[/blue]",
+      "description_en": "Whenever you add a card that gains [gold]Block[/gold] to your [gold]Deck[/gold], [gold]Enchant[/gold] it with [purple]Nimble[/purple] [blue]{NimbleAmount}[/blue].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "FUNERARY_MASK",
+      "title_zh": "葬礼面具",
+      "title_en": "Funerary Mask",
+      "description_zh": "在每场战斗开始时，将[blue]{Cards}[/blue]张[gold]灵魂[/gold]加入你的[gold]抽牌堆[/gold]",
+      "description_en": "At the start of each combat, add [blue]{Cards}[/blue] [gold]{Cards:plural:Soul|Souls}[/gold] into your [gold]Draw Pile[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "GAME_PIECE",
+      "title_zh": "棋子",
+      "title_en": "Game Piece",
+      "description_zh": "每当你打出能力牌时，抽[blue]{Cards}[/blue]张牌",
+      "description_en": "Whenever you play a Power, draw [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "GNARLED_HAMMER",
+      "title_zh": "扭曲锤子",
+      "title_en": "Gnarled Hammer",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中选择至多[blue]{Cards}[/blue]张攻击牌，[gold]附魔[/gold]：[purple]锋利[/purple][blue]{SharpAmount:diff()}[/blue]",
+      "description_en": "Upon pickup, [gold]Enchant[/gold] up to [blue]{Cards}[/blue] {Cards:plural:Attack|Attacks} with [purple]Sharp[/purple] [blue]{SharpAmount:diff()}[/blue].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "GOLDEN_PEARL",
+      "title_zh": "金色珍珠",
+      "title_en": "Golden Pearl",
+      "description_zh": "拾起时，获得[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Upon pickup, gain [blue]{Gold}[/blue] [gold]Gold[/gold].",
+      "tags": [
+        "on_pickup",
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "GREMLIN_HORN",
+      "title_zh": "地精之角",
+      "title_en": "Gremlin Horn",
+      "description_zh": "每当有一名敌人死亡时，获得{Energy:energyIcons()}并抽[blue]{Cards}[/blue]张牌",
+      "description_en": "Whenever an enemy dies, gain {Energy:energyIcons()} and draw [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "INK_BOTTLE",
+      "title_zh": "墨水瓶",
+      "title_en": "Ink Bottle",
+      "description_zh": "你每打出[blue]{CardThreshold}[/blue]张牌，就抽[blue]{Cards}[/blue]张牌",
+      "description_en": "Every time you play [blue]{CardThreshold}[/blue] {CardThreshold:plural:card|cards}, draw [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "IRON_CLUB",
+      "title_zh": "铁棒",
+      "title_en": "Iron Club",
+      "description_zh": "你每打出[blue]{Cards}[/blue]张牌，就抽[blue]1[/blue]张牌",
+      "description_en": "Every [blue]{Cards}[/blue] {Cards:plural:card|cards} you play, draw [blue]1[/blue] card.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "JEWELED_MASK",
+      "title_zh": "宝石面具",
+      "title_en": "Jeweled Mask",
+      "description_zh": "在每场战斗开始时，将一张随机能力牌从你的[gold]抽牌堆[/gold]放入你的[gold]手牌[/gold]，这张牌可以免费打出",
+      "description_en": "At the start of combat put a random Power from your [gold]Draw Pile[/gold] into your [gold]Hand[/gold], it's free to play.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "JEWELRY_BOX",
+      "title_zh": "珠宝盒",
+      "title_en": "Jewelry Box",
+      "description_zh": "拾起时，将[blue]1[/blue]张[gold]神化[/gold]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, add [blue]1[/blue] [gold]Apotheosis[/gold] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "JOSS_PAPER",
+      "title_zh": "金纸",
+      "title_en": "Joss Paper",
+      "description_zh": "你每[gold]消耗[/gold][blue]{ExhaustAmount}[/blue]张牌，就抽[blue]{Cards}[/blue]张牌",
+      "description_en": "Every [blue]{ExhaustAmount}[/blue] times you [gold]Exhaust[/gold] a card, draw [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "KIFUDA",
+      "title_zh": "木札",
+      "title_en": "Kifuda",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中选择至多[blue]{Cards}[/blue]张牌，[gold]附魔[/gold]：[purple]伶俐[/purple]",
+      "description_en": "Upon pickup, [gold]Enchant[/gold] up to [blue]{Cards}[/blue] {Cards:plural:card|cards} with [purple]Adroit[/purple].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "KUNAI",
+      "title_zh": "苦无",
+      "title_en": "Kunai",
+      "description_zh": "你每在同一回合内打出[blue]{Cards}[/blue]张攻击牌，就获得[blue]{DexterityPower}[/blue]点[gold]敏捷[/gold]",
+      "description_en": "Every time you play [blue]{Cards}[/blue] Attacks in a single turn, gain [blue]{DexterityPower}[/blue] [gold]Dexterity[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "KUSARIGAMA",
+      "title_zh": "锁镰",
+      "title_en": "Kusarigama",
+      "description_zh": "你每在同一回合内打出[blue]{Cards}[/blue]张攻击牌，就随机对一名敌人造成[blue]{Damage}[/blue]点伤害",
+      "description_en": "Every time you play [blue]{Cards}[/blue] {Cards:plural:Attack|Attacks} in a single turn, deal [blue]{Damage}[/blue] damage to a random enemy.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "LARGE_CAPSULE",
+      "title_zh": "巨大扭蛋",
+      "title_en": "Large Capsule",
+      "description_zh": "拾起时，获得[blue]{Relics}[/blue]件随机[gold]遗物[/gold]",
+      "description_en": "Upon pickup, obtain [blue]{Relics}[/blue] random [gold]{Relics:plural:Relic|Relics}[/gold]. Add an additional [gold]Strike[/gold] and [gold]Defend[/gold] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup",
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true,
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组；拾起时额外授予蜡制遗物",
+      "note_en": "Adds card(s) to deck on pickup; Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "LAVA_ROCK",
+      "title_zh": "熔岩石",
+      "title_en": "Lava Rock",
+      "description_zh": "第一阶段的Boss敌人额外掉落[blue]{Relics}[/blue]件[gold]遗物[/gold]",
+      "description_en": "The Act 1 Boss drops [blue]{Relics}[/blue] [gold]Relics[/gold].",
+      "tags": [
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "LEAD_PAPERWEIGHT",
+      "title_zh": "铅制镇纸",
+      "title_en": "Lead Paperweight",
+      "description_zh": "拾起时，从[blue]2[/blue]张无色牌中选择[blue]1张[/blue]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, choose [blue]1[/blue] of [blue]2[/blue] Colorless cards to add to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "LETTER_OPENER",
+      "title_zh": "开信刀",
+      "title_en": "Letter Opener",
+      "description_zh": "你每在同一回合内打出[blue]{Cards}[/blue]张技能牌，就对所有敌人造成[blue]{Damage}[/blue]点伤害",
+      "description_en": "Every time you play [blue]{Cards}[/blue] {Cards:plural:Skill|Skills} in a single turn, deal [blue]{Damage}[/blue] damage to ALL enemies.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "LOST_COFFER",
+      "title_zh": "失物盒",
+      "title_en": "Lost Coffer",
+      "description_zh": "拾起时，获得[blue]1[/blue]组卡牌奖励和[blue]1[/blue]瓶随机药水",
+      "description_en": "Upon pickup, gain [blue]1[/blue] card reward and procure [blue]1[/blue] random potion.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "LUCKY_FYSH",
+      "title_zh": "招财异鱼",
+      "title_en": "Lucky Fysh",
+      "description_zh": "每当你将一张卡牌加入你的[gold]牌组[/gold]时，获得[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Whenever you add a card to your [gold]Deck[/gold], gain [blue]{Gold}[/blue] [gold]Gold[/gold].",
+      "tags": [
+        "gold_on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）；拾起时获得卡牌入组",
+      "note_en": "Grants variable gold on pickup ({Gold}); Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "MASSIVE_SCROLL",
+      "title_zh": "巨大卷轴",
+      "title_en": "Massive Scroll",
+      "description_zh": "拾起时，从[blue]3[/blue]张[gold]多人游戏无色牌[/gold]中选择[blue]1[/blue]张加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, choose [blue]1[/blue] of [blue]3[/blue] [gold]Multiplayer Colorless Cards[/gold] to add to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "MAW_BANK",
+      "title_zh": "巨口储蓄罐",
+      "title_en": "Maw Bank",
+      "description_zh": "每攀爬一层楼层，就获得[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Whenever you climb a floor, gain [blue]{Gold}[/blue] [gold]Gold[/gold]. No longer works when you spend any [gold]Gold[/gold] at the shop.",
+      "tags": [
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "MOLTEN_EGG",
+      "title_zh": "熔火之蛋",
+      "title_en": "Molten Egg",
+      "description_zh": "每当你获得[gold]攻击牌[/gold]时，将其[gold]升级[/gold]",
+      "description_en": "Whenever you add an Attack card to your [gold]Deck[/gold], [gold]Upgrade[/gold] it.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "MUMMIFIED_HAND",
+      "title_zh": "干瘪之手",
+      "title_en": "Mummified Hand",
+      "description_zh": "你每打出一张能力牌，[gold]手牌[/gold]中就有一张随机牌在这个回合可以免费打出",
+      "description_en": "Whenever you play a Power, a random card in your [gold]Hand[/gold] is free to play that turn.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "NEOWS_TORMENT",
+      "title_zh": "涅奥的苦痛",
+      "title_en": "Neow's Torment",
+      "description_zh": "拾起时，将[blue]1[/blue]张[gold]涅奥之怒[/gold]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, add [blue]1[/blue] [gold]Neow's Fury[/gold] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "NEW_LEAF",
+      "title_zh": "新叶",
+      "title_en": "New Leaf",
+      "description_zh": "拾起时，[gold]变化[/gold][blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, [gold]Transform[/gold] [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "NUNCHAKU",
+      "title_zh": "双截棍",
+      "title_en": "Nunchaku",
+      "description_zh": "你每打出[blue]{Cards}[/blue]张攻击牌，获得{Energy:energyIcons()}",
+      "description_en": "Every time you play [blue]{Cards}[/blue] Attacks, gain {Energy:energyIcons()}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "OLD_COIN",
+      "title_zh": "古钱币",
+      "title_en": "Old Coin",
+      "description_zh": "拾起时，获得[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Upon pickup, gain [blue]{Gold}[/blue] [gold]Gold[/gold].",
+      "tags": [
+        "on_pickup",
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "ORANGE_DOUGH",
+      "title_zh": "橙色团块",
+      "title_en": "Orange Dough",
+      "description_zh": "在每场战斗开始时，将[blue]{Cards}[/blue]张随机无色牌加入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, add [blue]{Cards}[/blue] random Colorless {Cards:plural:card|cards} into your [gold]Hand[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "ORNAMENTAL_FAN",
+      "title_zh": "精致折扇",
+      "title_en": "Ornamental Fan",
+      "description_zh": "你每在同一回合内打出[blue]{Cards}[/blue]张攻击牌，就获得[blue]{Block}[/blue]点[gold]格挡[/gold]",
+      "description_en": "Every time you play [blue]{Cards}[/blue] Attacks in a single turn, gain [blue]{Block}[/blue] [gold]Block[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "ORRERY",
+      "title_zh": "星系仪",
+      "title_en": "Orrery",
+      "description_zh": "拾起时，获得[blue]{Cards}[/blue]组卡牌奖励",
+      "description_en": "Upon pickup, gain [blue]{Cards}[/blue] card {Cards:plural:reward|rewards}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PAELS_BLOOD",
+      "title_zh": "佩尔之血",
+      "title_en": "Pael's Blood",
+      "description_zh": "在你的回合开始时，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of your turn, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PAELS_HORN",
+      "title_zh": "佩尔之角",
+      "title_en": "Pael's Horn",
+      "description_zh": "拾起时，将[blue]2[/blue]张[gold]放松[/gold]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, add [blue]2[/blue] [gold]Relax[/gold] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PAELS_TOOTH",
+      "title_zh": "佩尔之牙",
+      "title_en": "Pael's Tooth",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中选择[blue]{Cards}[/blue]张牌移除",
+      "description_en": "Upon pickup, remove [blue]{Cards}[/blue] {Cards:plural:card|cards} from your [gold]Deck[/gold]. After each combat, randomly add [blue]1[/blue] back [gold]Upgraded[/gold].{CardTitles.StringValue:cond:",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PAELS_WING",
+      "title_zh": "佩尔之翼",
+      "title_en": "Pael's Wing",
+      "description_zh": "你可以将你的卡牌奖励献祭给佩尔",
+      "description_en": "You may sacrifice card rewards to Pael. Every {Sacrifices:plural:sacrifice|[blue]{}[/blue] sacrifices}, obtain a [gold]Relic[/gold].",
+      "tags": [
+        "multi_relic_on_pickup",
+        "card_sacrifice_reward"
+      ],
+      "effects": {
+        "relics_on_pickup": true,
+        "card_sacrifice_reward": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物；通过献祭卡牌可额外获得遗物",
+      "note_en": "Grants extra wax relic(s) on pickup; Sacrificing cards grants extra relics"
+    },
+    {
+      "id": "POCKETWATCH",
+      "title_zh": "怀表",
+      "title_en": "Pocketwatch",
+      "description_zh": "当你在本回合打出的牌少于等于[blue]{CardThreshold}[/blue]张时，则在你的下个回合开始时额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "Whenever you play [blue]{CardThreshold}[/blue] or fewer {CardThreshold:plural:card|cards} during your turn, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards} at the start of your next turn.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "POLLINOUS_CORE",
+      "title_zh": "花粉核心",
+      "title_en": "Pollinous Core",
+      "description_zh": "每[blue]{Turns}[/blue]个回合，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "Every [blue]{Turns}[/blue] {Turns:plural:turn|turns}, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "POWER_CELL",
+      "title_zh": "能量电池",
+      "title_en": "Power Cell",
+      "description_zh": "在每场战斗开始时，将[blue]{Cards}[/blue]张耗能为0的卡牌从你的[gold]抽牌堆[/gold]放入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, add [blue]{Cards}[/blue] zero-cost cards from your [gold]Draw Pile[/gold] into your [gold]Hand[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PRECARIOUS_SHEARS",
+      "title_zh": "松动羊毛剪",
+      "title_en": "Precarious Shears",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中移除[blue]{Cards}[/blue]张牌，并受到[red]{Damage}[/red]点伤害",
+      "description_en": "Upon pickup, remove [blue]{Cards}[/blue] {Cards:plural:card|cards} from your [gold]Deck[/gold] and take [red]{Damage}[/red] damage.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PRECISE_SCISSORS",
+      "title_zh": "精准剪刀",
+      "title_en": "Precise Scissors",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中移除[blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, remove [blue]{Cards}[/blue] {Cards:plural:card|cards} from your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PRESERVED_FOG",
+      "title_zh": "腌制活雾",
+      "title_en": "Preserved Fog",
+      "description_zh": "拾起时，从你的[gold]牌组[/gold]中移除[blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, remove [blue]{Cards}[/blue] {Cards:plural:card|cards} from your [gold]Deck[/gold]. Add [red]Folly[/red] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "PUMPKIN_CANDLE",
+      "title_zh": "南瓜蜡烛",
+      "title_en": "Pumpkin Candle",
+      "description_zh": "在每个回合开始时获得{Energy:energyIcons()}",
+      "description_en": "Gain {Energy:energyIcons()} at the start of each turn. Extinguishes at the start of [gold]Act[/gold] [blue]3[/blue].",
+      "tags": [
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "RADIANT_PEARL",
+      "title_zh": "发光珍珠",
+      "title_en": "Radiant Pearl",
+      "description_zh": "在每场战斗开始时，将[blue]{Cards}[/blue]张[gold]冷光[/gold]加入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, add [blue]{Cards}[/blue] [gold]{Cards:plural:Luminesce|Luminesces}[/gold] into your [gold]Hand[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "RED_VINE_TEA",
+      "title_zh": "赤藤茶",
+      "title_en": "Red Vine Tea",
+      "description_zh": "在你接下来的[blue]{Combats}[/blue]场战斗开始时，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of the next {Combats:plural:combat|[blue]{}[/blue] combats}, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "RING_OF_THE_DRAKE",
+      "title_zh": "长蛇戒指",
+      "title_en": "Ring of the Drake",
+      "description_zh": "在战斗开始时的前[blue]{Turns}[/blue]个回合，你额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of your first {Turns:plural:turn|[blue]{}[/blue] turns}, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "RING_OF_THE_SNAKE",
+      "title_zh": "蛇之戒指",
+      "title_en": "Ring of the Snake",
+      "description_zh": "在每场战斗开始时，额外抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of each combat, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SAND_CASTLE",
+      "title_zh": "沙堡",
+      "title_en": "Sand Castle",
+      "description_zh": "拾起时，随机[gold]升级[/gold][blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, [gold]Upgrade[/gold] [blue]{Cards}[/blue] random {Cards:plural:card|cards}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SCROLL_BOXES",
+      "title_zh": "卷轴箱",
+      "title_en": "Scroll Boxes",
+      "description_zh": "拾起时，失去所有[gold]金币[/gold]，并从[blue]2[/blue]个卡牌包中选择[blue]1包[/blue]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, lose all [gold]Gold[/gold] and choose [blue]1[/blue] of [blue]2[/blue] packs of cards to add to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SEAL_OF_GOLD",
+      "title_zh": "黄金印",
+      "title_en": "Seal of Gold",
+      "description_zh": "在你的回合开始时，花费[blue]{Gold}[/blue][gold]金币[/gold]来获得{Energy:energyIcons()}",
+      "description_en": "At the start of your turn, spend [blue]{Gold}[/blue] [gold]Gold[/gold] to gain {Energy:energyIcons()}.",
+      "tags": [
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "SEA_GLASS",
+      "title_zh": "海玻璃",
+      "title_en": "Sea Glass",
+      "description_zh": "查看[blue]{Cards}[/blue]张来自{Character.StringValue:cond:[gold]{}[/gold]|其他角色}的牌",
+      "description_en": "See [blue]{Cards}[/blue] cards from {Character.StringValue:cond:[gold]{}[/gold]|another character}. Choose any number of them to add to your [gold]Deck[/gold].",
+      "tags": [
+        "cards_on_pickup",
+        "foreign_character_cards"
+      ],
+      "effects": {
+        "cards_on_pickup": true,
+        "foreign_character_cards": true
+      },
+      "note_zh": "拾起时获得卡牌入组；可选其他角色的卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup; May add cards from another character"
+    },
+    {
+      "id": "SERE_TALON",
+      "title_zh": "原初之爪",
+      "title_en": "Sere Talon",
+      "description_zh": "拾起时，将[blue]{Curses}[/blue]张随机[red]诅咒[/red]牌和[blue]{Wishes}[/blue]张[purple]许愿[/purple]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, add [blue]{Curses}[/blue] random [red]Curses[/red] and [blue]{Wishes}[/blue] [purple]Wishes[/purple] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SHURIKEN",
+      "title_zh": "手里剑",
+      "title_en": "Shuriken",
+      "description_zh": "你每在同一回合内打出[blue]{Cards}[/blue]张攻击牌，获得[blue]{StrengthPower}[/blue]点[gold]力量[/gold]",
+      "description_en": "Every time you play [blue]{Cards}[/blue] Attacks in a single turn, gain [blue]{StrengthPower}[/blue] [gold]Strength[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SIGNET_RING",
+      "title_zh": "图章戒指",
+      "title_en": "Signet Ring",
+      "description_zh": "拾起时，获得[blue]{Gold}[/blue][gold]金币[/gold]",
+      "description_en": "Upon pickup, gain [blue]{Gold}[/blue] [gold]Gold[/gold].",
+      "tags": [
+        "on_pickup",
+        "gold_on_pickup"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "拾起时获得可变金币（{Gold}）",
+      "note_en": "Grants variable gold on pickup ({Gold})"
+    },
+    {
+      "id": "SILVER_CRUCIBLE",
+      "title_zh": "白银熔炉",
+      "title_en": "Silver Crucible",
+      "description_zh": "你遇到的前[blue]{Cards}[/blue]组卡牌奖励将是被[gold]升级[/gold]过的",
+      "description_en": "The first [blue]{Cards}[/blue] card rewards you see are [gold]Upgraded[/gold]. The first Treasure Chest you open is [red]empty[/red].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SMALL_CAPSULE",
+      "title_zh": "小型扭蛋",
+      "title_en": "Small Capsule",
+      "description_zh": "拾起时，获得一件随机[gold]遗物[/gold]",
+      "description_en": "Upon pickup, obtain a random [gold]Relic[/gold].",
+      "tags": [
+        "on_pickup",
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "SNECKO_EYE",
+      "title_zh": "异蛇之眼",
+      "title_en": "Snecko Eye",
+      "description_zh": "每回合多抽[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of your turn, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}. Start each combat [red]Confused[/red].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "STONE_CRACKER",
+      "title_zh": "碎石钻",
+      "title_en": "Stone Cracker",
+      "description_zh": "在[gold]Boss[/gold]战开始时，在本场战斗中随机[gold]升级[/gold]你[gold]抽牌堆[/gold]中的[blue]{Cards}[/blue]张牌",
+      "description_en": "At the start of [gold]Boss[/gold] combats, [gold]Upgrade[/gold] [blue]{Cards}[/blue] random {Cards:plural:card|cards} in your [gold]Draw Pile[/gold] for the rest of combat.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "SWORD_OF_STONE",
+      "title_zh": "石之剑",
+      "title_en": "Sword of Stone",
+      "description_zh": "在击败[blue]{Elites}[/blue]名[gold]精英[/gold]敌人之后将变化为一件强力[gold]遗物[/gold]",
+      "description_en": "Transforms into a powerful [gold]Relic[/gold] after defeating [blue]{Elites}[/blue] [gold]{Elites:plural:Elite|Elites}[/gold].",
+      "tags": [
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "TANXS_WHISTLE",
+      "title_zh": "坦克斯的哨子",
+      "title_en": "Tanx's Whistle",
+      "description_zh": "拾起时，将[blue]1[/blue]张[gold]吹哨[/gold]加入你的[gold]牌组[/gold]",
+      "description_en": "Upon pickup, add [blue]1[/blue] [gold]Whistle[/gold] to your [gold]Deck[/gold].",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "TOOLBOX",
+      "title_zh": "工具箱",
+      "title_en": "Toolbox",
+      "description_zh": "在每场战斗开始时，从[blue]{Cards}[/blue]张随机无色牌中选择[blue]1[/blue]张加入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, choose [blue]1[/blue] of [blue]{Cards}[/blue] random Colorless cards and add the chosen card into your [gold]Hand[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "TOUCH_OF_OROBAS",
+      "title_zh": "欧洛巴斯之触",
+      "title_en": "Touch of Orobas",
+      "description_zh": "拾起时，将{StarterRelic.StringValue:cond:[gold]{StarterRelic}[/gold]替换为[gold]{UpgradedRelic}[/gold]|你的初始[gold]遗物[/gold]替换为[gold]先古[/gold]版本}",
+      "description_en": "Upon pickup, replace {StarterRelic.StringValue:cond:[gold]{StarterRelic}[/gold] with [gold]{UpgradedRelic}[/gold]|your starter [gold]Relic[/gold] with an [gold]Ancient[/gold] version}.",
+      "tags": [
+        "on_pickup",
+        "multi_relic_on_pickup",
+        "starter_to_ancient"
+      ],
+      "effects": {
+        "relics_on_pickup": true,
+        "starter_to_ancient": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物；将初始卡牌变化为先古版本",
+      "note_en": "Grants extra wax relic(s) on pickup; Transforms starter card into Ancient version"
+    },
+    {
+      "id": "TOY_BOX",
+      "title_zh": "玩具盒",
+      "title_en": "Toy Box",
+      "description_zh": "拾起时，获得[blue]{Relics}[/blue]件[gold]蜡制遗物[/gold]",
+      "description_en": "Upon pickup, obtain [blue]{Relics}[/blue] [gold]Wax {Relics:plural:Relic|Relics}[/gold]. Every [blue]{Combats}[/blue] {Combats:plural:combat|combats}, your left-most [gold]Wax Relic[/gold] will melt away.",
+      "tags": [
+        "on_pickup",
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "TRI_BOOMERANG",
+      "title_zh": "三刃回旋镖",
+      "title_en": "Tri-Boomerang",
+      "description_zh": "从你的[gold]牌组[/gold]中选择[blue]{Cards}[/blue]张攻击牌",
+      "description_en": "Choose [blue]{Cards}[/blue] {Cards:plural:Attack|Attacks} in your [gold]Deck[/gold]. [gold]Enchant[/gold] them with [purple]Instinct[/purple].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "TUNING_FORK",
+      "title_zh": "音叉",
+      "title_en": "Tuning Fork",
+      "description_zh": "你每打出[blue]{Cards}[/blue]张技能牌，获得[blue]{Block}[/blue]点[gold]格挡[/gold]",
+      "description_en": "Every time you play [blue]{Cards}[/blue] Skills, gain [blue]{Block}[/blue] [gold]Block[/gold].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "VELVET_CHOKER",
+      "title_zh": "天鹅绒颈圈",
+      "title_en": "Velvet Choker",
+      "description_zh": "在每回合开始时获得{Energy:energyIcons()}",
+      "description_en": "Gain {Energy:energyIcons()} at the start of each turn. You cannot play more than [blue]{Cards}[/blue] {Cards:plural:card|cards} per turn.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "VEXING_PUZZLEBOX",
+      "title_zh": "烦人机关盒",
+      "title_en": "Vexing Puzzlebox",
+      "description_zh": "在每场战斗开始时，将一张随机卡牌加入你的[gold]手牌[/gold]",
+      "description_en": "At the start of each combat, add a random card into your [gold]Hand[/gold]. It costs [blue]0[/blue]{energyPrefix:energyIcons(1)}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "WAR_HAMMER",
+      "title_zh": "战锤",
+      "title_en": "War Hammer",
+      "description_zh": "每当你击败一名[gold]精英[/gold]敌人的时候，随机[gold]升级[/gold][blue]{Cards}[/blue]张牌",
+      "description_en": "Whenever you kill an [gold]Elite[/gold], [gold]Upgrade[/gold] [blue]{Cards}[/blue] random {Cards:plural:card|cards}.",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "WAR_PAINT",
+      "title_zh": "战纹涂料",
+      "title_en": "War Paint",
+      "description_zh": "拾起时，随机[gold]升级[/gold][blue]{Cards}[/blue]张技能牌",
+      "description_en": "Upon pickup, [gold]Upgrade[/gold] [blue]{Cards}[/blue] random {Cards:plural:Skill|Skills}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "WHETSTONE",
+      "title_zh": "磨刀石",
+      "title_en": "Whetstone",
+      "description_zh": "拾起时，随机[gold]升级[/gold][blue]{Cards}[/blue]张攻击牌",
+      "description_en": "Upon pickup, [gold]Upgrade[/gold] [blue]{Cards}[/blue] random {Cards:plural:Attack|Attacks}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "WING_CHARM",
+      "title_zh": "羽翼护符",
+      "title_en": "Wing Charm",
+      "description_zh": "每组卡牌奖励中，都会有随机一张牌被[gold]附魔[/gold]：[purple]迅捷[/purple][blue]{SwiftAmount}[/blue]",
+      "description_en": "A random card in each card reward is [gold]Enchanted[/gold] with [purple]Swift[/purple] [blue]{SwiftAmount}[/blue].",
+      "tags": [
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    },
+    {
+      "id": "WONGOS_MYSTERY_TICKET",
+      "title_zh": "旺购神秘券",
+      "title_en": "Wongo's Mystery Ticket",
+      "description_zh": "在[blue]{RemainingCombats}[/blue]场战斗后，获得随机[blue]{Repeat}[/blue]件[gold]遗物[/gold]",
+      "description_en": "Receive [blue]{Repeat}[/blue] random [gold]{Repeat:plural:Relic|Relics}[/gold] after [blue]{RemainingCombats}[/blue] {RemainingCombats:plural:combat|combats}.",
+      "tags": [
+        "multi_relic_on_pickup"
+      ],
+      "effects": {
+        "relics_on_pickup": true
+      },
+      "note_zh": "拾起时额外授予蜡制遗物",
+      "note_en": "Grants extra wax relic(s) on pickup"
+    },
+    {
+      "id": "YUMMY_COOKIE",
+      "title_zh": "美味饼干",
+      "title_en": "Yummy Cookie",
+      "description_zh": "拾起时，[gold]升级[/gold][blue]{Cards}[/blue]张牌",
+      "description_en": "Upon pickup, [gold]Upgrade[/gold] [blue]{Cards}[/blue] {Cards:plural:card|cards}.",
+      "tags": [
+        "on_pickup",
+        "cards_on_pickup"
+      ],
+      "effects": {
+        "cards_on_pickup": true
+      },
+      "note_zh": "拾起时获得卡牌入组",
+      "note_en": "Adds card(s) to deck on pickup"
+    }
+  ],
+  "ancient_npcs": [
+    {
+      "id": "DARV",
+      "title_zh": "达弗",
+      "title_en": "Darv",
+      "epithet_zh": "囤积者",
+      "epithet_en": "The Hoarder",
+      "ancient_talk_count": 25,
+      "talk_sample_zh": "来来，这里有些被遗忘的宝石，拿一块去吧！",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "ERROR",
+      "title_zh": "锁定",
+      "title_en": "Locked",
+      "epithet_zh": "",
+      "epithet_en": "",
+      "ancient_talk_count": 0,
+      "talk_sample_zh": null,
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "NEOW",
+      "title_zh": "涅奥",
+      "title_en": "Neow",
+      "epithet_zh": "复生之母（被放逐）",
+      "epithet_en": "Mother of Resurrection (Exiled)",
+      "ancient_talk_count": 26,
+      "talk_sample_zh": "[sine]...再次... ..问好.....[/sine]",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "NONUPEIPE",
+      "title_zh": "诺奴佩普",
+      "title_en": "Nonupeipe",
+      "epithet_zh": "机缘的化身",
+      "epithet_en": "Serendipity Incarnate",
+      "ancient_talk_count": 20,
+      "talk_sample_zh": "塔顶有疯狂在等待",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "OROBAS",
+      "title_zh": "欧洛巴斯",
+      "title_en": "Orobas",
+      "epithet_zh": "活体虹光",
+      "epithet_en": "Living Rainbow",
+      "ancient_talk_count": 22,
+      "talk_sample_zh": "试试这个！！！",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "PAEL",
+      "title_zh": "佩尔",
+      "title_en": "Pael",
+      "epithet_zh": "融化巨龙",
+      "epithet_en": "Melting Dragon",
+      "ancient_talk_count": 20,
+      "talk_sample_zh": "[thinky_dots]欢迎回来，朋友",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "PROCEED",
+      "title_zh": "继续",
+      "title_en": "Proceed",
+      "epithet_zh": "",
+      "epithet_en": "",
+      "ancient_talk_count": 0,
+      "talk_sample_zh": null,
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "TANX",
+      "title_zh": "坦克斯",
+      "title_en": "Tanx",
+      "epithet_zh": "嵌合兽之王",
+      "epithet_en": "Khimera King",
+      "ancient_talk_count": 25,
+      "talk_sample_zh": "[b]快点变强，让我们好好战斗一番！！！[/b]",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "TEZCATARA",
+      "title_zh": "特兹卡塔拉",
+      "title_en": "Tezcatara",
+      "epithet_zh": "饲火者",
+      "epithet_en": "It Which Feeds the Fire",
+      "ancient_talk_count": 25,
+      "talk_sample_zh": "欢迎回来，小可爱",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "THE_ARCHITECT",
+      "title_zh": "建筑师",
+      "title_en": "The Architect",
+      "epithet_zh": "",
+      "epithet_en": "",
+      "ancient_talk_count": 22,
+      "talk_sample_zh": "你在这里做什么？",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    },
+    {
+      "id": "VAKUU",
+      "title_zh": "瓦库",
+      "title_en": "Vakuu",
+      "epithet_zh": "第一个恶魔",
+      "epithet_en": "The First Demon",
+      "ancient_talk_count": 27,
+      "talk_sample_zh": "在尖塔中追寻荣耀是么？我倒是有一些提案可以给你……",
+      "tags": [],
+      "reward_hints_zh": [],
+      "note_zh": "先古 NPC，具体奖励见遗物层数据",
+      "note_en": "Ancient NPC, see relic-layer data"
+    }
+  ],
+  "event_effects": [
+    {
+      "id": "BATTLEWORN_DUMMY",
+      "title_zh": "战痕累累的训练假人",
+      "title_en": "Battleworn Dummy",
+      "tags": [
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "卡牌奖励、遗物奖励",
+      "note_en": "卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "BRAIN_LEECH",
+      "title_zh": "脑蛭",
+      "title_en": "Brain Leech",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "BYRDONIS_NEST",
+      "title_zh": "多尼斯异鸟巢",
+      "title_en": "Byrdonis Nest",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "COLORFUL_PHILOSOPHERS",
+      "title_zh": "色彩哲学家",
+      "title_en": "Colorful Philosophers",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "DOORS_OF_LIGHT_AND_DARK",
+      "title_zh": "光与暗的门扉",
+      "title_en": "Doors of Light and Dark",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "ENDLESS_CONVEYOR",
+      "title_zh": "无尽传送带",
+      "title_en": "Endless Conveyor",
+      "tags": [
+        "offers_gold",
+        "offers_cards"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "cards_reward": true
+      },
+      "note_zh": "可变金币、卡牌奖励",
+      "note_en": "可变金币, 卡牌奖励"
+    },
+    {
+      "id": "FIELD_OF_MAN_SIZED_HOLES",
+      "title_zh": "人形洞穴之地",
+      "title_en": "Field of Man-Sized Holes",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "INFESTED_AUTOMATON",
+      "title_zh": "被寄生的自动机械",
+      "title_en": "Infested Automaton",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "JUNGLE_MAZE_ADVENTURE",
+      "title_zh": "丛林迷宫奇遇",
+      "title_en": "Jungle Maze Adventure",
+      "tags": [
+        "offers_gold"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "可变金币",
+      "note_en": "可变金币"
+    },
+    {
+      "id": "LOST_WISP",
+      "title_zh": "迷失鬼火",
+      "title_en": "The Lost Wisp",
+      "tags": [
+        "offers_gold"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "可变金币",
+      "note_en": "可变金币"
+    },
+    {
+      "id": "LUMINOUS_CHOIR",
+      "title_zh": "冷光合唱团",
+      "title_en": "Luminous Choir",
+      "tags": [
+        "offers_gold",
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "可变金币、卡牌奖励、遗物奖励",
+      "note_en": "可变金币, 卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "MORPHIC_GROVE",
+      "title_zh": "变形灵林谷",
+      "title_en": "Morphic Grove",
+      "tags": [
+        "offers_gold"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "可变金币",
+      "note_en": "可变金币"
+    },
+    {
+      "id": "PUNCH_OFF",
+      "title_zh": "重拳出击",
+      "title_en": "Punch Off",
+      "tags": [
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "卡牌奖励、遗物奖励",
+      "note_en": "卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "RANWID_THE_ELDER",
+      "title_zh": "长者兰伟德",
+      "title_en": "Ranwid the Elder",
+      "tags": [
+        "offers_gold",
+        "offers_relic"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "relic_reward": true
+      },
+      "note_zh": "可变金币、遗物奖励",
+      "note_en": "可变金币, 遗物奖励"
+    },
+    {
+      "id": "REFLECTIONS",
+      "title_zh": "镜中倒影  影倒中镜",
+      "title_en": "Reflections snoitcelfeR",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "RELIC_TRADER",
+      "title_zh": "遗物交换商",
+      "title_en": "Relic Trader",
+      "tags": [
+        "offers_relic"
+      ],
+      "effects": {
+        "relic_reward": true
+      },
+      "note_zh": "遗物奖励",
+      "note_en": "遗物奖励"
+    },
+    {
+      "id": "ROOM_FULL_OF_CHEESE",
+      "title_zh": "满屋芝士",
+      "title_en": "Room Full of Cheese",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "ROUND_TEA_PARTY",
+      "title_zh": "圆桌茶会",
+      "title_en": "The Round Tea Party",
+      "tags": [
+        "offers_relic"
+      ],
+      "effects": {
+        "relic_reward": true
+      },
+      "note_zh": "遗物奖励",
+      "note_en": "遗物奖励"
+    },
+    {
+      "id": "SLIPPERY_BRIDGE",
+      "title_zh": "滑脚木桥",
+      "title_en": "Slippery Bridge",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "SPIRALING_WHIRLPOOL",
+      "title_zh": "螺旋漩涡",
+      "title_en": "Spiraling Whirlpool",
+      "tags": [
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "卡牌奖励、遗物奖励",
+      "note_en": "卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "SUNKEN_STATUE",
+      "title_zh": "沉没雕像",
+      "title_en": "The Sunken Statue",
+      "tags": [
+        "offers_gold"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "可变金币",
+      "note_en": "可变金币"
+    },
+    {
+      "id": "SUNKEN_TREASURY",
+      "title_zh": "淹水金库",
+      "title_en": "Sunken Treasury",
+      "tags": [
+        "offers_gold"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "可变金币",
+      "note_en": "可变金币"
+    },
+    {
+      "id": "TABLET_OF_TRUTH",
+      "title_zh": "真理石板",
+      "title_en": "Tablet of Truth",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "THE_LANTERN_KEY",
+      "title_zh": "灯火钥匙",
+      "title_en": "The Lantern Key",
+      "tags": [
+        "offers_gold"
+      ],
+      "effects": {
+        "gold_variable": true
+      },
+      "note_zh": "可变金币",
+      "note_en": "可变金币"
+    },
+    {
+      "id": "THIS_OR_THAT",
+      "title_zh": "这个还是那个？",
+      "title_en": "This or That?",
+      "tags": [
+        "offers_gold",
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "可变金币、卡牌奖励、遗物奖励",
+      "note_en": "可变金币, 卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "TINKER_TIME",
+      "title_zh": "打造时间",
+      "title_en": "Tinker Time",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    },
+    {
+      "id": "TRASH_HEAP",
+      "title_zh": "垃圾堆",
+      "title_en": "Trash Heap",
+      "tags": [
+        "offers_gold",
+        "offers_relic"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "relic_reward": true
+      },
+      "note_zh": "可变金币、遗物奖励",
+      "note_en": "可变金币, 遗物奖励"
+    },
+    {
+      "id": "TRIAL",
+      "title_zh": "审判",
+      "title_en": "The Trial",
+      "tags": [
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "卡牌奖励、遗物奖励",
+      "note_en": "卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "UNREST_SITE",
+      "title_zh": "无休之处",
+      "title_en": "Unrest Site",
+      "tags": [
+        "offers_relic"
+      ],
+      "effects": {
+        "relic_reward": true
+      },
+      "note_zh": "遗物奖励",
+      "note_en": "遗物奖励"
+    },
+    {
+      "id": "WAR_HISTORIAN_REPY",
+      "title_zh": "战史学家 付袭",
+      "title_en": "War Historian, Repy",
+      "tags": [
+        "offers_relic"
+      ],
+      "effects": {
+        "relic_reward": true
+      },
+      "note_zh": "遗物奖励",
+      "note_en": "遗物奖励"
+    },
+    {
+      "id": "WATERLOGGED_SCRIPTORIUM",
+      "title_zh": "水漫缮写室",
+      "title_en": "Waterlogged Scriptorium",
+      "tags": [
+        "offers_gold",
+        "offers_cards"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "cards_reward": true
+      },
+      "note_zh": "可变金币、卡牌奖励",
+      "note_en": "可变金币, 卡牌奖励"
+    },
+    {
+      "id": "WELCOME_TO_WONGOS",
+      "title_zh": "欢迎来到旺购百货",
+      "title_en": "Welcome to Wongo's",
+      "tags": [
+        "offers_cards",
+        "offers_relic"
+      ],
+      "effects": {
+        "cards_reward": true,
+        "relic_reward": true
+      },
+      "note_zh": "卡牌奖励、遗物奖励",
+      "note_en": "卡牌奖励, 遗物奖励"
+    },
+    {
+      "id": "WHISPERING_HOLLOW",
+      "title_zh": "低语空谷",
+      "title_en": "Whispering Hollow",
+      "tags": [
+        "offers_gold",
+        "offers_cards"
+      ],
+      "effects": {
+        "gold_variable": true,
+        "cards_reward": true
+      },
+      "note_zh": "可变金币、卡牌奖励",
+      "note_en": "可变金币, 卡牌奖励"
+    },
+    {
+      "id": "ZEN_WEAVER",
+      "title_zh": "修禅织网者",
+      "title_en": "Zen Weaver",
+      "tags": [
+        "offers_cards"
+      ],
+      "effects": {
+        "cards_reward": true
+      },
+      "note_zh": "卡牌奖励",
+      "note_en": "卡牌奖励"
+    }
+  ],
+  "node_type_overrides": [
+    {
+      "match": {
+        "map_point_type": "ancient"
+      },
+      "non_shop_gold_rule": "skip",
+      "relic_pick_ceiling": 10,
+      "note_zh": "先古祭坛：多段遗物/变量 Gold 共存于同一节点；整段跳过非商店大额金币检测",
+      "note_en": "Ancient altars host variable gold + multi-relic flows; skip NonShopLargeGold entirely"
+    },
+    {
+      "match": {
+        "map_point_type": "monster"
+      },
+      "relic_pick_ceiling": 1,
+      "note_zh": "战斗节点 relic_choices 最多 1 次；PAELS_WING 献祭卡包换遗物时可达上限",
+      "note_en": "Monster: max 1 relic pick; PAELS_WING card-sacrifice-to-relic is the only known legit case"
+    },
+    {
+      "match": {
+        "map_point_type": "treasure"
+      },
+      "relic_pick_ceiling": 1,
+      "note_zh": "藏宝图节点 relic_choices 通常 1 次",
+      "note_en": "Treasure nodes: max 1 relic pick"
+    },
+    {
+      "match": {
+        "map_point_type": "unknown",
+        "model_id": "EVENT.TRIAL"
+      },
+      "relic_pick_ceiling": 4,
+      "note_zh": "审判事件（mpt=unknown）：可从多轮试炼中选多件遗物；实测最多 3 件",
+      "note_en": "The Trial (mpt=unknown): multiple rounds of trial can grant multiple relics; observed max=3"
+    },
+    {
+      "match": {
+        "map_point_type": "monster",
+        "room_type": "ancient"
+      },
+      "relic_pick_ceiling": 5,
+      "note_zh": "mpt=monster 但 room_type=ancient：先古祭坛语义；如 EVENT.TOADPOLES 所在的 ancient 语义节点",
+      "note_en": "mpt=monster with room_type=ancient: Ancient altar semantics; e.g. EVENT.TOADPOLES node"
+    },
+    {
+      "match": {
+        "map_point_type": "boss"
+      },
+      "relic_pick_ceiling": 2,
+      "note_zh": "Boss 节点实测：4 玩家存档中多人可各拿 1 件遗物（ceil=2 以内）",
+      "note_en": "Boss nodes: 4-player runs may have each player pick 1 relic (within ceil=2)"
+    }
+  ]
+}

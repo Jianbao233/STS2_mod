@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,58 +7,108 @@ namespace RunHistoryAnalyzer.Detection;
 
 /// <summary>
 /// 【P1 - 遗物来源追溯】
-/// 最终遗物列表中的每件遗物必须来自以下合法来源之一：
-/// - 初始遗物
-/// - 遗物选择（RelicChoices 中 wasPicked=true 的）
+/// 最终遗物列表中每件遗物必须来自以下合法来源之一：
+/// - 初始遗物（角色天生携带）
+/// - 遗物选择（RelicChoices 中 wasPicked=true）
+/// - 古遗物祭坛（AncientChoices 中 wasChosen=true）
 /// - 商店购买（BoughtRelics）
-/// - 移除的遗物（RelicsRemoved，移除后不计入最终）
+/// - 事件奖励（EventChoices 中 wasChosen=true）
 ///
-/// 若存在无法追溯来源的遗物 → 标记为 [高] 异常。
+/// 无法追溯来源的遗物 → 标记为 [高] 异常（控制台作弊 / 直接改存档）。
 /// </summary>
 public class RelicSourceTraceRule : Models.IAnomalyRule
 {
     public string Name => "RelicSourceTrace";
     public string DisplayName => "遗物来源追溯";
 
+    /// <summary>各角色的初始遗物ID集合（不带 RELIC. 前缀）。</summary>
+    private static readonly Dictionary<string, HashSet<string>> _starterRelics = new()
+    {
+        ["CHARACTER.IRONCLAD"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "BURNING_BLOOD" },
+        ["CHARACTER.SILENT"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "RING_OF_THE_SNAKE" },
+        ["CHARACTER.DEFECT"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "CRACKED_CORE" },
+        // 亡灵契约师：存档为 NECROBINDER，初始遗物 Bound Phylactery
+        ["CHARACTER.NECROBINDER"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "BOUND_PHYLACTERY" },
+        ["CHARACTER.NECROMANCER"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "BOUND_PHYLACTERY", "CURSED_SIGIL" },
+        // 储君 Regent：游戏内类 Regent，初始遗物 Divine Right（旧表误写为 AESCULAPIUS_BOOK）
+        ["CHARACTER.HEXAGUARD"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "DIVINE_RIGHT" },
+        ["CHARACTER.REGENT"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "DIVINE_RIGHT" },
+        ["MOD.WATCHER"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "PURE" },
+    };
+
     public Models.Anomaly? Check(Models.RunHistoryData history)
     {
         foreach (var player in history.Players)
         {
-            var allAcquiredRelicIds = new HashSet<string>();
-            var acquiredByChoice = new HashSet<string>();
+            if (history.AnalysisPlayerId != 0 && player.Id != history.AnalysisPlayerId) continue;
+
+            string character = player.Character;
+            var starters = _starterRelics.TryGetValue(character, out var s) ? s : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 收集所有可追溯的来源（使用规范化 ID，不带 RELIC. 前缀）
+            var traceableIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 初始遗物
+            foreach (var id in starters)
+                traceableIds.Add(id);
 
             foreach (var act in history.MapPointHistory)
             foreach (var node in act)
             foreach (var stat in node.PlayerStats)
             {
-                // 遗物选择
+                if (stat.PlayerId != player.Id) continue;
+
+                // 遗物选择（如 boss swap）：choice 格式为 "RELIC.XXX"
                 foreach (var choice in stat.RelicChoices)
                 {
                     if (choice.WasPicked && !string.IsNullOrEmpty(choice.Choice))
-                        acquiredByChoice.Add(choice.Choice);
+                        traceableIds.Add(StripPrefix(choice.Choice));
                 }
 
-                // 商店购买（JSON 为 ModelId 字符串）
-                foreach (var relicId in stat.BoughtRelics)
-                    allAcquiredRelicIds.Add(relicId);
+                // 古遗物祭坛：title.key 格式为 "XXX.title"（无 RELIC. 前缀）
+                foreach (var ancient in stat.AncientChoices)
+                {
+                    if (ancient.WasChosen && !string.IsNullOrEmpty(ancient.TextKey))
+                        traceableIds.Add(StripPrefix(ancient.TextKey));
+                }
+
+                // 事件奖励遗物：TextKey 或 title（table=relics）的 key，如 PRECISE_SCISSORS.title
+                foreach (var evt in stat.EventChoices)
+                {
+                    if (!evt.WasChosen)
+                        continue;
+                    if (!string.IsNullOrEmpty(evt.TextKey))
+                        traceableIds.Add(StripPrefix(evt.TextKey));
+                    if (!string.IsNullOrEmpty(evt.Title?.Key)
+                        && string.Equals(evt.Title.Table, "relics", StringComparison.OrdinalIgnoreCase))
+                        traceableIds.Add(StripPrefix(evt.Title.Key));
+                }
+
+                // 商店购买：bought_relics 格式为 ModelId 字符串（可能带 RELIC. 前缀）
+                foreach (var bought in stat.BoughtRelics)
+                    traceableIds.Add(StripPrefix(bought));
             }
 
-            // 最终遗物
-            var finalRelics = player.Relics;
+            // 最终遗物追溯
             var untracedRelics = new List<string>();
-
-            // 初始遗物由角色决定（无法从数据推断，仅检查是否存在）
-            // 排除初始遗物后的检查：只有选择和购买可追溯
-            foreach (var relic in finalRelics)
+            foreach (var relic in player.Relics)
             {
                 string id = relic.Id;
-                bool isFromChoice = acquiredByChoice.Contains(id);
-                bool isFromShop = allAcquiredRelicIds.Contains(id);
+                string normalized = StripPrefix(id);
 
-                if (!isFromChoice && !isFromShop)
-                {
+                bool isStarter = starters.Contains(normalized) || starters.Contains(id);
+                bool isTraceable = traceableIds.Contains(normalized) || traceableIds.Contains(id);
+
+                if (!isStarter && !isTraceable)
                     untracedRelics.Add(id);
-                }
             }
 
             if (untracedRelics.Count > 0)
@@ -67,10 +118,10 @@ public class RelicSourceTraceRule : Models.IAnomalyRule
                 foreach (var r in untracedRelics)
                     sb.Append($"{r}  ");
                 sb.AppendLine();
-                sb.Append("(遗物必须来自：遗物选择 / 商店购买 / 初始遗物)");
+                sb.Append("(遗物必须来自：初始遗物 / 遗物选择 / 古遗物祭坛 / 商店购买 / 事件奖励)");
 
                 return new Models.Anomaly(
-                    Models.AnomalyLevel.Medium,
+                    Models.AnomalyLevel.High,
                     Name,
                     "遗物来源追溯",
                     $"发现 {untracedRelics.Count} 件无法追溯来源的遗物",
@@ -81,5 +132,23 @@ public class RelicSourceTraceRule : Models.IAnomalyRule
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 移除 ID 前缀，返回规范化的短名。
+    /// 输入示例："RELIC.SCROLL_BOXES" → "SCROLL_BOXES"
+    ///           "SCROLL_BOXES"       → "SCROLL_BOXES"
+    ///           "NEW_LEAF"           → "NEW_LEAF"
+    ///           "LOST_COFFER.title"  → "LOST_COFFER"
+    /// </summary>
+    private static string StripPrefix(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return id;
+        if (id.StartsWith("RELIC.", StringComparison.OrdinalIgnoreCase))
+            return id.Substring("RELIC.".Length);
+        int dot = id.LastIndexOf('.');
+        if (dot > 0) // "NEW_LEAF.title" → "NEW_LEAF"
+            return id.Substring(0, dot);
+        return id;
     }
 }

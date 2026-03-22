@@ -6,6 +6,8 @@ project.godot.lock
 
 # Build output
 release/
+.publish/
+releases/
 *.zip
 dist/
 

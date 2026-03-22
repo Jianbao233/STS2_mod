@@ -28,6 +28,7 @@ internal static class NRunHistorySubmenuHiddenPatch
         try
         {
             RunHistoryAnalyzerMod.SetSelectedFile("");
+            RunHistoryAnalyzerMod.SetCurrentPlayerId(0);
             RunHistoryAnalyzerMod.ResultWindow?.Hide();
         }
         catch (Exception ex)

@@ -16,6 +16,9 @@ public class GoldConservationRule : Models.IAnomalyRule
     {
         foreach (var player in history.Players)
         {
+            // 如果指定了分析目标玩家，跳过其他玩家
+            if (history.AnalysisPlayerId != 0 && player.Id != history.AnalysisPlayerId) continue;
+
             int initialGold = Models.RunHistoryPlayerData.GetStartingGold(player.Character);
             int totalGained = 0;
             int totalSpent = 0;
@@ -27,6 +30,7 @@ public class GoldConservationRule : Models.IAnomalyRule
             foreach (var node in act)
             foreach (var stat in node.PlayerStats)
             {
+                if (stat.PlayerId != player.Id) continue;
                 if (stat.CurrentHp <= 0) continue;
                 totalGained += stat.GoldGained;
                 totalSpent += stat.GoldSpent;

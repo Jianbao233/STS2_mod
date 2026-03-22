@@ -7,6 +7,7 @@ namespace RunHistoryAnalyzer;
 
 /// <summary>
 /// 可选依赖 ModConfig：注册「显示/隐藏分析工具栏」快捷键（默认 F6）。
+/// 快捷键配置使用 Keybind 模式：用户点击按钮后弹出按键捕获遮罩，等待下一次按键按下。
 /// </summary>
 internal static class ModConfigIntegration
 {
@@ -86,22 +87,15 @@ internal static class ModConfigIntegration
         var list = new List<object>();
 
         list.Add(MakeHeader("UI", "界面"));
-        list.Add(MakeDropdown(
+
+        // Keybind：按键绑定——用户点击后弹出遮罩，监听下一次按键输入来设置快捷键
+        list.Add(MakeKeybind(
             "toggle_toolbar_key",
-            "Toolbar show/hide key",
-            "显示/隐藏分析工具栏快捷键",
-            new[] { "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12" },
-            "F6",
-            "Press to show or hide the analyze button overlay (when a run file is selected).",
+            "Toolbar hotkey",
+            "工具栏快捷键",
             "在历史记录中选中存档后，按此键显示/隐藏右下角「分析」按钮与相关浮动 UI。",
-            v =>
-            {
-                try
-                {
-                    if (v != null) RunHistoryAnalyzerMod.SetToggleToolbarKey(v.ToString()!);
-                }
-                catch { }
-            }));
+            RunHistoryAnalyzerMod.ToggleToolbarKey.ToString(),
+            OnHotkeyChanged));
 
         var arr = Array.CreateInstance(_entryType!, list.Count);
         for (var i = 0; i < list.Count; i++) arr.SetValue(list[i], i);
@@ -116,13 +110,25 @@ internal static class ModConfigIntegration
         SyncFromConfig();
     }
 
+    private static void OnHotkeyChanged(object? value)
+    {
+        if (value is string s && !string.IsNullOrEmpty(s))
+        {
+            try { RunHistoryAnalyzerMod.ToggleToolbarKey = (Key)Enum.Parse(typeof(Key), s.Trim(), ignoreCase: true); }
+            catch { RunHistoryAnalyzerMod.ToggleToolbarKey = Key.F6; }
+        }
+    }
+
     private static void SyncFromConfig()
     {
         try
         {
             var s = GetValue("toggle_toolbar_key", "F6");
             if (!string.IsNullOrEmpty(s))
-                RunHistoryAnalyzerMod.SetToggleToolbarKey(s);
+            {
+                try { RunHistoryAnalyzerMod.ToggleToolbarKey = (Key)Enum.Parse(typeof(Key), s.Trim(), ignoreCase: true); }
+                catch { RunHistoryAnalyzerMod.ToggleToolbarKey = Key.F6; }
+            }
         }
         catch { }
     }
@@ -149,22 +155,32 @@ internal static class ModConfigIntegration
         return e;
     }
 
-    private static object MakeDropdown(string key, string labelEn, string labelZhs,
-        string[] options, string defaultValue,
-        string? descEn, string? descZhs,
-        Action<object> onChanged)
+    /// <summary>
+    /// 创建 Keybind 类型的配置项。
+    /// ModConfig 若不支持 Keybind 类型则 fallback 为普通字符串输入框，
+    /// 行为上用户仍可直接输入按键名。
+    /// </summary>
+    private static object MakeKeybind(string key, string labelEn, string labelZhs,
+        string? desc, string defaultValue, Action<object?> onChanged)
     {
         var e = Activator.CreateInstance(_entryType!) ?? throw new InvalidOperationException("ConfigEntry");
         SetProp(e, "Key", key);
         SetProp(e, "Label", labelEn);
         SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
-        SetProp(e, "Type", ConfigTypeValue("Dropdown"));
-        SetProp(e, "Options", options);
-        SetProp(e, "DefaultValue", defaultValue);
-        if (descEn != null || descZhs != null)
+
+        // 优先尝试 Keybind 类型；若无此类型则降级为字符串输入
+        try { SetProp(e, "Type", ConfigTypeValue("Keybind")); }
+        catch
         {
-            SetProp(e, "Description", descEn ?? descZhs);
-            SetProp(e, "Descriptions", Dict("en", descEn ?? "", "zhs", descZhs ?? ""));
+            try { SetProp(e, "Type", ConfigTypeValue("Text")); }
+            catch { SetProp(e, "Type", ConfigTypeValue("String")); }
+        }
+
+        SetProp(e, "DefaultValue", defaultValue);
+        if (desc != null)
+        {
+            SetProp(e, "Description", desc);
+            SetProp(e, "Descriptions", Dict("en", desc, "zhs", desc));
         }
         SetProp(e, "OnChanged", onChanged);
         return e;

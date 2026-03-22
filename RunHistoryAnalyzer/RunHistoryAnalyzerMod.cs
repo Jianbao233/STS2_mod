@@ -7,7 +7,7 @@ using RunHistoryAnalyzer.UI;
 namespace RunHistoryAnalyzer;
 
 /// <summary>
-/// 全局状态：记录当前选中的历史记录文件路径，以及分析按钮/结果窗口的引用。
+/// 全局状态：记录当前选中的历史记录文件路径、当前查看的玩家ID，以及分析按钮/结果窗口的引用。
 /// </summary>
 public static class RunHistoryAnalyzerMod
 {
@@ -15,6 +15,12 @@ public static class RunHistoryAnalyzerMod
 
     /// <summary>当前在历史记录详情面板中选中的 .run 文件路径。</summary>
     public static string CurrentSelectedFilePath = "";
+
+    /// <summary>
+    /// 当前在 NRunHistory 中选中的玩家 ID（ulong）。
+    /// 用于分析时只处理当前查看的那名角色。
+    /// </summary>
+    public static ulong CurrentPlayerId = 0;
 
     /// <summary>ModConfig：显示/隐藏分析工具栏（默认 F6）。</summary>
     public static Key ToggleToolbarKey = Key.F6;
@@ -91,10 +97,21 @@ public static class RunHistoryAnalyzerMod
         }
     }
 
-    /// <summary>设置当前选中的历史记录文件路径，并更新按钮状态。</summary>
+    /// <summary>
+    /// 设置当前选中的历史记录文件路径，同时重置当前玩家ID。
+    /// </summary>
     public static void SetSelectedFile(string filePath)
     {
         CurrentSelectedFilePath = filePath;
+        CurrentPlayerId = 0; // 切换文件时重置，等 SelectPlayer patch 重新设置
         AnalyzeBtn?.UpdateFilePath(filePath);
+    }
+
+    /// <summary>
+    /// 设置当前选中的玩家 ID（由 NRunHistorySelectPlayerPatch 调用）。
+    /// </summary>
+    public static void SetCurrentPlayerId(ulong playerId)
+    {
+        CurrentPlayerId = playerId;
     }
 }

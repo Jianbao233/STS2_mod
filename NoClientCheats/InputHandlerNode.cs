@@ -19,19 +19,21 @@ public partial class InputHandlerNode : Node
     public override void _EnterTree()
     {
         SetProcess(true);
+        GD.Print($"[NCCInputHandler] _EnterTree, HistoryToggleKey={NoClientCheatsMod.HistoryToggleKey}");
     }
 
     public override void _Ready()
     {
-        GD.Print($"[NCCInputHandler] ready, hotkey={NoClientCheatsMod.GetHistoryKeyDisplayName()}");
+        GD.Print($"[NCCInputHandler] _Ready, hotkey={NoClientCheatsMod.GetHistoryKeyDisplayName()}, HistoryToggleKey={NoClientCheatsMod.HistoryToggleKey}");
     }
 
     public override void _Process(double delta)
     {
         Key key = NoClientCheatsMod.HistoryToggleKey;
-        bool down = Input.IsPhysicalKeyPressed(key) || Input.IsKeyPressed(key);
+        bool down = Input.IsKeyPressed(key);
         if (down && !_prevDown)
         {
+            GD.Print($"[NCCInputHandler] key pressed, toggling. key={key}({(int)key}), display={NoClientCheatsMod.GetHistoryKeyDisplayName()}");
             NoClientCheatsMod.ToggleHistoryPanel();
         }
         _prevDown = down;
@@ -39,7 +41,7 @@ public partial class InputHandlerNode : Node
 
     public override void _ExitTree()
     {
-        GD.Print("[NCCInputHandler] exited tree");
+        GD.Print("[NCCInputHandler] _ExitTree");
     }
 
     private bool _prevDown;

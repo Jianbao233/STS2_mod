@@ -295,6 +295,60 @@ A：可以。将多次相关的小改动合并为一条 commit，但 commit mess
 **Q：忘了在构建后提交，几天后才发现怎么办？**
 A：补充提交即可。commit message 中说明「补交：上次构建的变更」，不要强行修改历史。
 
+### 7.3 mod_manifest.json 的 JSON 规范要求（2026-03-22 事故记录）
+
+**错误症状：**
+
+```
+System.Text.Json.JsonException: '0x0A' is invalid within a JSON string.
+Path: $.description | LineNumber: 6 | BytePositionInLine: 377.
+```
+
+游戏拒绝加载 mod，日志文件为 `C:\Users\<user>\AppData\Roaming\SlayTheSpire2\logs\godot.log`。
+
+**根本原因：** `description` 字段值内含原始 0x0A 字节，而非 `\n` escape 序列。
+JSON 规范不允许字符串值内出现 raw LF（0x0A），必须写成 `\n`（0x5C 0x6E）。
+
+**正确生成方式：永远用序列化库，不要手动写 JSON。**
+
+```bash
+# ✅ 正确：用 Python json.dump
+python -c "
+import json
+manifest = {
+    'id': 'MyMod',
+    'description': '第一行\n第二行\n第三行',
+    ...
+}
+with open('mod_manifest.json', 'w', encoding='utf-8') as f:
+    json.dump(manifest, f, ensure_ascii=False, indent=2)
+"
+
+# ✅ 正确：用 C# JsonSerializer
+var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
+File.WriteAllText("mod_manifest.json", json, Encoding.UTF8);
+
+# ❌ 错误：手动写 JSON，\n 会被解释为真实换行符
+```
+
+**验证方法：**
+
+```bash
+# 检查 description 字段内是否还有 raw LF
+python -c "
+import json
+with open('mod_manifest.json', 'rb') as f:
+    raw = f.read()
+lf = raw.count(b'\x0a')
+# JSON 结构换行约 10 个（如大于 15 则 description 内部可能也有 raw LF）
+print(f'LF bytes: {lf}')
+# 用 json 解析验证合法性
+with open('mod_manifest.json') as f:
+    json.load(f)
+print('Valid JSON')
+"
+```
+
 ---
 
 ## 八、参考文档

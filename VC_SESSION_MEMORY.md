@@ -1,563 +1,168 @@
-# VC 会话记忆 · 工作流承接
+# 分记忆 · 2026-03-22 · NCC 重新打包事故
 
-> 新对话时请先阅读本文，以延续开发上下文。
+## 事故概述
 
----
+目标：用户要求"重新打包，覆盖掉最新的 release"。将本地源码构建的 v1.1.2 DLL 打包并上传 GitHub Release NCC_v1.1.2。
 
-## 项目工作区约定
-
-- **STS2_mod**：`K:\杀戮尖塔mod制作\STS2_mod\` — Mod 工作区根目录，包含 RichPing、ControlPanel 等子项目
-- **RichPing**：`K:\杀戮尖塔mod制作\STS2_mod\RichPing\` — RichPing Mod 项目根目录
-- **ControlPanel**：`K:\杀戮尖塔mod制作\STS2_mod\ControlPanel\` — 控制面板 Mod（F7 卡牌/药水/战斗快捷）
-- **sts2 反编译源码**：`K:\杀戮尖塔mod制作\Tools\sts2_decompiled\`（外部参考）
-- **游戏目录**：`K:\SteamLibrary\steamapps\common\Slay the Spire 2\`
-- **用户数据目录**：`%APPDATA%\SlayTheSpire2` 或 `C:\Users\...\AppData\Roaming\SlayTheSpire2`（日志 logs/godot.log）
+结果：release zip 更新了，但游戏无法识别 NCC，原因是 `mod_manifest.json` 解析失败。
 
 ---
 
-## 用户画像
+## 问题根源
 
-| 维度 | 描述 |
-|------|------|
-| **经验** | 初次 vibe coding，几乎无编程基础 |
-| **目标** | 制作 Slay the Spire 2 的 Mod，在 Steam 正式版上使用 |
-| **工作流** | 以 SL2 源码/资源为参考，在独立 Mod 项目中开发 |
-| **偏好** | 中文交流；步骤需尽量清晰，避免过度技术细节 |
+### 1. mod_manifest.json 的 description 字段含未转义换行符
 
----
+**症状：**
 
-## 提示词记录
-
-| 时间 | 提示词 | 结果概要 |
-|------|--------|----------|
-| 2025-03-16 | 简单分析一下 SL2 | 识别为 Godot 4.5 + C#，梳理核心目录和架构 |
-| 2025-03-16 | 帮我安装开发前置 | 安装 .NET 9 → 后改为 .NET 8，创建 VC_DEVELOPMENT_SETUP.md |
-| 2025-03-16 | 你确定是.NET 9 SDK吗 | 说明官方 vs 项目需求；实测 .NET 8 可运行 |
-| 2025-03-16 | 你先试运行8 | 修改 global.json 为 8，Godot 无头运行成功 |
-| 2025-03-16 | 改吧，顺便把所有此次对话生成的所有文件名前缀加一个VC_ | 文档重命名为 VC_*；更新为 .NET 8 说明 |
-| 2025-03-16 | 启动游戏失败…（NOneTimeInitialization.cs 无类定义） | 补全 NOneTimeInitialization 的 C# 类定义 |
-| 2025-03-16 | 算了我不需要能运行这个游戏，我只需要制作mod并在steam正式发行版本上的客户端能用就行 | 创建 VC_MOD_GUIDE.md；说明 Mod 开发流程 |
-| 2025-03-16 | 阅读mods，这是我现在正在用的几个mod | 分析 4 个 Mod：Heybox、DamageMeter、ModConfig、RemoveMultiplayerPlayerLimit |
-| 2025-03-16 | 项目后续的开发需能适配ModConfig，实现 Ping 发送更多丰富文本 | 创建 RichPing Mod 框架：ping_messages.json、Harmony 占位、ModConfig 扩展点 |
-| 2025-03-16 | 生成一个记忆文本（Markdown形式），便于每次建立新对话时承接工作流… | 创建 VC_SESSION_MEMORY.md（本文档） |
-| 2025-03-16 | 选择路径1，部署反编译程序 | 下载 dnSpyEx 至 Tools/，创建 VC_DNSPY_SETUP.md |
-| 2025-03-16 | 我能把整个sts2.dll反编译源码出来让你分析吗，怎么做？ | 说明 dnSpy 导出步骤；用户已导出成功 |
-| 2025-03-16 | 我导出成功了，此次对话即将结束，总结工作内容目标 | 更新 VC_SESSION_MEMORY；撰写下一段工作摘要 |
-| 2025-03-16 | 搜索杀戮尖塔 1/2 背景故事…生成角色梗合集 | 创建 杀戮尖塔角色背景故事与人物分析.md、杀戮尖塔角色梗与游戏梗合集.md |
-| 2025-03-16 | 摄政官→储君，死灵法师→亡灵契约师；生成各角色死亡后 Ping 文本… | 创建 杀戮尖塔角色死亡Ping文本_幽默梗风格.md；RichPing 新增 dead/dead_stages |
-| 2025-03-16 | 将此次对话按照 VC_SESSION_MEMORY 记录上 | 更新本文档 |
-| 2025-03-16 | 文本我已生成完毕，将文本接入。优化代码结构，注释提高可阅读性… | 文本写入 ping_messages.json；代码优化、注释、角色别名 |
-| 2025-03-16 | 将此次项目生成的文件都转移至RichPing，以后本mod项目在此文件夹内施工 | 移动 杀戮尖塔*.md 至 RichPing；VC_SESSION_MEMORY 迁入 RichPing |
-| 2025-03-16 | 依旧报错，效仿其他 mod 解决 | 采用 jiegec/STS2FirstMod：sts2.dll 复制到项目根；建 bbuild.ps1；后因 Godot .NET 8/9 冲突改 Sts2Stubs |
-| 2025-03-16 | bbuild.ps1 报错（字符串终止符/PowerShell 编码） | 脚本中文改英文，避免编码解析错误 |
-| 2025-03-16 | Godot not found | bbuild.ps1 默认 GodotExe 改为相对路径 `..\..\Godot_v4.5.1\...` |
-| 2025-03-16 | System.Runtime Version=9.0.0.0 找不到、Failed to load project assembly | Sts2Stubs 方案：net8.0、移除 sts2 引用、Sts2Stubs.cs 存根；build 用 dotnet build 替代 Godot --build-solutions |
-| 2025-03-16 | Mod 能加载但 Ping 文本未变更，ModConfig 无配置项 | 1) 改用 [HarmonyPatch]+TargetMethod 让 PatchAll 发现；2) EndTurnPingPrefix 静态构造中调度 2 帧延迟 EnsureInitialized，解决 ModConfig 注册过早问题 |
-| 2025-03-16 | 检索 ModConfig/教程、总结失败点 | 创建 VC_STS2_MOD_SUMMARY.md；确认 BaseLib 非必需；记录 ModConfig 两帧延迟、ModInitializer 类型需来自 sts2 |
-| 2025-03-17 | 参考 DamageMeter 解包改进 | ModConfig 检测改为遍历程序集按 FullName 查找；Register 支持 4 参数；AccessTools.TypeByName 加固 Harmony TargetMethod |
-| 2025-03-17 | 模组配置依旧无、要打开游戏不游玩即可配置 | 新增 **ModManagerInitPostfix**：Patch ModManager.Initialize 的 Postfix，在其完成后调度 init，保证主菜单出现前已注册 |
-| 2025-03-17 | 严格按 ModConfig-STS2 原仓库 README 重写 | Type.GetType 为主、程序集遍历回退；两帧延迟；`Array.CreateInstance(_entryType)` 构造 ConfigEntry[]；**模组配置功能恢复正常** ✓ |
-| 2025-03-17 | 丰富模组配置、个性化选择、禁止个别文本、各角色存活催促文本 | 扩展 ModConfig：存活/死亡分离、角色开关、排除文本(Input/Text)、角色专属；丰富 ping_messages.json 各角色存活催促文本；Pick() 过滤排除词 |
-| 2025-03-17 | 你进行构筑，别忘了记忆过程 | 执行 bbuild.ps1：dotnet build → Godot 导出 PCK → 复制到 mods/RichPing；**构筑成功** ✓ |
-| 2025-03-17 | 配置分大类、逐条解释、控件列举 | 创建 VC_MODCONFIG_CONTROLS.md 控件清单；ModConfig 分 5 组（Header+Separator）；每项加 Description/Descriptions |
-| 2025-03-17 | 角色不同文本单独列出是否使用、大类区分、调控目标解释、开发者指南、登记记忆 | 角色存活/死亡分别开关（char_*_alive、char_*_dead）；6 大类（全局开关、全局文本类别、选取行为、过滤、角色存活、角色死亡）；每项加「调控目标」解释；重写 VC_RICHPING_DEVELOPER_GUIDE |
-| 2025-03-17 | 脱离 richping 项目，把记忆文本往父一级挪；解析控制台指令并总结文档 | VC_SESSION_MEMORY 移至 STS2_mod；创建 VC_STS2_CONSOLE_GUIDE.md |
-| 2025-03-17 | 查找游戏内各类卡牌药水遗物等 ID，整合文档；战斗内外指令、多人联机 | 创建 VC_STS2_IDS_AND_COMMANDS_REFERENCE.md |
-| 2025-03-17 | 罗列所有省略的大型数组（卡牌/药水/遗物/能力/附魔/强化）、附中文、多人玩家与敌方 ID | 创建 VC_STS2_FULL_ID_LISTS.md；记录完整药水(63)、附魔(21)、强化(6)及多人 NetId/CombatId 说明 |
-| 2025-03-17 | 完整列表脚本爬取、官方中文汉化来源、解包提取 | **extract_sts2_ids.py** 从 Models 爬取卡(576)/药(63)/遗(289)/能(260)/附(22)/强(6)；GodotPckTool 解包 SlayTheSpire2.pck 获取 res://localization/zhs；**VC_STS2_FULL_ID_LISTS.md** 已更新完整 ID+官方翻译(约 97.8%)；**extract_localization_from_pck.md** 解包说明 |
-| 2025-03-17 | ControlPanel 卡牌/药水栏空、游戏内功能不实现 | 日志显示列表已加载但点击无反应；多次修复后 **最终方案**：ItemList → VBoxContainer+Button；同步加载替代 CallDeferred；版本标识 v2；运行构建.bat；**游戏内功能已实现** ✓ |
-| 2025-03-17 | ControlPanel 总结反思、Plan 记录 | 见下方 ControlPanel 项目总结与反思；工作日志见 `VC_CONTROL_PANEL_WORK_LOG.md` |
-| 2025-03-17 | ControlPanel 构建 7 错误修复、反思记录 | CS0136 pileRow 重复→改 removePileRow；CS0117 AutowrapModeOff→改 AutowrapMode.Off；已记入报错速查与错误反思 |
-| 2025-03-17 | ControlPanel 大改：实时检测+角色分类+遗物图标+生成敌人+Power表+可调尺寸 | GameStateHelper 反射牌堆/遗物/药水；CardCharacterHelper 角色筛选；遗物图标网格左键添加/删除；药水实时显示；PowerData 表；生成敌人(fight)；尺寸 SpinBox；标题 ControlPanel+Composer 1.5 |
-| 2025-03-16 | ControlPanel 10 项大改+构建错误修复 | 1)添加卡牌从 VC_STS2_FULL_IDS.json 加载；2)面板右下角拖拽改变大小；3)牌堆实时检测用 DebugOnlyGetState；4)遗物 RunState 从 CombatState/NRun 获取；5)图标用小写 ID；6)药水/事件右侧游戏内文本；7)战斗内生成敌人(SpawnEnemyHelper+CreatureCmd.Add)；8)能力从 JSON Powers 加载；9)事件场景文本；10)VC_STS2_FULL_IDS.json 复制到 mod 目录。**SpawnEnemyHelper 构建错误**：combatMgr 为 object 需 GetType() 再 GetProperty/GetMethod；modelDb.GetMethod 第二个参数不能为 int(会被当作 BindingFlags)，改用 GetMethods+FirstOrDefault 找泛型 GetById |
-| 2025-03-16 | ControlPanel 10 项优化+卡顿修复 | 1)**卡牌角色归属**：CardPoolHelper 从 ModelDb.AllCardPools 反射；2)**卡顿**：延迟构建、占位、上限 200；3)**遗物**：图标下文字、稀有度缓存；4)**药水**：图标缩小、移除删除药水；5)**显示面积**：ExpandFill 自适应；6)**生成敌人**：CreateModelId 小写、Monsters 回退；7)**事件**：GetEventText options 文本；8)**百科大全**：数据爬取参考 |
-| 2025-03-16 | ControlPanel 9 项修复与 UI 优化 | 1)**删除卡牌**：游戏 remove_card 仅支持 Hand/Deck，移除抽牌堆/弃牌堆选项；2)**遗物/能力**：网格 8→10 列、6 列，ExpandFill 自适应；3)**药水**：预览图标 40→28；4)**事件**：GetEventText 改用 pages.INITIAL.description + LocManager 枚举 options；5)**生成敌人**：CombatState 类型显式查找；6)**添加卡牌**：cardPreview 100x140、KeepAspectCentered；7)**能力**：单行显示、9 号字体、6 列；8)参考 STS-EUI、BaseLib-StS2 等 mod 仓库 |
-| 2025-03-16 | ControlPanel 卡牌图/事件文本/UI 锐化 | 1)**卡牌缩略图**：IconLoader 使用 pool/id 路径 `packed/card_portraits/{pool}/{id}.png`，CardPoolHelper 映射角色；2)**事件文本**：LocString 失败时回退到 `extracted/localization/zhs|eng/events.json` 文件读取，BBCode  stripping；3)**EventData**：更新为与 events.json 一致的 ID（ABYSSAL_BATHS、BUGSLAYER、RELIC_TRADER 等）；4)**UI**：边框 2px/更亮、事件右侧 Panel 背景+内边距、卡牌预览 110x154、字体 12px |
-| 2025-03-16 | ControlPanel 生成敌人/UI 自适应/ParasiteSpire 致谢 | 1)**生成敌人**：SpawnEnemyHelper 修复 ModelId 的 Category（MONSTER，从 ModelDb.Monsters 缓存）；2)**遗物**：网格 12 列、ScrollContainer ExpandFill；3)**药水**：右侧预览 40px、FitHeight；4)**Buff**：scroll 120 最小高+ExpandFill，8 列；5)**感谢**：标题栏+mod 描述加入 ParasiteSpire 参考致谢 |
-| 2025-03-16 | ControlPanel 构建错误 TextureRect.CustomMaximumSize | **CS0117**：Godot 4 的 Control/TextureRect 无 CustomMaximumSize；移除该属性，药水预览仅用 CustomMinimumSize(40,40) |
-| 2025-03-17 | 禁止客机作弊 Mod 可行性分析 | 分析 ActionQueueSynchronizer 网络收发；结论：房主 Patch HandleRequestEnqueueActionMessage 可行 |
-| 2025-03-17 | NoClientCheats Mod 实现与构建 | 创建 NoClientCheats 项目；Harmony Prefix + ModConfig；构建部署至 mods/NoClientCheats ✓ |
-| 2025-03-17 | GitHub 发布 Mod：README + Release | 模仿 STS2 mod 仓库撰写 README.md；prepare-release.ps1 打包；VC_GITHUB_RELEASE_GUIDE.md 发布流程；记忆中补充 Release 学习与提示词 ✓ |
-| 2025-03-17 | 仓库 README（vibe coding / 高中生 / AI）+ 构建打包 | 根目录 README 写明 vibe coding、中国高中生、昨天才开始、无系统编程经验、AI 协助；构建并打包 NoClientCheats；Releases 链接改为 Jianbao233/STS2_mod ✓ |
-| 2026-03-18 | 自行查看 log，找到问题并解决；先本机正确加载再考虑 bat | 分析 godot.log；VC_STS2_FULL_IDS.json 移至游戏根；settings.json→settings.cfg；bbuild.ps1 输出 JSON 到根目录；bat 增 fixdatafiles 选项 |
-| 2026-03-18 | 依旧显示错误，仅 JSON 不适配，先修复本机 json | 标准化 manifest 格式；mod_mainfest→mod_manifest；视频格式：id、pck_name、无 dependencies、affects_gameplay 按类型 |
-| 2026-03-18 | 查看 log 哪里出问题 | 定位 4 模组：heybox GetModNameList、NoClientCheats Harmony、DamageMeter pckName、ModConfig First()；均 DLL 代码，非 JSON |
-| 2026-03-18 | 查看游戏源码 modid.json，分析问题怎么解决 | 源码无 modid.json；扫描所有 .json；检测到错误 = assemblyLoadedSuccessfully 任一 false；更新模组加载问题分析报告 |
-| 2026-03-18 | NoClientCheats 更新 Harmony 目标方法并构建 | GetModNameList→GetGameplayRelevantModNameList（v0.99 更名）；ModListFilterPatch.TargetMethod 双方法 fallback |
-| 2026-03-18 | 只有 NoClientCheats 报错，再次修改并构造 | 同上；manifest 需含 id，项目内 manifest 缺 id 会覆盖 mods 目录正确版本 |
-| 2026-03-18 | 依旧未加载 NoClientCheats | 项目 mod_manifest.json 缺 id/has_pck/has_dll；build 复制会覆盖；修复项目 manifest 并重写 mods 目录 |
-| 2026-03-18 | 作者改成煎包 / Cursor Composer 1.5，重新构造 | 更新 NoClientCheats manifest 作者字段 |
-| 2026-03-18 | 三个项目作者统一、JSON 正确格式、版本号、构建打包发布 | ControlPanel/RichPing/NoClientCheats manifest 全字段+作者统一；RichPing 0.1.1、NoClientCheats 1.0.1；RichPing prepare-release.ps1；构建+打包 zip 供 GitHub Release |
-| 2026-03-18 | 取消整个格式修复项目，相关文件归入废弃文件夹 | 创建 _废弃_Manifest格式修复/；移入 修复模组Manifest格式.bat、STS2_ModManifestFixer.bat、fix_mod_manifests.ps1、_build_single_bat.ps1；README_废弃说明.md |
-| 2026-03-18 | 记忆提示词；MP_SavePlayerRemover 区分模组/原版、多Steam账号、标明存档详情 | 游戏分模组/原版存档；多 Steam 账号；选择时显示：难度、层数、玩家64位ID、角色；存档无 Steam 昵称；写入 VC_SESSION_MEMORY 记忆提示词 |
-| 2026-03-18 | 项目主 README 也要修改；所有提示词记录记忆 | 主 README 区分 Mod 类与工具类安装方式；Build 表区分 bbuild.ps1 与 build_exe.bat；MP_SavePlayerRemover 已发布 Release v1.0.0 |
-| 2026-03-19 | v1.1.0：存档玩家和主机 Steam 64位 ID 前加 Steam 名称；保留→删除逻辑 | 存档内无 Steam 昵称，只能从外部 steam_names.json 映射（{steam_id: name}，放存档目录）；v1.1.0 exe: dist/MP_SavePlayerRemover-v1.1.0.exe；删除模式：输入序号删除，all=删除全部，留空=取消 |
-| 2026-03-19 | 阅读所有md文档，识别记忆；Host Priority 项目构建 | 创建 HostPriority 项目记录；bbuild.ps1 部署到游戏 mods ✓ |
-| 2026-03-19 | 地图已选但无法继续；其他玩家投票主机不显示 | 先加 MapSelectionHostVotePostfix 导致房主先选就触发、客机票不显示。用户要求**只干预集齐所有票后的随机决定**：移除 MapSelectionHostVotePostfix，仅保留 MapSelectionPrefix(MoveToMapCoord)，确保最终结果=房主所选，不改变投票收集与显示 |
-| 2026-03-19 | 地图卡住、主机图标重叠、主机只显示客机第一次投票 | 确认为游戏本体多人投票同步/UI：NMapScreen.OnPlayerVoteChanged 对本地玩家直接 return 不刷新；客机改票同步到主机可能缺失。HostPriority 仅干预 MoveToMapCoord 结果；补丁加 try/catch 失败时执行原逻辑防卡关；README 增加「已知现象」说明 |
-| 2026-03-19 | 模组配置加控件、最大历史改Dropdown、记录面板修复、弹窗显示Steam名+角色+指令 | ModConfig Slider(Dur)+Dropdown(历史10-50)；RefreshList 跳过 _emptyLabel 修复崩溃；CheatRecord/弹窗/记录面板增加角色字段；Patch 反射解析玩家角色；日志统计13条作弊拦截；CS0019 MemberInfo转型修复 |
-
----
-
-## HostPriority Mod · 房主优先（2026-03-19 新建）
-
-| 项目 | 说明 |
-|------|------|
-| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\HostPriority\` |
-| **功能** | 多人联机时，让房主在遗物猜拳、地图路径、事件选项分歧中胜出 |
-| **部署** | 仅房主需安装；客机无需安装 |
-| **affects_gameplay** | false（从联机 Mod 列表隐藏自身） |
-
-### 文件结构
-
-| 文件 | 说明 |
-|------|------|
-| `HostPriorityMod.cs` | Mod 入口：EnsureInitialized、ApplyHarmonyPatches |
-| `HarmonyPatcher.cs` | **ModManagerInitPostfix**：ModManager.Initialize 后调度 init + Harmony Patch |
-| `RelicPickingPatch.cs` | Postfix `RelicPickingResult.GenerateRelicFight`：强制 result.player = 房主 |
-| `MapSelectionPatch.cs` | 仅干预集齐所有票后的随机：**MapSelectionPrefix** Prefix `MoveToMapCoord`，强制采用房主所选道路，不改变投票收集与显示 |
-| `EventSynchronizerPatch.cs` | Prefix `EventSynchronizer.ChooseSharedEventOption`：优先采用房主投票 |
-| `ModListFilterPatch.cs` | **ModListFilterPatch**：Postfix `GetGameplayRelevantModNameList` 移除 HostPriority |
-| `ModConfigIntegration.cs` | ModConfig 反射接入；`enabled` 开关，默认 true |
-| `mod_manifest.json` | 必须含 id、has_pck、has_dll、affects_gameplay: false |
-| `bbuild.ps1` | 构建脚本：dotnet build → 复制到 mods/HostPriority/ |
-
-### 构建命令
-
-```bash
-dotnet build "K:\杀戮尖塔mod制作\STS2_mod\HostPriority\HostPriority.csproj" -c Debug
+```
+System.Text.Json.JsonException: '0x0A' is invalid within a JSON string.
+The string should be correctly escaped.
+Path: $.description | LineNumber: 6 | BytePositionInLine: 377.
 ```
 
+**根本原因：** `description` 字段的值包含原始 0x0A（LF）字节，而不是 JSON 合法的 `\n` escape 序列。
+
+**为什么正常 mod 的 manifest 可以有换行：** 其他正常 mod（DamageMeter、RunHistoryAnalyzer）的换行符出现在**文件结构层面**（即 JSON 语法允许的格式换行），而非**字符串值内部**。JSON 规范不允许字符串值内出现 raw LF，必须用 `\n` escape。
+
+**为什么会产生 raw LF：** 源码目录下的 `mod_manifest.json` 里，description 字段的 `\n` 被写成了真实换行（PowerShell 的 `Write` 工具或早期手动编辑时产生）。文件结构换行 + description 内部 raw LF 混在一起，导致 JSON 解析器在第 6 行、字节 377 处（description 字段内）遇到非法字符。
+
 ---
 
-## 废弃项目（2026-03-18）
+## 错误过程复盘
 
-| 项目 | 路径 | 说明 |
+| 步骤 | 操作 | 问题 |
 |------|------|------|
-| Manifest 格式修复工具 | `STS2_mod\_废弃_Manifest格式修复\` | 为遇到 manifest 格式错误的玩家提供 bat 修复；因 CMD 中文解析问题、用户决定取消，文件已归档 |
+| 1 | 用 `dotnet build -c Release` 编译本地源码 | ✅ 正确 |
+| 2 | 解压旧 GitHub zip，用新 DLL 替换 | ⚠️ 复用了有问题的 manifest |
+| 3 | 用 PowerShell `Write` 工具写 manifest | ❌ 将 `\n` 解释为真实换行 |
+| 4 | 用 PowerShell 脚本修复（多次失败） | ❌ PowerShell 对 `$PSItem`、`$_`、转义处理极不稳定 |
+| 5 | 最终用 Python `json.dump()` 修复 | ✅ 成功 |
 
 ---
 
-## 数据来源约定 · 百科大全
+## 核心教训
 
-**爬取/归类游戏数据时**，优先参考游戏内「百科大全」功能：官方已对卡牌、遗物、药水、怪物图鉴等做了细化分类。NBestiary 显示怪物；NCardLibrary 用 `c.Pool is IroncladCardPool` 等筛选卡牌。数据脚本与 Mod 可据此对齐分类。
+### 教训 1：JSON 文件必须用序列化库生成，不要手动写
 
----
+JSON 的 escape 序列 `\n`、`\uXXXX` 等必须精确。手动写或用文本工具（Write 工具、PowerShell here-string）极易出错。**正确做法：始终用 Python `json.dump()` 或 C# `JsonSerializer`** 生成 JSON 文件。
 
-## STS2 v0.99 模组 Manifest 与加载（2026-03-18）
+### 教训 2：PowerShell 对 `$_`/`$PSItem` 在 heredoc 和 `-c` 命令中表现不一致
 
-### 官方 manifest 格式（必遵）
+在本次会话中，PowerShell 的以下写法全部失败或产生异常结果：
+- `Where-Object { $PSItem -eq 10 }` — shell 解析器破坏
+- `Where-Object { $_ -eq 10 }` — 同上
+- `for (...) { ... $bytes[$i] ... }` — 解析异常
 
-| 字段 | 必填 | 说明 |
-|------|------|------|
-| `id` | ✅ | 缺则直接拒绝加载；用于查找 {id}.dll / {id}.pck |
-| `pck_name` | - | 旧版兼容，建议与 id 一致 |
-| `name` `version` `author` `description` | - | 展示用 |
-| `has_pck` `has_dll` | - | 布尔，不声明则默认 false，不加载资源 |
-| `affects_gameplay` | - | 纯 UI/显示类 mod 建议 false |
-| `dependencies` | - | 可选；视频示例未包含 |
+**原则：** 任何超过 10 行的 PowerShell 逻辑必须写入 `.ps1` 文件执行，不能用 `-c` 或 heredoc。
 
-**文件名**：`mod_manifest.json` 或 `{id}.json` 均可；游戏扫描所有 `.json`，**源码中无 modid.json 字样**。
+### 教训 3：GitHub Release 打包流程本身有 BUG
 
-### 「检测到错误」红字原因
+查看上传的旧 zip，NoClientCheats.dll 版本是 1.0.0.0，不是源码里的 1.1.2。说明 GitHub Actions 的打包 workflow 没有从源码构建 DLL，而是直接塞了一个提前放好的旧文件。**需要修复 `.github/workflows/` 中的打包步骤，确保每次 release 都执行 `dotnet build` → 打包输出目录。**
 
-`NDebugInfoLabelManager`：`hasError = ModManager.LoadedMods.Any(m => !m.assemblyLoadedSuccessfully)`。  
-任一模组 `assemblyLoadedSuccessfully == false` 即显示红字，**与 manifest JSON 无关**，来自 DLL 初始化异常。
+### 教训 4：游戏内日志是唯一可靠的调试来源
 
-### v0.99 API 变更（模组需适配）
-
-| 旧 API | 新 API | 影响模组 |
-|--------|--------|----------|
-| `ModManager.GetModNameList` | `ModManager.GetGameplayRelevantModNameList` | sts2-heybox-support、NoClientCheats ModListFilterPatch |
-| `ModManifest.pckName` | 已移除，改用 `id` / `hasPck` | DamageMeter |
-
-### 项目 manifest 与 build 关系
-
-**重要**：`bbuild.ps1` 会复制项目根目录的 `mod_manifest.json` 到 mods 目录。若项目内 manifest **缺少 id**，会覆盖 mods 下正确版本，导致游戏拒绝加载。三个项目 manifest 必须包含完整字段。
-
-### GitHub Release 打包
-
-1. `.\bbuild.ps1` 构建并复制到 mods  
-2. `.\prepare-release.ps1 -Version "x.y.z"` 打包 zip 到 `release/`  
-3. RichPing / NoClientCheats 均有 prepare-release；ControlPanel 暂未单独发布
+绕了一大圈才读 `godot.log`，而日志从第一次运行就清楚写明了错误：`'0x0A' is invalid within a JSON string`。遇到"游戏里无法识别"时，**第一步永远先读 godot.log**。
 
 ---
 
-## 报错特征速查（精简）
+## 正确修复流程（本次已手动完成）
 
-**本次对话补充（2026-03-18）**：`Mod manifest ... is missing the 'id' field` → 项目 manifest 缺 id，build 会覆盖 mods；`assemblyLoadedSuccessfully` 红字「检测到错误」→ 任一模组 DLL 初始化失败，查 godot.log，v0.99 关注 GetModNameList→GetGameplayRelevantModNameList、ModManifest.pckName 已移除。
+```
+1. dotnet build -c Release          # 构建新 DLL（AssemblyVersion 1.1.2.0）
+2. 用 Python json.dump() 重写 mod_manifest.json  # 生成合法的 JSON（同时修源码目录和 mods 目录）
+3. 复制 DLL + manifest + pck 到 mods/
+4. 重新打包 zip（25670 bytes），上传 GitHub Release NCC_v1.1.2
+```
 
-| 特征 | 含义 | 处理方向 |
-|------|------|----------|
-| `can_instantiate: ... class could not be found` | C# 脚本无类定义或类名与文件名不符 | 补全类定义，保证类名与文件名一致 |
-| `A compatible .NET SDK was not found` | global.json 要求的 SDK 版本与已安装不符 | 安装对应版本或将 global.json 改为已安装版本 |
-| `mod_mainfest.json` | 拼写错误（应为 manifest） | 重命名为 `mod_manifest.json` |
-| `CS1705` / `Failed to load project assembly` / `System.Runtime Version=9.0.0.0` 找不到 | Godot 4.5.1 为 .NET 8，sts2 为 .NET 9，直接引用导致加载失败 | **Sts2Stubs 方案**：net8.0 + Sts2Stubs.cs 存根，移除 sts2 引用；Harmony 运行时反射访问游戏 |
-| Ping 文本未替换 / ModConfig 无配置项 | ModLoaded 未调用；Register 时机太晚或未调用 | **ModManagerInitPostfix** 在 ModManager.Initialize 完成后调度 init；**严格按 [ModConfig-STS2](https://github.com/xhyrzldf/ModConfig-STS2) README**：Type.GetType + 程序集回退；2 帧延迟；`Array.CreateInstance(_entryType)` 构造 ConfigEntry[] |
-| **CS0136** 无法在此范围中声明名为“X”的局部变量 | 同一方法内，外层与内层（if/else/循环）使用了相同变量名，即使路径互斥 | 内/外层变量改用不同名称，如 `removePileRow` vs `pileRow` |
-| **CS0117** “TextServer”未包含“AutowrapModeOff” | Godot 4 API 误用：`AutowrapModeOff` 不存在 | 正确为 **`TextServer.AutowrapMode.Off`**（枚举 `AutowrapMode` 下的值 `Off`），不是 `AutowrapModeOff` |
-| **CS0117** “TextureRect”未包含“CustomMaximumSize” | Godot 4 的 Control 仅支持 CustomMinimumSize，无 CustomMaximumSize | 移除 CustomMaximumSize；用 CustomMinimumSize 控制尺寸，或外层容器约束 |
-| **CS1929** “object”不包含“GetProperty”/“GetMethod” | 反射时对 `object` 实例直接调用了 `GetProperty`/`GetMethod`（实为 `Type` 的扩展） | 先用 `obj.GetType()` 得到 Type，再 `type.GetProperty(...)` / `type.GetMethod(...)` |
-| **CS1503** 参数 2: 无法从“int”转换为“BindingFlags” | `Type.GetMethod(name, 1, ...)` 中 `1` 被解析为 BindingFlags 参数 | 使用 `GetMethods(BindingFlags)...FirstOrDefault(m => m.Name=="..." && m.IsGenericMethodDefinition)` 等方式查找泛型方法 |
+**GitHub Release NCC_v1.1.2 最终状态（2026-03-22）：**
+- Asset: `NoClientCheats-v1.1.2.zip`（25 670 bytes，manifest JSON 合法 ✅）
+- mods 目录：`NoClientCheats.dll`（1.1.2.0）+ `mod_manifest.json`（合法 JSON）✅
+- 源码目录：同上 ✅
 
 ---
 
-## 控制台作弊指令 · 多人联机与模组模式（2025-03-17）
+## 追加到 VC_GITHUB_WORKFLOW.md 的规则
 
-| 场景 | 作弊指令是否可用 | 说明 |
-|------|------------------|------|
-| **模组模式**（ModManager.LoadedMods.Count > 0） | ✅ **可用** | 有 Mod 加载时，控制台会以 `shouldAllowDebugCommands=true` 初始化，所有指令（含 DebugOnly）均注册并可执行 |
-| **多人联机**（真实多人，非单人/假多人） | ✅ **可用** | gold/relic/card/potion 等 IsNetworked 指令会通过 ActionQueueSynchronizer 入队同步执行，所有玩家同步生效 |
-| **单人 / 假多人** | ✅ **可用** | 指令直接执行，无入队逻辑 |
-
-**关键代码**：
-- `NDevConsole._Ready`：`shouldAllowDebugCommands = OS.HasFeature("editor") \|\| TestMode.IsOn \|\| ModManager.LoadedMods.Count > 0 \|\| SaveManager.Instance.SettingsSave.FullConsole`
-- `DevConsole.ProcessCommand`：真实多人且 IsNetworked 时 `ActionQueueSynchronizer.RequestEnqueue(ConsoleCmdGameAction)` 入队
-- `RunManager.IsSinglePlayerOrFakeMultiplayer`：`IsInProgress && NetService.Type == NetGameType.Singleplayer`
-
-**无 Mod 且未开 FullConsole 时**：部分 DebugOnly 指令（如 log、open、getlogs 等）不注册，但 gold/relic/potion/card 等游戏内作弊指令为默认注册，不受影响。
+在第七节末尾追加（见 VC_GITHUB_WORKFLOW.md §7.3）。
 
 ---
 
-## NoClientCheats Mod · 禁止客机作弊（2025-03-17 · 2026-03-18 更新）
+## 下次改进方向
 
-| 项目 | 说明 |
-|------|------|
-| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\NoClientCheats\` |
-| **功能** | 多人联机时禁止客机（非房主）使用控制台作弊指令（gold、relic、card 等） |
-| **部署** | 仅房主需安装；客机无需安装 |
-| **实现** | Harmony Prefix Patch `ActionQueueSynchronizer.HandleRequestEnqueueActionMessage`，当 `message.action` 为 `NetConsoleCmdGameAction` 且 cmd 在作弊列表中时跳过原方法 |
-| **ModListFilterPatch** | Postfix `GetGameplayRelevantModNameList`（v0.99 原名 GetModNameList），从 Mod 列表移除 NoClientCheats 使客机不可见；TargetMethod 需优先找新名再 fallback 旧名 |
-| **ModConfig** | `block_enabled` 开关，默认 true；需 ModConfig 方可配置 |
-| **构建** | `运行构建.bat` 或 `.\bbuild.ps1` → 复制到 `{游戏}\mods\NoClientCheats\` |
-
-**v0.99 适配**：`ModManager.GetModNameList` 已更名为 `GetGameplayRelevantModNameList`，ModListFilterPatch.TargetMethod 已更新。
-
-**manifest**：项目内 mod_manifest.json 必须含 id、has_pck、has_dll，否则 build 复制会覆盖 mods 下正确版本导致无法加载。
-
-**网络逻辑**：客机输入作弊指令 → 发送 `RequestEnqueueActionMessage` 给房主 → 房主 `HandleRequestEnqueueActionMessage` 收到 → 若启用且为作弊 cmd 则静默丢弃，不入队、不广播 `ActionEnqueuedMessage`，客机不会执行。
-
-**GitHub 发布**：README.md、prepare-release.ps1、VC_GITHUB_RELEASE_GUIDE.md；`.\prepare-release.ps1 -Version "1.0.1"` 生成 `release/NoClientCheats-v1.0.1.zip`。
+1. **修复 GitHub Actions 打包 workflow**：确保 `dotnet build -c Release` → 打包 `.godot/mono/temp/bin/Release/` 的输出
+2. **源码 `mod_manifest.json` 同样用 Python 生成**：放在项目构建脚本中，而非手动维护
+3. **mods 文件夹内不保留源码的 manifest 副本**：构建时从源码复制，或 mods 目录直接指向源码输出
 
 ---
 
-## 下一段工作目标（待承接）
+# 分记忆 · 2026-03-22 续 · 先古之民数据库建设
 
-1. ~~分析 sts2 反编译源码~~：已完成。
-2. ~~确定 Harmony Patch 目标~~：已实现，补丁 `LocString.GetFormattedText`。
-3. ~~ModConfig 集成~~：已实现，反射零依赖；2 帧延迟；**ModManagerInitPostfix 保证主菜单前完成注册** ✓
-4. ~~多阶段 / 多角色 / 死亡 Ping~~：已实现。
-5. ~~Godot 导出~~：dotnet build + Godot --export-pack，bbuild.ps1 一键构建。
-6. ~~实机验证~~：Ping 文本替换 ✓、模组配置显示 ✓
-7. ~~ControlPanel 功能扩大与 UI 改造~~：已实现（2025-03 计划，见 VC_CONTROL_PANEL_WORK_LOG.md）
-8. ~~ControlPanel UI 可调宽度 + 图2 模板~~：栏目可拖拽调整；各功能统一为 列表\|预览+执行 结构
-9. ~~ControlPanel 实时检测+角色筛选+遗物图标+生成敌人+Power表~~：GameStateHelper 实时牌堆/遗物/药水；CardCharacterHelper 卡牌角色；遗物按稀有度图标网格；能力表；**战斗内生成敌人**（SpawnEnemyHelper+CreatureCmd.Add，非 fight）
+## 概述
 
----
+用户要求对"先古之民"相关内容做系统梳理，建立数据库（一次性含遗物与事件，中英双语）。
 
-## ModConfig 集成 · 反思与记忆
+## 关键文件路径
 
-| 要点 | 说明 |
-|------|------|
-| **时机** | 必须在 ModConfig 加载后、用户打开设置前完成 Register。**ModManagerInitPostfix** 在 `ModManager.Initialize()` 返回时调度，保证早于主菜单。 |
-| **官方 README 优先** | 严格按 [ModConfig-STS2](https://github.com/xhyrzldf/ModConfig-STS2) README 实现，避免过度“优化”（ALC 遍历、IsModConfigLoaded 等曾引入复杂性和潜在 bug）。 |
-| **ConfigEntry[] 类型** | 反射 Invoke 时须传正确的 `ConfigEntry[]`，用 `Array.CreateInstance(_entryType, n)` 构造，不能用 `object[]`。 |
-| **两帧延迟** | README 明确要求：`tree.ProcessFrame += () => { tree.ProcessFrame += () => Register(); }`，确保 ModConfig 完全就绪。 |
-| **Type.GetType 回退** | `Type.GetType("ModConfig.ModConfigApi, ModConfig")` 可能因 ALC 返回 null；回退：遍历 `AppDomain.CurrentDomain.GetAssemblies()` 按 FullName 查找。 |
-| **v0.1.5 新 API** | `Register(modId, displayName, Dictionary displayNames, ConfigEntry[])` — 支持多语言显示名；`GetValue<T>()` 新签名无 fallback 参数，需自行 try/catch 处理；`Descriptions` 字典替代旧的 `descEn`/`descZhs`；`Register` 方法须先尝试新签名再回退旧签名。 |
-| **Dictionary 类型** | Godot 环境：`using Dict = Godot.Collections.Dictionary`；不能用 `System.Collections.Generic.Dictionary`（与 Godot 别名冲突）。 |
-| **Register 优先尝试新签名** | `GetMethod("Register", new[] { typeof(string), typeof(string), typeof(Dictionary), ... })` 优先，null 时回退旧签名。 |
+- `.run` 存档目录：`C:\Users\Administrator\AppData\Roaming\SlayTheSpire2\steam\76561198679823594\modded\profile1\saves\history\`（共 67 个存档）
+- 游戏源码（最新 SL2）：`K:\SteamLibrary\steamapps\common\Slay the Spire 2\extracted\localization\`
+- 项目根目录：`K:\杀戮尖塔mod制作\STS2_mod\RunHistoryAnalyzer\`
 
----
-
-## ModConfig 可调选项（2025-03-17 重构）
-
-| 大类 | Key | 调控目标 | 默认 |
-|------|-----|----------|------|
-| 全局开关 | use_custom_ping | 总开关：关=游戏原版；开=RichPing | true |
-| 全局文本类别 | use_alive_ping | 存活时催促文本是否自定义 | true |
-| | use_dead_ping | 死亡后调侃文本是否自定义 | true |
-| 选取行为 | random_pick | 随机 vs 顺序轮转 | true |
-| | use_stages | 是否按幕(0/1/2)切换 | true |
-| | use_character_specific | 角色专属优先 vs 仅全局 | true |
-| 过滤 | excluded_messages | 黑名单：包含即不发送 | "" |
-| 角色-存活 | char_*_alive | 各角色存活时是否用专属 | true |
-| 角色-死亡 | char_*_dead | 各角色死亡后是否用专属 | true |
-
----
-
-## 构筑流程（bbuild.ps1）
-
-| 步骤 | 命令 | 输出 |
-|------|------|------|
-| 1 | `dotnet build -c Debug` | `.godot\mono\temp\bin\Debug\RichPing.dll` |
-| 2 | `Godot --path . --export-pack "Windows Desktop" RichPing.pck --headless` | `RichPing.pck`（含 DLL、ping_messages.json、mod_manifest 等） |
-| 3 | 复制到 `{游戏}\mods\RichPing\` | RichPing.dll、RichPing.pck、mod_manifest.json |
-
-**用法**：项目根目录执行 `.\bbuild.ps1`。需 Godot 4.5.1 Mono（PATH 或 -GodotExe）。
-
----
-
-## 项目产出文件（RichPing 内）
+## 已完成交付物
 
 | 文件 | 说明 |
 |------|------|
-| `bbuild.ps1` | 构建脚本：dotnet build → Godot 导出 PCK → 复制到 mods/RichPing/（避免 Godot --build-solutions 的 .NET 9 依赖） |
-| `RichPing.sln` | C# 解决方案，供 dotnet build 使用 |
-| `杀戮尖塔角色背景故事与人物分析.md` | 1/2 代角色背景、经历、性格 |
-| `杀戮尖塔角色梗与游戏梗合集.md` | 角色梗、遗物梗、Boss 梗、社区文化梗 |
-| `杀戮尖塔角色死亡Ping文本_幽默梗风格.md` | 6 角色死亡 Ping 文本（按幕分类） |
-| `ping_messages.json` | 配置：stages、characters（default/stages 存活催促、dead/dead_stages 死亡调侃）；各角色个性化文本 |
-| `RichPingMod.cs` | Mod 入口、配置加载、文本选取 |
-| `HarmonyPatcher.cs` | **ModManagerInitPostfix**（ModManager.Initialize 后调度 init）+ EndTurnPingPrefix（LocString.GetFormattedText）；AccessTools.TypeByName 加固 |
-| `ModConfigIntegration.cs` | ModConfig 反射接入；6 大类；角色 char_*_alive/char_*_dead 分别开关；AddCharToggles；每项调控目标描述 |
-| `RichPingExternalProvider.cs` | IRichPingTextProvider 接口 |
-| `VC_RICHPING_DEVELOPER_GUIDE.md` | 第三方 Mod 角色 Ping 文本开发指南：接口 IRichPingTextProvider、参数、注册、富文本、优先级、零依赖 |
-| `VC_RICH_PING_README.md` | 项目说明 |
-| `VC_RICH_PING_RESEARCH.md` | 调研与替代方案 |
-| `VC_MODCONFIG_CONTROLS.md` | ModConfig 控件清单（Header/Separator/Toggle/Slider/Dropdown/Input/KeyBind）与 ConfigEntry 属性 |
-| `VC_STS2_MOD_SUMMARY.md` | STS2 Mod 要点、失败反思、ModConfig/BaseLib 说明 |
-| `Sts2Stubs.cs` | ModInitializer/Log 编译期存根，解决 net8/net9 冲突 |
-
----
-
-## GitHub Release 发布 Mod · 逻辑与流程（2025-03-17）
-
-| 概念 | 说明 |
-|------|------|
-| **Tag** | 版本标签（如 v1.0.0），每个 Release 绑定一个 Tag |
-| **Release** | 发行版页面，含版本说明和可下载附件（zip） |
-| **附件 (Assets)** | 用户下载的 Mod 打包，如 NoClientCheats-v1.0.0.zip |
-
-**流程**：1) `bbuild.ps1` 构建 → 2) `prepare-release.ps1 -Version "1.0.0"` 打包 zip → 3) GitHub 网页或 `gh release create` 创建 Release 并上传 zip。
-
-**文件**：`NoClientCheats/README.md`、`prepare-release.ps1`、`VC_GITHUB_RELEASE_GUIDE.md`。
-
----
-
-## 提示词记录 · 发布相关
-
-| 时间 | 提示词 | 结果概要 |
-|------|--------|----------|
-| 2025-03-17 | 把 mod 发布到 github，没有经验，模仿其他 mod 的 readme，实现发行版并讲述逻辑，学习发布，记入记忆 | 撰写 README.md（参考 Minty-Spire-2、StS2-Quick-Restart）；prepare-release.ps1 打包脚本；VC_GITHUB_RELEASE_GUIDE.md 发布指南；VC_SESSION_MEMORY 补充 Release 逻辑与流程 |
-| 2025-03-17 | 仓库 README 表达 vibe coding、中国高中生、昨天才开始、无编程经验、AI 创建；构建打包禁止客机作弊 mod 供上传；记入记忆 | 根目录 README 中英双语说明；构建+prepare-release 生成 NoClientCheats-v1.0.0.zip 于 `NoClientCheats/release/`；Releases 指向 Jianbao233/STS2_mod |
-| 2026-03-18 | 项目主 README 也要修改，记得所有提示词记录记忆 | 主 README：Quick Install 区分 Mod 类与工具类；Build from Source 改为表格，区分 bbuild.ps1（Mod）与 build_exe.bat（MP_SavePlayerRemover）；Projects 表已含 MP_SavePlayerRemover；Steam 名称映射文件 steam_names.json |
-
----
-
-## MP_SavePlayerRemover · 多人存档移除玩家工具（2026-03-19 v1.1.0）
-
-| 项目 | 说明 |
-|------|------|
-| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\MP_SavePlayerRemover\` |
-| **功能** | 在游戏外修改 current_run_mp.save，移除指定玩家并清理相关引用 |
-| **使用** | 先退出游戏 → 运行 exe → 选择存档 → 输入要**删除**的玩家序号（all=删除全部） |
-| **Steam 名称映射** | 在存档目录创建 `steam_names.json`（格式: `{"steam_id": "昵称"}`），工具自动加载并显示昵称 |
-| **操作模式** | **v1.1.0 改为删除模式**：输入序号删除（v1.0 为保留模式） |
-| **存档路径** | 原版: `steam\{SteamId}\profile*\saves\`；模组: `steam\{SteamId}\modded\profile*\saves\` |
-
----
-
-## MP_PlayerManager · 多人存档玩家管理（2026-03-20 新建）
-
-|| 项目 | 说明 |
-|------|------|------|
-| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\MP_PlayerManager\` |
-| **功能** | 离线管理多人存档：夺舍玩家 / 添加新玩家 / 移除玩家 |
-| **部署** | 独立 exe，放任意目录运行，无需放入游戏目录 |
-| **exe** | `dist\MP_PlayerManager-v1.0.0.exe`（8.4MB） |
-
-### 功能
-
-| 操作 | 说明 |
-|------|------|
-| **夺舍** | 输入离线玩家序号 + 接替者 Steam64位ID，继承牌组/遗物/金币状态继续游戏 |
-| **添加-复制模式** | 选择源玩家，复制 deck/relics/gold/rng/odds/grab_bag，满血加入；可换角色 |
-| **添加-初始模式** | 选择角色，以初始牌组（基础牌+100金币+满血）加入 |
-| **移除** | 删除玩家 + 清理 map_point_history/map_drawings |
-
-### Mod 角色模板接口（player_template.json）
-
-MP_PlayerManager 支持通过 mod 文件夹根目录的 `player_template.json` 注册自定义角色（README.md 有完整格式说明）。
-
-**已注册的 Mod 角色：**
-
-|| 模组 | character_id | 初始遗物 | 初始牌组 |
-||------|------|------|------|
-|| Watcher（观者）| `CHARACTER.WATCHER` | `RELIC.PURE_WATER` | 4×STRIKE_P + 4×DEFEND_P + ERUPTION_P + VIGILANCE + GREED（11张）|
-
-> Watcher 模板数据从 `current_run_mp.save` 中已使用观者的玩家数据提取：max_hp=72，遗物 RELIC.PURE_WATER + RELIC.CURSED_PEARL（诅咒珍珠为额外获取，非初始遗物）。
-
-### 技术实现
-
-- 纯 Python，无依赖（标准库 json/base64/gzip/shutil）
-- 自动扫描 `%APPDATA%\SlayTheSpire2\steam\{SteamId}\{modded/}profile*/saves/current_run_mp.save`
-- 备份：`current_run_mp.save.backup.{timestamp}`
-- `steam_names.json` 可选，显示 Steam 昵称
-
-### 关键字段（基于实测存档 v14）
-
-- `players[].net_id` — 数值型 Steam ID（如 76561198679823594）
-- `players[].steam_id` — 字符串型 Steam ID（与上同）
-- `players[].character_id` — 角色 ID（如 `CHARACTER.WATCHER`）
-- `players[].display_data.steam_name` — Steam 昵称（可选）
-- `players[].deck[]` — 牌组（`{id, floor_added_to_deck}`）
-- `players[].relics[]` — 遗物（`{id, floor_added_to_deck}`）
-- `players[].relic_grab_bag.relic_id_lists` — 遗物获取袋
-- `players[].rng` — 随机数状态；`players[].odds` — 概率状态
-- `map_point_history[]` — 各层玩家统计（需清理被移除玩家的引用）
-- `map_drawings` — Base64+Gzip 编码的地图涂鸦
-
-### 构建
-
-- `build_exe.bat` → `dist\MP_PlayerManager-v1.0.0.exe`
-- `prepare-release.ps1 -Version "1.0.0"` → `release\MP_PlayerManager-v1.0.0.zip`
-
----
-
-## BaseLib-StS2 · 分析与借鉴（2026-03-20）
-
-> 完整报告：`K:\杀戮尖塔mod制作\STS2_mod\VC_BASELIB_ANALYSIS_REPORT.md`  
-> 仓库：[Alchyr/BaseLib-StS2](https://github.com/Alchyr/BaseLib-StS2)（⭐105）
-
-BaseLib-StS2 是 STS2 的基础库型 Mod，核心贡献：内容抽象体系（`CustomCharacterModel`/`CustomCardModel` 等）+ **SimpleModConfig 配置系统**（属性声明自动生成 UI，代码量减少 70%）+ IL 补丁工具（`InstructionPatcher`）+ Mod 互操作协议（`[ModInterop]`）+ 扩展方法层。
-
-**最高优先级借鉴**：抽取 `Config/` 到 `STS2_mod/SharedConfig/`，用 `SimpleModConfig` 重构各 mod 配置系统。详细分析见 `VC_BASELIB_ANALYSIS_REPORT.md`。
-
----
-## 下次对话可用的快速指令
-
-- 「继续 RichPing」：在 RichPing 文件夹内施工
-- 「我遇到了 [报错特征]」：可引用报错速查表
-- 「查 ID 列表」：参考 VC_STS2_FULL_ID_LISTS.md（药水/附魔/强化完整表；卡牌遗物能力见生成脚本）
-- 「BaseLib 借鉴」：参考 `VC_BASELIB_ANALYSIS_REPORT.md`；优先考虑 `SimpleModConfig` 配置系统重构
-- 「存档解析/修改工具」：参考 VC_STS2_SAVE_FILE_ANALYSIS.md；所有 .save 文件均为 JSON；单人 `current_run.save`，多人 `current_run_mp.save`；多人存档删除玩家需同步清理 deck/relics/potions/grab_bag；源码见 `MegaCrit.Sts2.Core.Saves`/`MegaCrit.Sts2.Core.Saves.Runs`
-- 「ControlPanel 排查」：日志 `%APPDATA%\SlayTheSpire2\logs\godot.log`；工作日志 `VC_CONTROL_PANEL_WORK_LOG.md`
-- 「发布 Mod 到 GitHub」：参考 VC_GITHUB_RELEASE_GUIDE.md；NoClientCheats/RichPing 均用 `prepare-release.ps1 -Version "x.y.z"` 打包
-- 「模组加载/检测到错误」：参考 模组加载问题分析报告.md 第八、九节；manifest 需 id；红字来自 assemblyLoadedSuccessfully（Manifest 格式修复 bat 已废弃，见 _废弃_Manifest格式修复/）
-
-
-
-## 2026-03-20 MP_PlayerManager v1.0.0 初次发布
-
-### 本次完成内容
-
-1. **整合 README**：重写 `MP_PlayerManager/README.md`，合并功能、使用步骤、存档说明、Mod 角色接口、技术实现、版本记录等所有内容。
-2. **主 README 淘汰 MP_SavePlayerRemover**：主页 Projects 表格中 `MP_SavePlayerRemover` 行打删除线（~~），替换为说明「已废弃，功能已被 MP_PlayerManager 整合」；Quick Install 和 Build from Source 同步更新。
-3. **构建 exe**：`pyinstaller --onefile --name "MP_PlayerManager-v1.0.0" --console manage_players.py` → `dist/MP_PlayerManager-v1.0.0.exe`（约 8.4MB）。
-4. **打包发布**：`MP_PlayerManager-v1.0.0.zip`（7.86MB）上传 GitHub Release。
-5. **TAG 格式沿用**：`MP_PLv_1.0.0`，后续版本统一沿用此前缀格式。
-
-### GitHub Release 信息
-
-- **TAG**：`MP_PLv_1.0.0`
-- **标题**：`MP_PlayerManager v1.0.0 — 多人存档玩家管理工具`
-- **附件**：`MP_PlayerManager-v1.0.0.zip`（exe + README.md）
-- **Release 页面**：https://github.com/Jianbao233/STS2_mod/releases/tag/MP_PLv_1.0.0
-
-### 提示词记录
-
-| 时间 | 提示词 | 结果概要 |
-|------|--------|----------|
-| 2026-03-20 | 整合 README；主 README 里 MP_SavePlayerRemover 打中横线；构建发布；TAG 用 MP_PLv_1.0.0；记录记忆 | 完成全部任务 |
-
-### TAG 命名规则（已记入）
-
-- **MP_PlayerManager**：`MP_PLv_{major}.{minor}.{patch}`（例：`MP_PLv_1.0.0`）
-- **MP_SavePlayerRemover**（已废弃）：`MP_PRv_{version}`
-- **NoClientCheats**：`v{version}`（标准语义化版本）
-- **RichPing**：`v{version}`
-- **HostPriority**：`v{version}`
-
-> **规则**：每次发布前，先用 `gh release list` 查看已有 TAG，确保新 TAG 格式与项目一致；本次为 MP_PlayerManager 首次发布，使用 `MP_PLv_1.0.0`。
-
----
-
-## 2026-03-20 BaseLib-StS2 调研对话
-
-### 本次完成内容
-
-1. **访问仓库**：[Alchyr/BaseLib-StS2](https://github.com/Alchyr/BaseLib-StS2)（⭐105，Fork 25，v0.1.8 最新 2026-03-19）
-2. **调研范围**：Wiki（Home / Adding Cards / Mod Setup）、ModInterop 文档、ModTemplate-StS2、MainFile.cs、Notes.txt（技术笔记）、Releases Changelog
-3. **报告编写**：在 `VC_BASELIB_ANALYSIS_REPORT.md` 已有完整报告（本次对话前已存在）基础上进行复核确认
-4. **报告内容**：BaseLib 7 大模块详解 + 对工作区 6 个具体借鉴点 + 优先级建议
-5. **记忆更新**：本条记录写入 VC_SESSION_MEMORY.md
-
-### 报告核心结论（供参考）
-
-> 完整报告：`K:\杀戮尖塔mod制作\STS2_mod\VC_BASELIB_ANALYSIS_REPORT.md`
-
-| 优先级 | 模块 | 理由 |
-|--------|------|------|
-| ⭐⭐⭐⭐⭐ | **SimpleModConfig 配置系统** | 代码量减少 70%，零学习成本 |
-| ⭐⭐⭐⭐ | **ConfigAttributes** | `[SliderRange]`、`[ConfigSection]` 等属性零成本增强 UI |
-| ⭐⭐⭐ | **DynamicVarExtensions** | 统一战斗状态检查，ControlPanel 可直接使用 |
-| ⭐⭐⭐ | **CustomCharacterModel** | 未来自定义角色 mod 基础 |
-| ⭐⭐ | **IL 补丁工具** | InstructionPatcher + InstructionMatcher 降低 Transpiler 门槛 |
-| ⭐ | **ModInterop** | 跨 mod 互操作，当前项目规模暂不需要 |
-
-### 提示词记录
-
-| 时间 | 提示词 | 结果概要 |
-|------|--------|----------|
-| 2026-03-20 | 了解项目内容，访问 BaseLib-StS2，编写 baselib 有什么可借鉴之处相关的报告，并且本次对话记入记忆里 | 调研完成；报告 `VC_BASELIB_ANALYSIS_REPORT.md` 已存在且完整（2026-03-20 新建）；记忆追加本条 |
-
-
-
----\n\n## 2026-03-21 NoClientCheats v1.1.2 修复\n\n**玩家反馈**：模组配置页面正常显示，但 F6 历史面板无法唤出、弹窗通知未出现。\n\n**根本原因**：HarmonyPatcher.cs static 构造器在 Engine.GetMainLoop() 返回 null 时注册 ProcessFrame 回调，导致 EnsureInitialized() 从未被调用，CheatNotification 和 CheatHistoryPanel 节点从未创建。\n\n**修复**：移除 static 构造器中的所有初始化逻辑；在 ModManager.Initialize Postfix 中注册两帧延迟回调，统一执行 EnsureInitialized() 和 ApplyHarmonyPatches()。
-
-### 排查关键\n\n日志中 ModConfig 注册完成后才出现 [NoClientCheats] Loaded → EnsureInitialized() 未被及时调用 → 向前找到 HarmonyPatcher static ctor 中 Engine.GetMainLoop() 返回 null → 回调从未注册\n\n---\n\n**v1.1.2 Release**：https://github.com/Jianbao233/STS2_mod/releases/tag/v1.1.2
-
----
-
-## 2026-03-21 RunHistoryAnalyzer 新建 · 历史记录作弊检测
-
-### 项目信息
-
-| 项目 | 说明 |
-|------|------|
-| **路径** | `K:\杀戮尖塔mod制作\STS2_mod\RunHistoryAnalyzer\` |
-| **目标** | 从"百科大全 → 历史记录"模块入手，检测玩家作弊（内存修改/控制台/存档编辑）产生的异常记录 |
-| **数据选择** | **历史记录（RunHistory）优于存档（SerializableRun）**：流水账天然支持守恒定律验证和来源追溯，JSON格式可直接解析 |
-
-### 已有分析文档
-
-| 文件 | 说明 |
-|------|------|
-| `ANALYSIS_REPORT.md` | 早期可行性分析：作弊手段分类、三层检测架构、守恒定律、来源追溯、无敌检测 |
-| `ARCHIVE_VS_HISTORY_COMPARISON.md` | 存档vs历史记录详细对比：SerializableRun/Player/ActModel/Room完整字段表，RunHistoryUtilities转换逻辑 |
-| `FEASIBILITY_ANALYSIS.md` | **核心报告**：从历史记录检测异常数据的完整可行性分析，含代码示例与优先级矩阵 |
-| `UI_DESIGN.md` | **UI设计方案**：按需检测+分析按钮+结果窗口+TXT导出报告 |
-
-### 核心结论
-
-- **SerializableRun**：存"结果"（快照HP/金币/RNG状态/EncounterState），适合验证遭遇状态篡改
-- **RunHistory**：存"过程"（GoldGained/Spent/DamageTaken/CardChoices等流水账），适合验证金币/HP守恒和来源追溯
-- **守恒定律 P0**：金币 `初始+ΣGained-ΣSpent=最终`，HP `初始-ΣDamage+ΣHealed=最终`，证据链最强
-- **来源追溯 P1**：CardChoices[wasPicked]精确记录每张卡/遗物/药水的来源
-- **行为异常 P2-P3**：无敌检测（DamageTaken=0）、异常通关时间、路线合理性
-- **局限**：完美伪造（同时修改所有字段一致）无法检测；高手与作弊难以区分
-
-### 关键源码
-
-| 文件 | 说明 |
-|------|------|
-| `MegaCrit.Sts2.Core.Runs.RunHistory` | 历史记录主类 |
-| `MegaCrit.Sts2.Core.Runs.RunHistoryPlayer` | 历史记录玩家数据 |
-| `MegaCrit.Sts2.Core.Runs.PlayerMapPointHistoryEntry` | **流水账核心**：GoldGained/Spent, DamageTaken, CardChoices等 |
-| `MegaCrit.Sts2.Core.Runs.RunHistoryUtilities` | **存档→历史记录转换函数** |
-| `MegaCrit.Sts2.Core.Runs.History.CardChoiceHistoryEntry` | 卡牌选择历史，含wasPicked字段 |
-| `MegaCrit.Sts2.Core.Runs.History.ModelChoiceHistoryEntry` | 遗物/药水选择历史，含wasPicked字段 |
-
-**源码前缀**：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260318\sts2\`
-
-### 提示词记录
-
-| 时间 | 提示词 | 结果概要 |
-|------|--------|----------|
-| 2026-03-21 | 阅读NCC与SharedConfig，阅读百科大全-历史记录模块源码，整理报告 | 完成源码分析，生成 ANALYSIS_REPORT.md |
-| 2026-03-21 | 将报告整理成文档，新建mod项目文件夹；分析历史记录异常检测可行性 | 创建 RunHistoryAnalyzer 项目 |
-| 2026-03-21 | 存档内有关卡牌遗物血量的去留是如何呈现的 | 分析SerializableCard/Relic/PlayerMapPointHistoryEntry各字段写入逻辑 |
-| 2026-03-21 | 历史记录与存档有何不同，详细程度对比如何 | 分析SerializableRun vs RunHistory字段差异，生成 ARCHIVE_VS_HISTORY_COMPARISON.md |
-| 2026-03-21 | 从历史记录入手检测异常，可行性分析并生成文档；创建分记忆 | 生成 FEASIBILITY_ANALYSIS.md；主记忆和分记忆均已更新 |
-| 2026-03-21 | 行为异常模式误报高，废弃；构思UI实现方案，按需检测+按钮+结果窗口+导出报告 | 废弃无敌/时间/路线检测；生成 UI_DESIGN.md；按需检测+分析按钮+结果窗口+TXT导出 |
+| `Data/ancient_peoples_rules.json` | 遗物 100 条 + 先古 NPC 11 条 + 事件 34 条 + 节点覆盖 3 条 |
+| `Data/ancient_stats_report.json` | 67 个存档实测统计（1260 个节点） |
+| `tools/extract_ancient_candidates.py` | 从游戏源码自动提取候选条目 |
+| `tools/analyze_run_ancient_stats.py` | 从 .run 存档统计（自动修复节点类型识别） |
+| `AncientRuleLoader.cs` | C# 统一加载层（JSON > 硬编码回退） |
+
+## 实测校准结论（67 存档，1260 节点）
+
+| 节点 | gold_gained 正常上限 | relic_picks 正常上限 | 说明 |
+|------|---------------------|---------------------|------|
+| monster | ~28（p99=51）；异常值 1000 = 1 例极可能作弊 | **1**（PAELS_WING 献祭） | 1 例 monster gold=1000 极可能作弊 |
+| elite | 60 | **2**（p99=2） | 最高 2 可能含稀有情况 |
+| boss | 120（p99=115） | **1** | boss_relic 极稀有 |
+| treasure | 49（p99=646 为 SPOILS_MAP，已被规则过滤） | **1** | ✅ |
+| ancient | **999**（SIGNET_RING/CURSED_PEARL 拾起时） | **5**（TEZCATARA 事件赠 TOY_BOX + 4 蜡制遗物） | 整段跳过 NonShopLargeGold |
+| event | 162（RANWID_THE_ELDER） | **4**（FAKE_MERCHANT 实测） | 1 例作弊=999 |
+| shop | 由 ShopGoldSpikeRule 覆盖 | 999 | ✅ |
+
+### 关键发现：map_point_type vs rooms[].room_type
+
+- 实测存档 `map_point_type=ancient` 对应 `rooms[].room_type=event`
+- `get_map_point_type()` 优先级：先取 `map_point_type`（非 unknown），否则取 `rooms[].room_type`
+- `NonShopLargeGoldGainRule.ShouldSkipNodeType()` 已接入 `AncientRuleLoader.ShouldSkipNonShopGold()`
+
+## AncientRuleLoader 校准默认值
+
+```csharp
+DefaultRelicPickCeiling:
+  monster=1, elite=2, treasure=1, ancient=5, event=4, rest=1, boss=1, shop=999
+DefaultForeignCharacterCardRelics: ["SEA_GLASS"]
+DefaultForeignCharacterCardEvents: ["COLORFUL_PHILOSOPHERS"]
+```
+
+## 已接入 AncientRuleLoader 的规则
+
+1. `NonShopLargeGoldGainRule.ShouldSkipNodeType()` → `ShouldSkipNonShopGold()`
+2. `RelicMultiPickRule.MaxLegitRelicPicksForNodeType()` → `MaxLegitRelicPicks()`
+3. `CardSourceTraceRule.HasCrossCharacterEvent()` → `IsForeignCharacterCardEvent()`
+4. `CardSourceTraceRule.StatPickedSeaGlassRelic()` → `IsForeignCharacterCardRelic()`
+5. `CharacterCardAffinityRule.PlayerHasSeaGlassRelic()` → `IsForeignCharacterCardRelic()`
+
+## .run 文件节点数据结构关键字段
+
+- `map_point_history[act_idx][node_idx].map_point_type`（如 "ancient"、"monster"）
+- `map_point_history[act_idx][node_idx].rooms[].room_type`（如 "event"、"monster"）
+- `map_point_history[act_idx][node_idx].rooms[].model_id`（如 "EVENT.TEZCATARA"）
+- `player_stats[].gold_gained`（单节点增量，非累积）
+- `player_stats[].relic_choices[].choice`（遗物 ID，如 "RELIC.TOY_BOX"）
+- `player_stats[].relic_choices[].was_picked`（是否被选中）
+
+## 后续维护
+
+1. SL2 更新后：重跑 `tools/extract_ancient_candidates.py`
+2. 新存档累积后：重跑 `tools/analyze_run_ancient_stats.py --run-dir "C:\Users\Administrator\AppData\Roaming\SlayTheSpire2\steam\76561198679823594\modded\profile1\saves\history"`
+3. 若检测器有新误报：在 `Data/ancient_peoples_rules.json` 中注册，无需改 C#

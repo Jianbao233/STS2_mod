@@ -15,6 +15,9 @@ public class HpBoundaryRule : Models.IAnomalyRule
         foreach (var node in act)
         foreach (var stat in node.PlayerStats)
         {
+            // 如果指定了分析目标玩家，跳过其他玩家的节点
+            if (history.AnalysisPlayerId != 0 && stat.PlayerId != history.AnalysisPlayerId) continue;
+
             if (stat.CurrentHp <= 0 || stat.MaxHp <= 0) continue;
 
             if (stat.CurrentHp > stat.MaxHp)

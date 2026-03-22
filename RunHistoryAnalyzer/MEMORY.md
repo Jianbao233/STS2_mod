@@ -10,8 +10,18 @@
 |------|------|
 | **路径** | `K:\杀戮尖塔mod制作\STS2_mod\RunHistoryAnalyzer\` |
 | **目标** | 从"百科大全 → 历史记录"入手，检测玩家作弊产生的异常记录 |
-| **部署** | 单机 Mod，仅本机可见 |
+| **部署** | 单机 Mod，安装到游戏 mods 目录后所有玩家可见 |
 | **数据源** | 历史记录 JSON 文件（`saves/history/*.run`），不依赖存档 |
+| **发布** | https://github.com/Jianbao233/STS2_mod/releases |
+
+---
+
+## 活跃版本
+
+| 版本 | 状态 | 说明 |
+|------|------|------|
+| **0.2.0** | Demo 已发布 | 10 条检测规则 + JSON 规则库 |
+| 0.1.7 | 已废弃 | 初版框架 |
 
 ---
 
@@ -23,6 +33,7 @@
 | `UI_DESIGN.md` | **UI设计方案**：按需检测 + 分析按钮 + 结果窗口 + TXT导出 |
 | `ANALYSIS_REPORT.md` | 早期报告：作弊手段分类、守恒定律算法 |
 | `ARCHIVE_VS_HISTORY_COMPARISON.md` | 存档vs历史记录字段对比，SerializableRun完整表 |
+| `ANCIENT_PEOPLES_DATABASE_PLAN.md` | JSON 规则库建设计划（遗物/事件/节点覆盖，中英双语） |
 
 ---
 
@@ -37,29 +48,37 @@
 ### 检测模式：按需检测
 
 - **不自动检测**：历史记录列表加载时不检测，避免卡顿
-- **玩家主动点**：在 `NRunHistory` 详情面板底部添加【🔍 分析】按钮
+- **玩家主动点**：在 `NRunHistory` 详情面板底部添加【分析】按钮
 - **结果呈现**：弹出结果窗口，高/中/低三级分类显示所有异常
 - **导出报告**：结果窗口底部【导出报告】按钮，导出 .txt 文件
 
-### 检测优先级（P0 → P2，行为类已废弃）
+### 检测优先级（P0 → P2）
 
 ```
 P0（数学等式，零模糊）
-  ├─ GoldConservationRule     金币守恒
-  ├─ HpConservationRule       HP守恒
-  └─ HpBoundaryRule           CurrentHp > MaxHp（数学不可能）
+  ├─ GoldConservationRule        金币守恒
+  ├─ ShopGoldSpikeRule         商店金币尖刺
+  ├─ NonShopLargeGoldGainRule  非商店大额金币
+  ├─ HpConservationRule         HP守恒
+  └─ HpBoundaryRule             CurrentHp > MaxHp（数学不可能）
 
 P1（规则明确，低误报）
-  ├─ CardSourceTraceRule     卡牌来源追溯
-  └─ RelicSourceTraceRule    遗物来源追溯
+  ├─ CardSourceTraceRule        卡牌来源追溯
+  ├─ CharacterCardAffinityRule  角色卡牌亲和性（异色卡检测）
+  ├─ RelicSourceTraceRule       遗物来源追溯
+  └─ RelicMultiPickRule         单节点多遗物选取
 
 P2
-  └─ PotionSourceTraceRule   药水来源追溯
-
-~~无敌检测~~ → 已废弃（高手无伤难以区分）
-~~异常通关时间~~ → 已废弃（阈值难以设定）
-~~路线合理性~~ → 已废弃（特殊情况多）
+  └─ PotionSourceTraceRule      药水来源追溯
 ```
+
+### 先古之民（Ancient）JSON 规则库
+
+- 存放路径：`Data/ancient_peoples_rules.json`（schema_version=1）
+- 支持三键匹配：`map_point_type` + `model_id` + `room_type`
+- 优先级：mpt+model_id > mpt+room_type > mpt
+- 覆盖场景：ancient祭坛、EVENT.TRIAL、多人boss、异色卡遗物等
+- 110+ 遗物效果（中英双语）、8 先古 NPC、34 事件效果
 
 ### 局限性
 
@@ -114,12 +133,13 @@ MaxHP：初始MaxHp + ΣMaxHpGained - ΣMaxHpLost = 最终MaxHp
 
 ## 开发备忘
 
-- **当前阶段**：需求设计阶段，UI设计方案见 `UI_DESIGN.md`
+- **当前阶段**：Demo 发布（0.2.0）
+- **下一步**：UI 面板完善、规则参数可视化调整、游戏更新后数据回归测试
 - **检测时机**：玩家选定历史记录 → 显示分析按钮 → 点击后检测 → 弹出结果窗口
 - **缓存策略**：检测结果缓存内存中，文件修改时间变化则失效重检
 - **Hook 点**：`NRunHistory` 详情面板底部按钮栏，添加分析按钮
 - **导出**：结果窗口→【导出报告】→ FileDialog → `.txt` 文件
-- **构建**：dotnet build + Godot --export-pack，参考 build.ps1
+- **构建**：`dotnet build`（Debug，自动同步到 mods 目录）；`dotnet publish -c Release`（Release）
 - **ModConfig**：可简化为仅一个总开关，暂不实现
 
 ---
@@ -132,3 +152,4 @@ MaxHP：初始MaxHp + ΣMaxHpGained - ΣMaxHpLost = 最终MaxHp
 | 查看UI设计 | "给我看看 UI_DESIGN.md" |
 | 开始编码 | "开始实现第一阶段：数据层+检测层" |
 | 查看数据结构 | "PlayerMapPointHistoryEntry 有哪些字段" |
+| 构建发布 | "构建并发布新版本" |

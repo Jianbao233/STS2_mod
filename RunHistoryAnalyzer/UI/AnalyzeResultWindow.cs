@@ -15,9 +15,10 @@ namespace RunHistoryAnalyzer.UI;
 public partial class AnalyzeResultWindow : Window
 {
     private const float WINDOW_WIDTH = 560f;
-    private const float WINDOW_HEIGHT = 420f;
+    private const float WINDOW_HEIGHT = 480f;
 
     private Label _titleLabel = null!;
+    private Label _contextLabel = null!;
     private Label _summaryLabel = null!;
     private VBoxContainer _anomalyList = null!;
     private Button _exportButton = null!;
@@ -87,10 +88,23 @@ public partial class AnalyzeResultWindow : Window
             VerticalAlignment = VerticalAlignment.Center
         };
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.95f, 1f));
-        _titleLabel.AddThemeFontSizeOverride("font_size", 16);
+        _titleLabel.AddThemeFontSizeOverride("font_size", 18);
         _titleLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _titleLabel.AddThemeStyleboxOverride("normal", _MakeTitleStyle());
         root.AddChild(_titleLabel);
+
+        // ── 对局特征（文件路径、玩家 ID、种子等）──
+        _contextLabel = new Label
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0, 52),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        _contextLabel.AddThemeFontSizeOverride("font_size", 12);
+        _contextLabel.AddThemeColorOverride("font_color", new Color(0.65f, 0.68f, 0.75f, 1f));
+        _contextLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        root.AddChild(_contextLabel);
 
         // ── 摘要栏 ──
         _summaryLabel = new Label
@@ -100,7 +114,7 @@ public partial class AnalyzeResultWindow : Window
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
-        _summaryLabel.AddThemeFontSizeOverride("font_size", 14);
+        _summaryLabel.AddThemeFontSizeOverride("font_size", 16);
         _summaryLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _summaryLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         root.AddChild(_summaryLabel);
@@ -164,6 +178,8 @@ public partial class AnalyzeResultWindow : Window
 
     private void _RefreshContent()
     {
+        _contextLabel.Text = _BuildContextFingerprintText();
+
         if (_result.HasError)
         {
             _titleLabel.Text = "分析失败";
@@ -180,8 +196,13 @@ public partial class AnalyzeResultWindow : Window
         var history = _result.History;
         if (history != null)
         {
-            var charName = history.Players.Count > 0 ? _GetCharacterName(history.Players[0].Character) : "未知";
-            _titleLabel.Text = $"分析报告 — {charName}  {history.GetDifficulty()}";
+            var player = history.GetTargetPlayer();
+            var charName = GetCharacterDisplayInternal(player?.Character ?? "");
+            var isMultiplayer = history.Players.Count > 1;
+            var title = $"分析报告 — {charName}  {history.GetDifficulty()}";
+            if (isMultiplayer)
+                title = $"分析报告 — {charName}（联机）  {history.GetDifficulty()}";
+            _titleLabel.Text = title;
         }
         else
         {
@@ -219,6 +240,34 @@ public partial class AnalyzeResultWindow : Window
         {
             _AddCenteredScrollMessage("该局历史记录未检测到明显异常", isError: false, useOkIcon: true);
         }
+    }
+
+    /// <summary>报告窗口顶部：便于区分是哪份 .run 与当前分析的是哪位玩家。</summary>
+    private string _BuildContextFingerprintText()
+    {
+        var sb = new StringBuilder();
+        var path = _result.FilePath ?? "";
+        sb.AppendLine($"文件：{Path.GetFileName(path)}");
+        if (!string.IsNullOrEmpty(path))
+            sb.AppendLine(path);
+
+        if (_result.CurrentPlayerId != 0)
+            sb.AppendLine($"分析玩家 ID：{_result.CurrentPlayerId}");
+        else
+            sb.AppendLine("分析玩家：全部（联机切换角色后以上方标题为准）");
+
+        if (_result.History != null)
+        {
+            var h = _result.History;
+            sb.AppendLine($"种子：{h.Seed}");
+            sb.AppendLine($"开局：{h.GetStartDateTime():yyyy-MM-dd HH:mm:ss}");
+            if (!string.IsNullOrEmpty(h.BuildId))
+                sb.AppendLine($"构建：{h.BuildId}");
+            if (!string.IsNullOrEmpty(h.GameMode))
+                sb.AppendLine($"模式：{h.GameMode}");
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     private void _ClearAnomalyList()
@@ -292,7 +341,7 @@ public partial class AnalyzeResultWindow : Window
             SizeFlagsHorizontal = SizeFlags.ShrinkEnd
         };
         levelDot.AddThemeColorOverride("font_color", color);
-        levelDot.AddThemeFontSizeOverride("font_size", 14);
+        levelDot.AddThemeFontSizeOverride("font_size", 16);
         titleRow.AddChild(levelDot);
 
         var titleText = new Label
@@ -301,7 +350,7 @@ public partial class AnalyzeResultWindow : Window
             SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
         titleText.AddThemeColorOverride("font_color", color);
-        titleText.AddThemeFontSizeOverride("font_size", 13);
+        titleText.AddThemeFontSizeOverride("font_size", 15);
         titleText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         titleRow.AddChild(titleText);
 
@@ -311,7 +360,7 @@ public partial class AnalyzeResultWindow : Window
             SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
         descText.AddThemeColorOverride("font_color", new Color(0.75f, 0.75f, 0.8f, 1f));
-        descText.AddThemeFontSizeOverride("font_size", 12);
+        descText.AddThemeFontSizeOverride("font_size", 14);
         descText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         content.AddChild(descText);
 
@@ -323,7 +372,7 @@ public partial class AnalyzeResultWindow : Window
                 SizeFlagsHorizontal = SizeFlags.ExpandFill
             };
             detailText.AddThemeColorOverride("font_color", new Color(0.5f, 0.5f, 0.55f, 1f));
-            detailText.AddThemeFontSizeOverride("font_size", 11);
+            detailText.AddThemeFontSizeOverride("font_size", 13);
             detailText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             content.AddChild(detailText);
         }
@@ -351,7 +400,7 @@ public partial class AnalyzeResultWindow : Window
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         label.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        label.AddThemeFontSizeOverride("font_size", 13);
+        label.AddThemeFontSizeOverride("font_size", 15);
         if (isError)
             label.AddThemeColorOverride("font_color", new Color(1f, 0.5f, 0.5f, 1f));
         else
@@ -365,7 +414,8 @@ public partial class AnalyzeResultWindow : Window
         if (_result == null) return;
 
         var history = _result.History;
-        var charName = history?.Players.Count > 0 ? _GetCharacterName(history.Players[0].Character) : "未知";
+        var player = history?.GetTargetPlayer();
+        var charName = player != null ? _GetCharacterName(player.Character) : "未知";
         var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         var defaultFileName = $"runhistory_report_{charName}_{timestamp}.txt";
 
@@ -408,7 +458,22 @@ public partial class AnalyzeResultWindow : Window
         "CHARACTER.SILENT" => "静默猎手",
         "CHARACTER.DEFECT" => "故障机器人",
         "CHARACTER.NECROMANCER" => "亡灵契约师",
+        "CHARACTER.NECROBINDER" => "亡灵契约师",
         "CHARACTER.HEXAGUARD" => "储君",
+        "CHARACTER.REGENT" => "储君",
+        "MOD.WATCHER" => "观者",
+        _ => characterId
+    };
+
+    private static string GetCharacterDisplayInternal(string characterId) => characterId switch
+    {
+        "CHARACTER.IRONCLAD" => "铁甲战士",
+        "CHARACTER.SILENT" => "静默猎手",
+        "CHARACTER.DEFECT" => "故障机器人",
+        "CHARACTER.NECROMANCER" => "亡灵契约师",
+        "CHARACTER.NECROBINDER" => "亡灵契约师",
+        "CHARACTER.HEXAGUARD" => "储君",
+        "CHARACTER.REGENT" => "储君",
         "MOD.WATCHER" => "观者",
         _ => characterId
     };

@@ -176,7 +176,7 @@ public partial class AnalyzeButton : CanvasLayer
 
         _SetButtonState(AnalyzeBtnState.Loading);
 
-        var result = await Task.Run(() => RunHistoryAnalyzerCore.Analyze(_currentFilePath));
+        var result = await Task.Run(() => RunHistoryAnalyzerCore.Analyze(_currentFilePath, RunHistoryAnalyzerMod.CurrentPlayerId));
         _cachedResult = result;
 
         if (result.HasError)
