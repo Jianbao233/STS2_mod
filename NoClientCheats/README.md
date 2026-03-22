@@ -12,9 +12,11 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 |------|------|
 | **Block Client Cheats** | 房主启用时，客机发出的作弊指令被静默丢弃，不入队、不生效 |
 | **Hide from Mod List** | 从联机 Mod 列表中移除本 Mod，客机无法检测到（参考 sts2-heybox-support） |
-| **拦截历史面板** | 按 **F6** 呼出/隐藏，完整记录每条作弊拦截（时间、玩家、角色、指令），可拖拽移动、边缘调整大小 |
+| **游戏顶栏呼出按钮** | 在游戏顶栏 PauseButton 左侧注入「记录」按钮，点击直接呼出/隐藏历史面板 |
+| **F6 快捷键** | 按 **F6** 呼出/隐藏作弊拦截历史面板 |
+| **作弊拦截历史面板** | 完整记录每条作弊拦截（时间、玩家、角色、指令），可拖拽移动、边缘调整大小 |
 | **本地化汉化** | 角色名、遗物名、指令均已汉化（如 `relic ICE_CREAM` → 「遗物：冰淇淋」） |
-| **ModConfig** | 游戏内「模组配置」可开关以上各项（拦截开关、弹窗时长、最大历史条数） |
+| **ModConfig** | 游戏内「模组配置」可调整所有选项 |
 
 ---
 
@@ -36,7 +38,6 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
    mods/
    └── NoClientCheats/
        ├── NoClientCheats.dll
-       ├── NoClientCheats.pck
        └── mod_manifest.json
    ```
 5. 启动游戏，仅**房主**需安装；客机无需安装本 Mod
@@ -50,10 +51,15 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 | 选项 | 默认 | 说明 |
 |------|------|------|
 | Block Client Cheats | 开 | 禁止客机作弊指令 |
-| Hide from Mod List | 开 | 从联机 Mod 列表隐藏本 Mod |
-| Notification Duration (s) | 5.0 | 弹窗持续时长（秒） |
+| Show Top Bar Button | 开 | 在游戏顶栏显示呼出按钮 |
+| Show Popup | 开 | 作弊被拦截时显示红色弹窗 |
+| Popup Duration (s) | 5.0 | 弹窗持续时长（秒） |
+| Show Panel on Cheat | 关 | 客机作弊被拦截时自动弹出历史面板 |
 | Max History Records | 25 | 历史面板最多保存条数 |
-| Show History Panel | 开 | 启用 F6 呼出历史记录面板 |
+| History Toggle Key | F6 | 呼出历史面板的快捷键 |
+| 呼出历史面板（操作按钮） | — | 点击呼出作弊拦截历史面板 |
+| 窗口居中（操作按钮） | — | 将历史面板窗口移回屏幕中央 |
+| Hide from Mod List | 开 | 从联机 Mod 列表隐藏本 Mod |
 
 ---
 
@@ -77,28 +83,46 @@ cd NoClientCheats
 
 ## Changelog / 更新日志
 
+### v1.1.5（2026-03-22）
+
+- **游戏顶栏注入呼出按钮**：Hook `NTopBar._Ready`，在顶栏 PauseButton 左侧注入「记录」按钮，点击直接呼出/隐藏历史面板，完全绕 ModConfig
+- **彻底修复 `_BuildUI()` 未调用 Bug**：添加 `CheatHistoryPanel._Ready()` 覆盖调用 `EnsureWindowBuilt()`，窗口才真正构建出来（之前从未出现过）
+- **移除 `show_history_panel` 开关**：历史面板始终存在，由顶栏按钮/F6 控制显隐，不再有关闭后无法再打开的问题
+- **新增 `show_topbar_button` 开关**：控制顶栏呼出按钮是否显示
+- **恢复 ModConfig 操作按钮**：`btn_open_history` / `btn_center_window` 改回 Toggle 类型（`DefaultValue=false`，点击触发后重置），可从配置菜单呼出面板和居中窗口
+- **快捷键 F9 → F6**
+- **移除 `#if DEBUG` 自动弹出**：调试构建不再自动弹出面板
+- `SyncFromConfig` 加 `IsAvailable` 保护
+
+### v1.1.4（2026-03-22）
+
+- 修复操作按钮 OnChanged 不触发问题（改用 Godot 原生 .Pressed 委托）
+- 快捷键从 F9 改为 F6
+- SyncFromConfig 加 IsAvailable 保护
+
+### v1.1.3（2026-03-22）
+
+- 重构热键机制：新建独立 InputHandlerNode，纯 _Process 轮询
+- ModConfig 新增操作按钮：打开历史面板 / 窗口居中
+- 标题栏新增居中按钮
+
 ### v1.1.2（2026-03-21）
 
-- **修复初始化时机 Bug**：原版本在 `ModInitializer` 阶段加载配置时 `LocManager` 尚未初始化，导致配置加载失败。新版本采用**静态构造函数 + 两帧延迟**方案，三重保险确保在 `LocManager` 就绪后才初始化，完全兼容 ModConfig v0.1.5 及更新版本
-- 已知问题：如发现面板无法唤起，更新最新的 ModConfig（[下载地址](https://github.com/xhyrzldf/ModConfig-STS2)）
+- **修复初始化时机 Bug**：原版本在 `ModInitializer` 阶段加载配置时 `LocManager` 尚未初始化，导致配置加载失败。新版本采用**静态构造函数 + 两帧延迟**方案，三重保险确保在 `LocManager` 就绪后才初始化
 
 ### v1.1.1（2026-03-20）
 
-- 修复历史面板 `RefreshList()` 误删空状态标签 `_emptyLabel` 的问题，面板不再崩溃
+- 修复历史面板 `RefreshList()` 误删空状态标签 `_emptyLabel` 的问题
 - `notification_duration` 改为 **Slider**（1–15秒，步长0.5）
 - `history_max` 改为 **Dropdown**（10/15/20/25/30/35/40/45/50）
-- `show_history_panel` 回调修正为设置 `NoClientCheatsMod.ShowHistoryPanel`，F6 仅在该配置开启时响应
-- **作弊记录新增角色名**：`CheatRecord` 新增 `CharacterName` 字段
-- **弹窗显示 Steam名 + 角色 + 指令**：`[禁止作弊] Steam名 | 角色：xxx | 指令`
-- **历史面板行显示**：`时间 Steam名 (角色名) → 指令`
-- **Patch 解析玩家角色**：`ClientCheatBlockPatch._GetPlayerCharacter(senderId)` 反射 `RunState.CurrentRun.Players` 按 SteamId 匹配
+- 作弊记录新增角色名：`CheatRecord` 新增 `CharacterName` 字段
+- 弹窗显示 Steam名 + 角色 + 指令
+- Patch 解析玩家角色：`ClientCheatBlockPatch._GetPlayerCharacter(senderId)` 反射匹配
 
 ### v1.1.0（2026-03-20）
 
 - 角色/遗物本地化汉化（使用游戏 LocString）
-- 弹窗与面板内角色名、遗物名均已汉化
-- 历史面板 UI 修复（标题计数、窗口宽度、时间列固定）
-- **历史面板可拖拽/可调整大小**（F6 呼出/隐藏）
+- 历史面板可拖拽/可调整大小（F6 呼出/隐藏）
 
 ---
 
