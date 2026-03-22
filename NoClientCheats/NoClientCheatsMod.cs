@@ -18,7 +18,7 @@ public static class NoClientCheatsMod
     internal static bool ShowHistoryOnCheat = false;
     internal static float NotificationDuration = 5.0f;
     internal static int HistoryMaxRecords = 25;
-    internal static Key HistoryToggleKey = Key.F9;
+    internal static Key HistoryToggleKey = Key.F6;
 
     // ── 内部状态 ─────────────────────────────────────────────────────────
     private static bool _initialized;
@@ -45,7 +45,7 @@ public static class NoClientCheatsMod
     public static void ShowHistoryPanelUI()
     {
         if (!ShowHistoryPanel) return;
-        EnsureHistoryPanelCreated();
+        EnsureHistoryPanelCreated(); // 确保节点存在
         if (_historyPanel != null && GodotObject.IsInstanceValid(_historyPanel))
             _historyPanel.ShowPanel();
     }
@@ -57,6 +57,13 @@ public static class NoClientCheatsMod
         _initialized = true;
 
         ModConfigIntegration.Register();
+
+#if DEBUG
+        // 调试：游戏加载时自动弹出历史面板，方便验证注册成功
+        EnsureHistoryPanelCreated();
+        if (GodotObject.IsInstanceValid(_historyPanel))
+            _historyPanel.ShowPanel();
+#endif
 
         // 通知弹窗立即创建（节点很轻量，随时可能触发）
         _notificationNode = new CheatNotification();

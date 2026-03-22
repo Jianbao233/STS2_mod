@@ -53,6 +53,11 @@ public partial class CheatHistoryPanel : CanvasLayer
 
     const float TitleBarHeight = 32f;
 
+    public override void _Ready()
+    {
+        EnsureWindowBuilt(); // 构建窗口 UI
+    }
+
     public override void _Input(InputEvent ev)
     {
         if (_window == null || !GodotObject.IsInstanceValid(_window) || !_window.Visible) return;
@@ -149,6 +154,7 @@ public partial class CheatHistoryPanel : CanvasLayer
 
     public void ShowPanel()
     {
+        EnsureWindowBuilt(); // 首次 Show 时若 _Ready 尚未执行，先构建窗口
         if (_window == null || !GodotObject.IsInstanceValid(_window)) return;
         _window.Visible = true;
         _isVisible = true;
@@ -160,6 +166,18 @@ public partial class CheatHistoryPanel : CanvasLayer
         if (_window == null || !GodotObject.IsInstanceValid(_window)) return;
         _window.Visible = false;
         _isVisible = false;
+    }
+
+    /// <summary>
+    /// 确保窗口 UI 已构建（可被 ShowPanel 提前调用，以防 _Ready 尚未执行）。
+    /// 加 _uiBuilt 保护，重复调用安全。
+    /// </summary>
+    bool _uiBuilt;
+    void EnsureWindowBuilt()
+    {
+        if (_uiBuilt && _window != null && GodotObject.IsInstanceValid(_window)) return;
+        if (_window == null || !GodotObject.IsInstanceValid(_window)) _BuildUI();
+        _uiBuilt = true;
     }
 
     /// <summary>将窗口居中到屏幕中央。</summary>
@@ -376,6 +394,19 @@ public partial class CheatHistoryPanel : CanvasLayer
         closeBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f, 1f));
         closeBtn.Pressed += () => HidePanel();
         titleRow.AddChild(closeBtn);
+
+        // 呼出按钮（在关闭前，点此按钮确保面板可见）
+        var showBtn = new Button
+        {
+            Text = "呼出",
+            Flat = true,
+            CustomMinimumSize = new Vector2(50, 32),
+            TooltipText = "呼出历史面板（重新显示）"
+        };
+        showBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
+        showBtn.AddThemeColorOverride("font_hover_color", new Color(0.4f, 0.9f, 0.5f, 1f));
+        showBtn.Pressed += () => ShowPanel();
+        titleRow.AddChild(showBtn);
 
         // ── 快捷键提示 ──
         var hintRow = new HBoxContainer { Name = "HintRow", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

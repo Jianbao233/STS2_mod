@@ -111,14 +111,13 @@ internal static class ModConfigIntegration
             "How long the red popup stays (seconds).", "红色弹窗停留时间（秒）。",
             v => { try { NoClientCheatsMod.NotificationDuration = Convert.ToSingle(v); } catch { } }));
 
-        list.Add(MakeHeader("History Panel (F9)", "历史面板（F9）"));
+        list.Add(MakeHeader("History Panel (F6)", "历史面板（F6）"));
         list.Add(MakeToggle("show_history_panel", "Enable History Panel", "启用历史面板",
-            "Enable F9 to toggle cheat history panel.", "启用 F9 呼出历史面板。",
-            true, v => {
+            "Enable F6 to toggle cheat history panel.", "启用 F6 呼出历史面板。",
+            false, v => {
                 try { NoClientCheatsMod.ShowHistoryPanel = Convert.ToBoolean(v); }
                 catch { }
-                if (!NoClientCheatsMod.ShowHistoryPanel)
-                    NoClientCheatsMod.DestroyHistoryPanel();
+                // 不再在此销毁面板；ShowHistoryPanelUI 由快捷键呼出，按需创建
             }));
         list.Add(MakeToggle("show_history_on_cheat", "Show Panel on Cheat", "作弊时唤起历史面板",
             "When a client cheat is blocked, automatically open the history panel.", "客机作弊被拦截时自动打开历史记录面板。",
@@ -132,17 +131,10 @@ internal static class ModConfigIntegration
 
         // ── 快捷键绑定 ────────────────────────────────────────────────────
         list.Add(MakeKeyBind("history_key", "History Toggle Key", "历史面板快捷键",
-            (long)Key.F9,
+            (long)Key.F6,
             v => { try { if (v != null) NoClientCheatsMod.SetHistoryKeyFromLong(Convert.ToInt64(v)); } catch { } }));
 
-        // ── 操作按钮（KeyBind 类型模拟按钮，点击触发动作后立即重置为 Unbound）──
-        list.Add(MakeHeader("Actions", "操作"));
-        list.Add(MakeActionButton("btn_open_history", "Open History Panel", "打开历史面板",
-            "Open the cheat interception history panel.", "呼出历史记录面板。",
-            () => NoClientCheatsMod.ShowHistoryPanelUI()));
-        list.Add(MakeActionButton("btn_center_window", "Center Window", "窗口居中",
-            "Move the history panel back to the center of the screen.", "将历史面板窗口移回屏幕中央。",
-            () => NoClientCheatsMod.CenterHistoryWindow()));
+        // ── 操作按钮：改用 Godot 原生按钮（面板标题栏），ModConfig 配置项已移除 ──
 
         list.Add(MakeSeparator());
         list.Add(MakeHeader("Mod Detection", "Mod 检测"));
@@ -169,14 +161,14 @@ internal static class ModConfigIntegration
 
     private static void SyncFromConfig()
     {
+        if (!IsAvailable) return;
         try { NoClientCheatsMod.BlockEnabled = GetValue("block_enabled", true); } catch { }
         try { NoClientCheatsMod.ShowNotification = GetValue("show_notification", true); } catch { }
-        try { NoClientCheatsMod.ShowHistoryPanel = GetValue("show_history_panel", true); } catch { }
         try { NoClientCheatsMod.ShowHistoryOnCheat = GetValue("show_history_on_cheat", false); } catch { }
         try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
         try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }
-        try { NoClientCheatsMod.SetHistoryKeyFromLong(GetValue("history_key", (long)Key.F9)); } catch { }
+        try { NoClientCheatsMod.SetHistoryKeyFromLong(GetValue("history_key", (long)Key.F6)); } catch { }
     }
 
     private static T GetValue<T>(string key, T fallback)
@@ -203,36 +195,35 @@ internal static class ModConfigIntegration
 
     private static object ConfigTypeValue(string name) => Enum.Parse(_configType, name);
 
-    // ── 操作按钮（KeyBind 类型模拟按钮）────────────────────────────────
-    // 原理：
-    // 1. DefaultValue=0（Unbound），OnChanged 只在用户按键时触发（ESC/鼠标也触发，返回0）
-    // 2. OnChanged 里执行动作，然后直接调用 ModConfigManager.SetValue(0L) 重置
-    //    ModConfigManager.SetValue 是 internal static，绕过 ModConfigApi.SetValue，
-    //    因而不会再次触发 OnChanged，彻底避免递归
-    // 3. 按钮文字始终显示 "Unbound"（等于默认值），始终可点
-    private static readonly long _buttonResetValue = 0L;
+    // ── 操作按钮（Toggle 类型）───────────────────────────────────────────
+    // Toggle 的 OnChanged 只在值变化时触发：DefaultValue=false，
+    // 初始值 false → 用户点击变成 true → OnChanged 触发 → 执行 action → 重置为 false
+    // 走 ModConfigManager.SetValue 绕过 OnChanged，彻底避免递归
+    private static readonly object _buttonResetFalse = false;
 
     private static object MakeActionButton(string key, string labelEn, string labelZhs,
         string descEn, string descZhs, Action action)
     {
         var e = Activator.CreateInstance(_entryType);
         SetProp(e, "Key", key);
-        SetProp(e, "Label", labelEn); // 显示在按钮上（英）
-        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs)); // 显示在按钮上（汉）
-        SetProp(e, "Type", ConfigTypeValue("KeyBind"));
-        SetProp(e, "DefaultValue", _buttonResetValue); // 0 = Unbound，始终与默认值一致
+        SetProp(e, "Label", labelEn);
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
+        SetProp(e, "Type", ConfigTypeValue("Toggle"));
+        SetProp(e, "DefaultValue", _buttonResetFalse); // 初始 false，点击后变 true 触发 OnChanged
         SetProp(e, "Description", descEn);
         SetProp(e, "Descriptions", Dict("en", descEn, "zhs", descZhs));
         SetProp(e, "OnChanged", new Action<object>(v => {
+            // 跳过重置触发的回调（v == false）
+            if (v is bool b && !b) return;
             try { action(); }
             catch (Exception ex)
             {
                 GD.PushWarning($"[NoClientCheats] Action button '{key}' error: {ex.Message}");
             }
-            // 直接调用 ModConfigManager.SetValue 绕过 OnChanged 重置为 0
+            // 直接调用 ModConfigManager.SetValue 绕过 OnChanged，重置为 false
             try
             {
-                _managerSetValue?.Invoke(null, new object[] { NoClientCheatsMod.ModId, key, _buttonResetValue });
+                _managerSetValue?.Invoke(null, new object[] { NoClientCheatsMod.ModId, key, _buttonResetFalse });
             }
             catch { }
         }));
