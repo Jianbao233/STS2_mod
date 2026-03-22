@@ -130,6 +130,11 @@ internal static class ModConfigIntegration
             "Max cheat history records to keep.", "最多保存的历史记录条数。",
             v => { try { if (v != null) NoClientCheatsMod.HistoryMaxRecords = Convert.ToInt32(v.ToString()); } catch { } }));
 
+        // ── 快捷键绑定 ────────────────────────────────────────────────────
+        list.Add(MakeKeyBind("history_key", "History Toggle Key", "历史面板快捷键",
+            (long)Key.F9,
+            v => { try { if (v != null) NoClientCheatsMod.SetHistoryKeyFromLong(Convert.ToInt64(v)); } catch { } }));
+
         // ── 操作按钮（KeyBind 类型模拟按钮，点击触发动作后立即重置为 Unbound）──
         list.Add(MakeHeader("Actions", "操作"));
         list.Add(MakeActionButton("btn_open_history", "Open History Panel", "打开历史面板",
@@ -171,6 +176,7 @@ internal static class ModConfigIntegration
         try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
         try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }
+        try { NoClientCheatsMod.SetHistoryKeyFromLong(GetValue("history_key", (long)Key.F9)); } catch { }
     }
 
     private static T GetValue<T>(string key, T fallback)
@@ -197,22 +203,24 @@ internal static class ModConfigIntegration
 
     private static object ConfigTypeValue(string name) => Enum.Parse(_configType, name);
 
-    // ── 操作按钮 ─────────────────────────────────────────────────────────
-    // 使用 Toggle 类型（DefaultValue=true），OnChanged 触发动作后
-    // 直接用 ModConfigManager.SetValue 写回 true，不走 ModConfigApi.SetValue
-    // 因而不会再次触发 OnChanged，彻底避免递归。
-    private static readonly object _buttonValueTrue = true;
-    private static readonly object _buttonValueFalse = false;
+    // ── 操作按钮（KeyBind 类型模拟按钮）────────────────────────────────
+    // 原理：
+    // 1. DefaultValue=0（Unbound），OnChanged 只在用户按键时触发（ESC/鼠标也触发，返回0）
+    // 2. OnChanged 里执行动作，然后直接调用 ModConfigManager.SetValue(0L) 重置
+    //    ModConfigManager.SetValue 是 internal static，绕过 ModConfigApi.SetValue，
+    //    因而不会再次触发 OnChanged，彻底避免递归
+    // 3. 按钮文字始终显示 "Unbound"（等于默认值），始终可点
+    private static readonly long _buttonResetValue = 0L;
 
     private static object MakeActionButton(string key, string labelEn, string labelZhs,
         string descEn, string descZhs, Action action)
     {
         var e = Activator.CreateInstance(_entryType);
         SetProp(e, "Key", key);
-        SetProp(e, "Label", labelEn);
-        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
-        SetProp(e, "Type", ConfigTypeValue("Toggle"));
-        SetProp(e, "DefaultValue", _buttonValueTrue); // toggle 默认 true
+        SetProp(e, "Label", labelEn); // 显示在按钮上（英）
+        SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs)); // 显示在按钮上（汉）
+        SetProp(e, "Type", ConfigTypeValue("KeyBind"));
+        SetProp(e, "DefaultValue", _buttonResetValue); // 0 = Unbound，始终与默认值一致
         SetProp(e, "Description", descEn);
         SetProp(e, "Descriptions", Dict("en", descEn, "zhs", descZhs));
         SetProp(e, "OnChanged", new Action<object>(v => {
@@ -221,11 +229,10 @@ internal static class ModConfigIntegration
             {
                 GD.PushWarning($"[NoClientCheats] Action button '{key}' error: {ex.Message}");
             }
-            // 直接调用 ModConfigManager.SetValue 绕过 OnChanged，把值重置为 true
-            // 不走 ModConfigApi.SetValue，因而不会再次触发 OnChanged
+            // 直接调用 ModConfigManager.SetValue 绕过 OnChanged 重置为 0
             try
             {
-                _managerSetValue?.Invoke(null, new object[] { NoClientCheatsMod.ModId, key, _buttonValueTrue });
+                _managerSetValue?.Invoke(null, new object[] { NoClientCheatsMod.ModId, key, _buttonResetValue });
             }
             catch { }
         }));
