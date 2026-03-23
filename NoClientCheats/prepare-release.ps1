@@ -1,30 +1,32 @@
-﻿# Prepare GitHub Release package for NoClientCheats
+# Prepare GitHub Release package for NoClientCheats
 # Usage: .\prepare-release.ps1 [-Version "1.0.0"]
-# 1) Run build.ps1 first to build and deploy the mod
-# 2) This script packs mods\NoClientCheats into NoClientCheats-vX.X.X.zip
-# 3) Output to release/ for gh release create or web upload
+# IMPORTANT: Always run .\build.ps1 FIRST before this script.
+#   build.ps1 copies artifacts to both:
+#     1) Steam mods\NoClientCheats\  (for live testing)
+#     2) torelease\                   (this script uses this)
+#   This ensures release packages always contain freshly-built files.
 param(
-    [string]$Version = "1.1.1",
-    [string]$Sts2GamePath = "K:\SteamLibrary\steamapps\common\Slay the Spire 2"
+    [string]$Version = "1.1.1"
 )
 $ErrorActionPreference = "Stop"
-$ModsPath = Join-Path $Sts2GamePath "mods\NoClientCheats"
-$ReleaseDir = Join-Path $PSScriptRoot "release"
+$ProjectRoot = $PSScriptRoot
+$ToReleaseDir = Join-Path $ProjectRoot "torelease"
+$ReleaseDir = Join-Path $ProjectRoot "release"
 $ZipName = "NoClientCheats-v$Version.zip"
 
-if (-not (Test-Path $ModsPath)) {
-    Write-Host "Mod folder not found: $ModsPath"
-    Write-Host "Run build.ps1 first."
-    exit 1
-}
-
+# Verify torelease folder has all required files (proving build.ps1 was run)
 $RequiredFiles = @("NoClientCheats.dll", "NoClientCheats.pck", "mod_manifest.json")
+$Missing = @()
 foreach ($f in $RequiredFiles) {
-    $p = Join-Path $ModsPath $f
+    $p = Join-Path $ToReleaseDir $f
     if (-not (Test-Path $p)) {
-        Write-Host "Missing file: $f"
-        exit 1
+        $Missing += $f
     }
+}
+if ($Missing.Count -gt 0) {
+    Write-Host "ERROR: Missing files in torelease\: $($Missing -join ', ')" -ForegroundColor Red
+    Write-Host "Run .\build.ps1 first to build and snapshot files." -ForegroundColor Yellow
+    exit 1
 }
 
 New-Item -ItemType Directory -Path $ReleaseDir -Force | Out-Null
@@ -33,9 +35,13 @@ if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
 
 $TempDir = Join-Path $env:TEMP "NoClientCheats-release-$(Get-Random)"
 New-Item -ItemType Directory -Path (Join-Path $TempDir "NoClientCheats") -Force | Out-Null
-Copy-Item (Join-Path $ModsPath "NoClientCheats.dll") -Destination (Join-Path $TempDir "NoClientCheats")
-Copy-Item (Join-Path $ModsPath "NoClientCheats.pck") -Destination (Join-Path $TempDir "NoClientCheats")
-Copy-Item (Join-Path $ModsPath "mod_manifest.json") -Destination (Join-Path $TempDir "NoClientCheats")
+# Copy from torelease (freshly built snapshot), NOT from game mods folder
+Copy-Item (Join-Path $ToReleaseDir "NoClientCheats.dll")   -Destination (Join-Path $TempDir "NoClientCheats")
+Copy-Item (Join-Path $ToReleaseDir "NoClientCheats.pck")   -Destination (Join-Path $TempDir "NoClientCheats")
+Copy-Item (Join-Path $ToReleaseDir "mod_manifest.json")    -Destination (Join-Path $TempDir "NoClientCheats")
+if (Test-Path (Join-Path $ToReleaseDir "last_build.txt")) {
+    Copy-Item (Join-Path $ToReleaseDir "last_build.txt")   -Destination (Join-Path $TempDir "NoClientCheats")
+}
 
 Compress-Archive -Path (Join-Path $TempDir "NoClientCheats") -DestinationPath $ZipPath
 Remove-Item $TempDir -Recurse -Force

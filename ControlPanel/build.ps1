@@ -49,5 +49,15 @@ if (Test-Path $jsonPath) {
     Copy-Item $jsonPath -Destination (Join-Path $Sts2GamePath "VC_STS2_FULL_IDS.json") -Force
     Write-Host "Copied VC_STS2_FULL_IDS.json to game root"
 }
+
+# ── 同时复制到 torelease（发布专用，每次构建都是全新快照）─────────────
+$ToReleaseDir = Join-Path $ProjectRoot "torelease"
+New-Item -ItemType Directory -Path $ToReleaseDir -Force | Out-Null
+Copy-Item $DllSrc -Destination (Join-Path $ToReleaseDir "ControlPanel.dll") -Force
+Copy-Item "ControlPanel.pck" -Destination (Join-Path $ToReleaseDir "ControlPanel.pck") -Force
+Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v2 $buildStamp" -Encoding UTF8
+if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ToReleaseDir "mod_manifest.json") -Force }
+
 Write-Host "[3/3] Copied to $ModsOutput"
+Write-Host "         Also snapshot → $ToReleaseDir (for release packaging)"
 Write-Host "Build done. F7 toggles Control Panel in game."

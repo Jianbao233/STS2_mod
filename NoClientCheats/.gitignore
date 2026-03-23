@@ -6,6 +6,7 @@ project.godot.lock
 
 # Build output
 release/
+torelease/
 *.zip
 
 # IDE

@@ -54,5 +54,14 @@ New-Item -ItemType Directory -Path $ModsOutput -Force | Out-Null
 Copy-Item $DllSrc -Destination (Join-Path $ModsOutput "RichPing.dll") -Force
 Copy-Item "RichPing.pck" -Destination (Join-Path $ModsOutput "RichPing.pck") -Force
 if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ModsOutput "mod_manifest.json") -Force }
+
+# ── 同时复制到 torelease（发布专用，每次构建都是全新快照）─────────────
+$ToReleaseDir = Join-Path $ProjectRoot "torelease"
+New-Item -ItemType Directory -Path $ToReleaseDir -Force | Out-Null
+Copy-Item $DllSrc -Destination (Join-Path $ToReleaseDir "RichPing.dll") -Force
+Copy-Item "RichPing.pck" -Destination (Join-Path $ToReleaseDir "RichPing.pck") -Force
+if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ToReleaseDir "mod_manifest.json") -Force }
+
 Write-Host "[3/3] Copied to $ModsOutput"
+Write-Host "         Also snapshot → $ToReleaseDir (for release packaging)"
 Write-Host "Build done. Launch game to test."

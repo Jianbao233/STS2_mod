@@ -156,7 +156,7 @@ MaxHP：初始MaxHp + ΣMaxHpGained - ΣMaxHpLost = 最终MaxHp
 - **缓存策略**：检测结果缓存内存中，文件修改时间变化则失效重检
 - **Hook 点**：`NRunHistory` 详情面板底部按钮栏，添加分析按钮
 - **导出**：结果窗口→【导出报告】→ FileDialog → `.txt` 文件
-- **构建**：`dotnet build`（Debug，自动同步到 mods 目录）；`dotnet publish -c Release`（Release）；构建前需停游戏避免 DLL 锁定
+- **构建**：必须先 `.\build.ps1`（构建 + 同步到 Steam mods + 快照到 `torelease\`），然后 `.\prepare-release.ps1`（从 `torelease\` 打包，强制检查缺文件则报错退出）；绝不能跳过 `build.ps1` 直接打包；构建前需停游戏避免 DLL 锁定
 - **ModConfig**：可简化为仅一个总开关，暂不实现
 
 ---

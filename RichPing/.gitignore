@@ -1,6 +1,13 @@
+# Godot build artifacts
+.godot/
+*.pck
+*.import
+project.godot.lock
+
 # 从游戏复制的运行时 DLL，勿提交
 sts2.dll
 
 # Release 打包输出
 release/
+torelease/
 *.zip

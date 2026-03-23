@@ -121,18 +121,17 @@ object _historyLock;                 // 线程安全保护
 
 ```powershell
 cd NoClientCheats
-.\build.ps1
-# 产物复制到 Steam mods\NoClientCheats\ 目录
+.\build.ps1           # 构建 + 同步到 Steam mods + 快照到 torelease
+# 测试游戏功能...
+.\prepare-release.ps1  # 从 torelease 打包（强制检查，缺文件则报错）
 ```
 
-需要：.NET 8 SDK、Godot 4.5.1 Mono
+需要：.NET 8 SDK、Godot 4.5.1 Mono。
 
-### 发布
-
-```powershell
-gh release create v1.1.5 --title "v1.1.5" --notes "..."
-# 上传 NoClientCheats.dll 到 release assets
-```
+**发布安全规则**：
+- `build.ps1` 同时写入 `Steam mods\NoClientCheats\` 和项目 `torelease\`
+- `prepare-release.ps1` **只从 `torelease\` 打包**，且在检测到文件缺失时立即报错退出
+- 绝不能跳过 `build.ps1` 直接运行 `prepare-release.ps1`，否则打包的是旧文件
 
 ### 调试日志（GD.Print 输出）
 

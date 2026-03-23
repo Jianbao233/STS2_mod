@@ -1,3 +1,12 @@
+## v1.1.6（2026-03-23）
+
+### 修复：打包流程重建
+
+- **重建发布工作流**：修复了 GitHub release zip 包含旧文件的问题
+- `build.ps1` 现同时将产物同步到 `Steam mods/` 和项目 `torelease/` 目录
+- `prepare-release.ps1` **只从 `torelease/` 打包**，且在检测到文件缺失时立即报错退出，不再打包游戏 mods 目录中的未知版本文件
+- 新增 `.gitignore` 规则，排除 `torelease/` 目录
+
 ## v1.1.5（2026-03-22）
 
 - 游戏顶栏注入呼出按钮：Hook `NTopBar._Ready`，在顶栏 PauseButton 左侧注入「记录」按钮，点击直接呼出/隐藏历史面板，完全绕 ModConfig
@@ -10,8 +19,8 @@
 
 ### 安装说明
 
-1. 解压 `NoClientCheats-v1.1.5.zip` 到游戏 `mods/` 目录
-2. 确保目录结构：`mods/NoClientCheats/NoClientCheats.dll` 和 `mods/NoClientCheats/mod_manifest.json`
+1. 解压 `NoClientCheats-v1.1.6.zip` 到游戏 `mods/` 目录
+2. 解压后目录结构：`mods/NoClientCheats/NoClientCheats.dll` + `mods/NoClientCheats/mod_manifest.json`
 3. 仅房主需安装；客机无需安装
 
 ### 依赖

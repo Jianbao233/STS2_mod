@@ -1,30 +1,26 @@
 # Prepare GitHub Release package for RichPing
 # Usage: .\prepare-release.ps1 [-Version "0.1.1"]
-# 1) Run build.ps1 first to build and deploy the mod
-# 2) This script packs mods\RichPing into RichPing-vX.X.X.zip
-# 3) Output to release/ for gh release create or web upload
-param(
-    [string]$Version = "0.1.1",
-    [string]$Sts2GamePath = "K:\SteamLibrary\steamapps\common\Slay the Spire 2"
-)
+# IMPORTANT: Always run .\build.ps1 FIRST before this script.
+#   build.ps1 copies artifacts to both:
+#     1) Steam mods\RichPing\    (for live testing)
+#     2) torelease\              (this script uses this)
 $ErrorActionPreference = "Stop"
-$ModsPath = Join-Path $Sts2GamePath "mods\RichPing"
-$ReleaseDir = Join-Path $PSScriptRoot "release"
+$ProjectRoot = $PSScriptRoot
+$ToReleaseDir = Join-Path $ProjectRoot "torelease"
+$ReleaseDir = Join-Path $ProjectRoot "release"
 $ZipName = "RichPing-v$Version.zip"
 
-if (-not (Test-Path $ModsPath)) {
-    Write-Host "Mod folder not found: $ModsPath"
-    Write-Host "Run build.ps1 first."
-    exit 1
-}
-
+# Verify torelease folder (build.ps1 must be run first)
 $RequiredFiles = @("RichPing.dll", "RichPing.pck", "mod_manifest.json")
+$Missing = @()
 foreach ($f in $RequiredFiles) {
-    $p = Join-Path $ModsPath $f
-    if (-not (Test-Path $p)) {
-        Write-Host "Missing file: $f"
-        exit 1
-    }
+    $p = Join-Path $ToReleaseDir $f
+    if (-not (Test-Path $p)) { $Missing += $f }
+}
+if ($Missing.Count -gt 0) {
+    Write-Host "ERROR: Missing files in torelease\: $($Missing -join ', ')" -ForegroundColor Red
+    Write-Host "Run .\build.ps1 first." -ForegroundColor Yellow
+    exit 1
 }
 
 New-Item -ItemType Directory -Path $ReleaseDir -Force | Out-Null
@@ -33,9 +29,9 @@ if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
 
 $TempDir = Join-Path $env:TEMP "RichPing-release-$(Get-Random)"
 New-Item -ItemType Directory -Path (Join-Path $TempDir "RichPing") -Force | Out-Null
-Copy-Item (Join-Path $ModsPath "RichPing.dll") -Destination (Join-Path $TempDir "RichPing")
-Copy-Item (Join-Path $ModsPath "RichPing.pck") -Destination (Join-Path $TempDir "RichPing")
-Copy-Item (Join-Path $ModsPath "mod_manifest.json") -Destination (Join-Path $TempDir "RichPing")
+Copy-Item (Join-Path $ToReleaseDir "RichPing.dll")       -Destination (Join-Path $TempDir "RichPing")
+Copy-Item (Join-Path $ToReleaseDir "RichPing.pck")       -Destination (Join-Path $TempDir "RichPing")
+Copy-Item (Join-Path $ToReleaseDir "mod_manifest.json")  -Destination (Join-Path $TempDir "RichPing")
 Compress-Archive -Path (Join-Path $TempDir "RichPing") -DestinationPath $ZipPath
 Remove-Item $TempDir -Recurse -Force
 

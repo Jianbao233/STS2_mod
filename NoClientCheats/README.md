@@ -65,12 +65,22 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 
 ## Build from Source / 从源码构建
 
+**重要：发布前必须先构建，确保 torelease 目录有最新快照。**
+
 ```powershell
 cd NoClientCheats
-.\build.ps1
+.\build.ps1           # 构建 + 同步到 Steam mods + 快照到 torelease
+# --- 测试游戏功能 ---
+.\prepare-release.ps1  # 从 torelease 打包 zip（必须在 build.ps1 之后执行）
+gh release create v1.1.5 --title "v1.1.5" --notes "..."   # 上传到 GitHub
 ```
 
-需要：.NET 8 SDK、Godot 4.5.1 Mono。构建产物会复制到游戏 `mods\NoClientCheats\` 目录。
+需要：.NET 8 SDK、Godot 4.5.1 Mono。
+
+**发布流程规则**：
+1. `build.ps1` 每次都会清空 `torelease\` 并写入最新构建产物
+2. `prepare-release.ps1` **强制要求** `torelease\` 存在所有文件——若文件缺失会报错退出，不会打包旧文件
+3. 绝不能跳过 `build.ps1` 直接运行 `prepare-release.ps1`
 
 ---
 
@@ -82,6 +92,13 @@ cd NoClientCheats
 ---
 
 ## Changelog / 更新日志
+
+### v1.1.6（2026-03-23）
+
+- **修复：打包流程重建**：修复 GitHub release zip 包含旧文件的问题
+- `build.ps1` 同时将产物同步到 `Steam mods/` 和项目 `torelease/` 目录
+- `prepare-release.ps1` 只从 `torelease/` 打包，检测到文件缺失时立即报错退出
+- 新增 `.gitignore` 规则，排除 `torelease/` 目录
 
 ### v1.1.5（2026-03-22）
 

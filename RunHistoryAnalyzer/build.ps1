@@ -83,6 +83,15 @@ Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "$buildStamp" 
 
 Write-Host "[3/4] Synced to: $ModsOutput"
 
+# ── 同时复制到 torelease（发布专用，每次构建都是全新快照）─────────────
+$ToReleaseDir = Join-Path $ProjectRoot "torelease"
+New-Item -ItemType Directory -Path $ToReleaseDir -Force | Out-Null
+Copy-Item $DllSrc         -Destination (Join-Path $ToReleaseDir "$ModName.dll")       -Force
+Copy-Item $PckOut         -Destination (Join-Path $ToReleaseDir "$ModName.pck")     -Force
+Copy-Item "mod_manifest.json" -Destination (Join-Path $ToReleaseDir "mod_manifest.json") -Force
+Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "$buildStamp" -Encoding UTF8
+Write-Host "         Also snapshot → $ToReleaseDir (for release packaging)"
+
 # -- Step 4: Verify --
 Write-Host "[4/4] Verifying..."
 $required = @("$ModName.dll", "$ModName.pck", "mod_manifest.json")
