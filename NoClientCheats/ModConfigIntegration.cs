@@ -78,6 +78,7 @@ internal static class ModConfigIntegration
         if (tree != null)
         {
             tree.ProcessFrame -= OnFrame2;
+            GD.Print($"[NoClientCheats] ModConfig OnFrame2. IsAvailable={IsAvailable}");
             if (!IsAvailable) return;
             try { DoRegister(); }
             catch (Exception e) { GD.PushWarning($"[NoClientCheats] ModConfig DoRegister 失败: {e.Message}"); }
@@ -92,6 +93,7 @@ internal static class ModConfigIntegration
 
     private static void DoRegister()
     {
+        GD.Print("[NoClientCheats] ModConfig DoRegister() starting...");
         var list = new List<object>();
 
         list.Add(MakeHeader("Core", "核心功能"));
@@ -175,6 +177,13 @@ internal static class ModConfigIntegration
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
         try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }
         try { NoClientCheatsMod.SetHistoryKeyFromLong(GetValue("history_key", (long)Key.F6)); } catch { }
+        try {
+            var keyCode = GetValue("history_key", (long)Key.F6);
+            NoClientCheatsMod.SetHistoryKeyFromLong(keyCode);
+            GD.Print($"[NoClientCheats] ModConfig SyncFromConfig: history_key={keyCode} ({NoClientCheatsMod.GetHistoryKeyDisplayName()})");
+        } catch (Exception ex) {
+            GD.PushWarning($"[NoClientCheats] SyncFromConfig history_key failed: {ex.Message}");
+        }
     }
 
     private static T GetValue<T>(string key, T fallback)
@@ -323,6 +332,8 @@ internal static class ModConfigIntegration
         SetProp(e, "Labels", Dict("en", labelEn, "zhs", labelZhs));
         SetProp(e, "Type", ConfigTypeValue("KeyBind"));
         SetProp(e, "DefaultValue", defaultValue);
+        SetProp(e, "Description", "Press the key to rebind.");
+        SetProp(e, "Descriptions", Dict("en", "Press the key to rebind.", "zhs", "按下按键重新绑定。"));
         if (onChanged != null) SetProp(e, "OnChanged", onChanged);
         return e;
     }

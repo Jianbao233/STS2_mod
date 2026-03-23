@@ -1,0 +1,31 @@
+import struct
+
+filename = r'K:\SteamLibrary\steamapps\common\Slay the Spire 2\mods\FreeLoadout-STS2_0.99-0.2.0\FreeLoadout.pck'
+with open(filename, 'rb') as f:
+    data = f.read()
+
+print('Header Analysis (v3 format):')
+print('=' * 60)
+print('Offset | Bytes                   | Value')
+print('-' * 60)
+print(f'0x0000 | {" ".join(f"{b:02X}" for b in data[0:4])}    | Magic: GDPC')
+print(f'0x0004 | {" ".join(f"{b:02X}" for b in data[4:8])}    | Version: {struct.unpack("<I", data[4:8])[0]}')
+print(f'0x0008 | {" ".join(f"{b:02X}" for b in data[8:12])}    | Major: {struct.unpack("<I", data[8:12])[0]}')
+print(f'0x000C | {" ".join(f"{b:02X}" for b in data[12:16])}    | Minor: {struct.unpack("<I", data[12:16])[0]}')
+print(f'0x0010 | {" ".join(f"{b:02X}" for b in data[16:20])}    | Patch: {struct.unpack("<I", data[16:20])[0]}')
+print(f'0x0014 | {" ".join(f"{b:02X}" for b in data[20:24])}    | Build: {struct.unpack("<I", data[20:24])[0]}')
+print(f'0x0018 | {" ".join(f"{b:02X}" for b in data[24:28])}    | Flags: 0x{struct.unpack("<I", data[24:28])[0]:08X}')
+print(f'0x001C | {" ".join(f"{b:02X}" for b in data[28:36])}    | File Base: {struct.unpack("<Q", data[28:36])[0]}')
+print(f'0x0024 | {" ".join(f"{b:02X}" for b in data[36:44])}    | Dir Offset: {struct.unpack("<Q", data[36:44])[0]}')
+print()
+print('Reserved (offset 44-107, 64 bytes):')
+print(f'First 32 bytes: {" ".join(f"{b:02X}" for b in data[44:76])}')
+print()
+print('File data starts at: 0x6C = 108')
+print()
+print("Checking what's at offset 108:")
+print(f'Data at 108: {" ".join(f"{b:02X}" for b in data[108:140])}')
+print(f'As ASCII: {data[108:140].decode("ascii", errors="replace")}')
+print()
+print("Directory at 0x54E0:")
+print(f'Data at 0x54E0: {" ".join(f"{b:02X}" for b in data[0x54E0:0x54E0+32])}')

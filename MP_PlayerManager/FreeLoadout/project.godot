@@ -1,0 +1,11 @@
+; Engine configuration file.
+; It's best to use the Godot editor to manage project settings.
+config_version=5
+
+[application]
+config/name="MP_PlayerManager"
+config/features=PackedStringArray("4.5", "C#")
+run/main_scene="res://"
+
+[dotnet]
+project/assembly_name="MP_PlayerManager"

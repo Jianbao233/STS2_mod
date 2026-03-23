@@ -8,22 +8,24 @@ namespace NoClientCheats;
 /// <summary>
 /// Hook NTopBar._Ready，在游戏顶栏注入一个「记录」呼出按钮。
 /// 放在 PauseButton 左侧，点击呼出/隐藏作弊拦截历史面板。
-/// NTopBar 在运行时解析，不依赖编译时类型引用。
+/// 使用与游戏内 PauseButton 相同的齿轮图标，纯图标无文字。
 /// </summary>
 [HarmonyPatch]
 internal static class TopBarHistoryButtonPatch
 {
     private static MethodBase TargetMethod()
     {
-        // MegaCrit.Sts2.Core.Nodes.CommonUi.NTopBar 在运行时可用
         var type = AccessTools.TypeByName("MegaCrit.Sts2.Core.Nodes.CommonUi.NTopBar")
                  ?? AccessTools.TypeByName("NTopBar");
+        GD.Print($"[NCCTopBar] TargetMethod: type={type?.FullName ?? "NOT FOUND"}");
         return type?.GetMethod("_Ready", AccessTools.all);
     }
 
     [HarmonyPostfix]
     private static void Postfix(object __instance)
     {
+        GD.Print($"[NCCTopBar] Postfix fired. ShowTopBarButton={NoClientCheatsMod.ShowTopBarButton}");
+
         if (!NoClientCheatsMod.ShowTopBarButton) return;
         if (__instance == null) return;
 
@@ -32,59 +34,76 @@ internal static class TopBarHistoryButtonPatch
             var node = __instance as Node;
             if (node == null) return;
 
+            GD.Print($"[NCCTopBar] NTopBar node: {node.Name}, tree={node.IsInsideTree()}");
+
             var pauseBtn = node.GetNodeOrNull<Control>("%PauseButton");
+            GD.Print($"[NCCTopBar] pauseBtn={pauseBtn?.Name ?? "NOT FOUND"}");
+
             if (pauseBtn == null) return;
+
             var parent = pauseBtn.GetParent();
             if (parent == null) return;
 
-            // 跳过已注入
-            if (parent.HasNode("NCCHistoryButton")) return;
+            if (parent.HasNode("NCCHistoryButton"))
+            {
+                GD.Print("[NCCTopBar] NCCHistoryButton already exists, skipping.");
+                return;
+            }
 
+            GD.Print($"[NCCTopBar] Injecting button into {parent.Name}, pauseBtn index={pauseBtn.GetIndex(false)}");
+
+            // ── 从 PauseButton 克隆 Icon 子节点（复用同一纹理对象）───────────
+            var pauseIcon = pauseBtn.GetNodeOrNull<Control>("Control/Icon");
+            GD.Print($"[NCCTopBar] pauseIcon={pauseIcon?.Name ?? "NOT FOUND"}");
+
+            // ── 创建按钮 ──────────────────────────────────────────────────
             var btn = new Button
             {
                 Name = "NCCHistoryButton",
                 Flat = true,
                 FocusMode = Control.FocusModeEnum.None,
-                Text = "记录",
-                TooltipText = "呼出作弊拦截历史面板（F6）"
+                TooltipText = "作弊拦截记录（F6）"
             };
-            btn.CustomMinimumSize = new Vector2(52f, 40f);
+            // 尺寸与游戏按钮一致
+            btn.CustomMinimumSize = new Vector2(40f, 40f);
 
-            var normalStyle = new StyleBoxFlat
-            {
-                BgColor = new Color(0.08f, 0.08f, 0.1f, 0.85f),
-                CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
-                CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-                BorderWidthTop = 1, BorderWidthBottom = 1,
-                BorderWidthLeft = 1, BorderWidthRight = 1,
-                BorderColor = new Color(0.3f, 0.3f, 0.35f, 0.6f)
-            };
-            var hoverStyle = new StyleBoxFlat
-            {
-                BgColor = new Color(0.18f, 0.18f, 0.22f, 0.9f),
-                CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
-                CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-                BorderWidthTop = 1, BorderWidthBottom = 1,
-                BorderWidthLeft = 1, BorderWidthRight = 1,
-                BorderColor = new Color(0.45f, 0.45f, 0.5f, 0.8f)
-            };
+            // 透明背景（与游戏按钮风格一致）
+            var normalStyle = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0) };
             btn.AddThemeStyleboxOverride("normal", normalStyle);
-            btn.AddThemeStyleboxOverride("hover", hoverStyle);
+            btn.AddThemeStyleboxOverride("hover", normalStyle);
             btn.AddThemeStyleboxOverride("pressed", normalStyle);
-            btn.AddThemeFontSizeOverride("font_size", 12);
-            btn.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.75f, 1f));
-            btn.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.7f, 0.5f, 1f));
-            btn.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.7f, 0.5f, 1f));
+
+            // 克隆 PauseButton 的 Icon 节点作为子节点
+            if (pauseIcon != null && pauseIcon is TextureRect srcRect)
+            {
+                var icon = new TextureRect
+                {
+                    Name = "Icon",
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    CustomMinimumSize = new Vector2(24f, 24f),
+                    Texture = srcRect.Texture,
+                    Material = srcRect.Material != null ? (Material)srcRect.Material.Duplicate() : null
+                };
+                // 居中锚点（Godot 4: LayoutPreset.Center）
+                icon.SetAnchorsPreset(Control.LayoutPreset.Center);
+                btn.AddChild(icon);
+                GD.Print("[NCCTopBar] Icon cloned from PauseButton.");
+            }
+            else
+            {
+                GD.PushWarning("[NCCTopBar] Could not find Icon node in PauseButton to clone.");
+            }
 
             btn.Pressed += () => NoClientCheatsMod.ToggleHistoryPanel();
 
             parent.AddChild(btn, false, Node.InternalMode.Disabled);
             parent.MoveChild(btn, pauseBtn.GetIndex(false));
-            GD.Print("[NoClientCheats] Top bar history button injected.");
+            GD.Print("[NCCTopBar] Button injected successfully.");
         }
         catch (Exception ex)
         {
-            GD.PushWarning($"[NoClientCheats] Failed to inject top bar button: {ex.Message}");
+            GD.PushWarning($"[NCCTopBar] Failed to inject top bar button: {ex.Message}\n{ex.StackTrace}");
         }
     }
 }

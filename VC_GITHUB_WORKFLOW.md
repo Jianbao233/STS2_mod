@@ -353,6 +353,6 @@ print('Valid JSON')
 
 ## 八、参考文档
 
-- 本地工作区总记忆：`K:\杀戮尖塔mod制作\STS2_mod\VC_SESSION_MEMORY.md`
+- 本地工作区总记忆：`K:\杀戮尖塔mod制作\STS2_mod\MEMORY.md`
 - NoClientCheats Release 模板：`NoClientCheats/release_body.md`
 - GitHub Release 指南：`K:\杀戮尖塔mod制作\STS2_mod\VC_GITHUB_RELEASE_GUIDE.md`

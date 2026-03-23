@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{276C0AD3-3251-447E-B847-C2511C0299F0}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MP_PlayerManager</RootNamespace>
+    <AssemblyName>MP_PlayerManager</AssemblyName>
+    <TargetFrameworkVersion>v9.0</TargetFrameworkVersion>
+    <TargetFrameworkIdentifier>.NETCoreApp</TargetFrameworkIdentifier>
+    <FileAlignment>512</FileAlignment>
+    <!-- 忽略 .NET 9 vs .NET 8 版本冲突警告（游戏为 .NET 9，系统只有 .NET 8） -->
+    <NoWarn>CS1705;MSB3277</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <!-- 游戏 DLL（从游戏安装目录显式引用 .NET 9 DLL） -->
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>K:\SteamLibrary\steamapps\common\Slay the Spire 2\data_sts2_windows_x86_64\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="GodotSharp">
+      <HintPath>K:\SteamLibrary\steamapps\common\Slay the Spire 2\data_sts2_windows_x86_64\GodotSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="sts2">
+      <HintPath>K:\SteamLibrary\steamapps\common\Slay the Spire 2\data_sts2_windows_x86_64\sts2.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections" />
+    <Reference Include="System.Linq" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Text.Json" />
+    <Reference Include="System.Text.RegularExpressions" />
+  </ItemGroup>
+  <!-- 排除含编译器生成标识符的文件（反编译产物，需重写） -->
+  <ItemGroup>
+    <Compile Include="src\**\*.cs" Exclude="src\Properties\AssemblyInfo.cs;src\InspectCardEdit.cs;src\InspectPotionEdit.cs;src\InspectRelicEdit.cs;src\LoadoutPanel.cs;src\Tabs\CardsTab.cs;src\Tabs\EncountersTab.cs;src\Tabs\EventsTab.cs;src\Tabs\PotionsTab.cs;src\Tabs\PowersTab.cs;src\Tabs\RelicsTab.cs;src\Tabs\CharacterTab.cs;src\Tabs\CardEditPanel.cs;src\Tabs\PotionEditPanel.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
