@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 
 namespace RunHistoryAnalyzer.Detection;
 
@@ -12,8 +13,9 @@ public class GoldConservationRule : Models.IAnomalyRule
     public string Name => "GoldConservation";
     public string DisplayName => "金币守恒定律";
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         foreach (var player in history.Players)
         {
             // 如果指定了分析目标玩家，跳过其他玩家
@@ -44,17 +46,17 @@ public class GoldConservationRule : Models.IAnomalyRule
 
             if (deviation > 1)
             {
-                return new Models.Anomaly(
+                result.Add(new Models.Anomaly(
                     Models.AnomalyLevel.High,
                     Name,
                     "金币不守恒",
                     $"预期金币：{expectedGold}，实际金币：{finalGold}，偏差：{deviation}",
                     $"初始={initialGold}  + 获得={totalGained}  - 花费={totalSpent}  - 丢失={totalLost}  - 被偷={totalStolen}",
                     "可能原因：直接编辑存档 / gold 控制台作弊 / 内存修改"
-                );
+                ));
             }
         }
 
-        return null;
+        return result;
     }
 }

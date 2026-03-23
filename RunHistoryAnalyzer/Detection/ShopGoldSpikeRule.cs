@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace RunHistoryAnalyzer.Detection;
@@ -36,8 +36,9 @@ public class ShopGoldSpikeRule : Models.IAnomalyRule
     /// </summary>
     private static readonly HashSet<int> LegalShopGoldFromFoul = BuildFoulTotals();
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         var floorIndex = 0;
         foreach (var act in history.MapPointHistory)
         {
@@ -56,23 +57,23 @@ public class ShopGoldSpikeRule : Models.IAnomalyRule
                     if (MapNodeShopUtil.IsShopLikeMapNode(node) || MapNodeShopUtil.HasShopTransaction(node))
                     {
                         var a = CheckRealShop(floorIndex, node, stat, g);
-                        if (a != null) return a;
+                        if (a != null) result.Add(a);
                     }
                     else if (IsFakeMerchantCombatNode(node))
                     {
                         var a = CheckFakeMerchantCombat(floorIndex, node, stat, g);
-                        if (a != null) return a;
+                        if (a != null) result.Add(a);
                     }
                     else if (IsFakeMerchantEventOnly(node))
                     {
                         var a = CheckFakeMerchantEventSpendOnly(floorIndex, node, stat, g);
-                        if (a != null) return a;
+                        if (a != null) result.Add(a);
                     }
                 }
             }
         }
 
-        return null;
+        return result;
     }
 
     private static Models.Anomaly? CheckRealShop(int floorIndex, Models.MapPointHistoryEntry node, Models.PlayerMapPointHistoryEntry stat, int g)

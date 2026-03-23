@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,8 +44,9 @@ public class RelicSourceTraceRule : Models.IAnomalyRule
             { "PURE" },
     };
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         foreach (var player in history.Players)
         {
             if (history.AnalysisPlayerId != 0 && player.Id != history.AnalysisPlayerId) continue;
@@ -98,7 +99,6 @@ public class RelicSourceTraceRule : Models.IAnomalyRule
             }
 
             // 最终遗物追溯
-            var untracedRelics = new List<string>();
             foreach (var relic in player.Relics)
             {
                 string id = relic.Id;
@@ -108,30 +108,18 @@ public class RelicSourceTraceRule : Models.IAnomalyRule
                 bool isTraceable = traceableIds.Contains(normalized) || traceableIds.Contains(id);
 
                 if (!isStarter && !isTraceable)
-                    untracedRelics.Add(id);
-            }
-
-            if (untracedRelics.Count > 0)
-            {
-                var sb = new StringBuilder();
-                sb.Append("无法追溯来源的遗物：");
-                foreach (var r in untracedRelics)
-                    sb.Append($"{r}  ");
-                sb.AppendLine();
-                sb.Append("(遗物必须来自：初始遗物 / 遗物选择 / 古遗物祭坛 / 商店购买 / 事件奖励)");
-
-                return new Models.Anomaly(
-                    Models.AnomalyLevel.High,
-                    Name,
-                    "遗物来源追溯",
-                    $"发现 {untracedRelics.Count} 件无法追溯来源的遗物",
-                    sb.ToString(),
-                    "可能原因：relic 控制台作弊 / 存档直接添加"
-                );
+                    result.Add(new Models.Anomaly(
+                        Models.AnomalyLevel.High,
+                        Name,
+                        "遗物来源追溯",
+                        $"遗物 {id} 无法追溯来源",
+                        "遗物必须来自：初始遗物 / 遗物选择 / 古遗物祭坛 / 商店购买 / 事件奖励",
+                        "可能原因：relic 控制台作弊 / 存档直接添加"
+                    ));
             }
         }
 
-        return null;
+        return result;
     }
 
     /// <summary>

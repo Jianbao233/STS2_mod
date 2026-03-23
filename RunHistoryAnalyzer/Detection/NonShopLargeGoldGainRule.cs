@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 using RunHistoryAnalyzer;
 
@@ -26,8 +27,9 @@ public sealed class NonShopLargeGoldGainRule : Models.IAnomalyRule
     /// </summary>
     private const int SpoilsMapGoldMaxLegit = 1600;
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         var floorIndex = 0;
         foreach (var act in history.MapPointHistory)
         {
@@ -55,19 +57,19 @@ public sealed class NonShopLargeGoldGainRule : Models.IAnomalyRule
                             ? Models.AnomalyLevel.Medium
                             : Models.AnomalyLevel.Low;
                     var tag = level == Models.AnomalyLevel.High ? "高" : level == Models.AnomalyLevel.Medium ? "中" : "低";
-                    return new Models.Anomaly(
+                    result.Add(new Models.Anomaly(
                         level,
                         Name,
                         $"【{tag}】非商店节点金币增量异常",
                         $"第 {floorIndex} 个地图节点：gold_gained={g}（≥{LowThreshold}，且非藏宝图合法结算/非商店语境）。",
                         $"map_point_type={node.MapPointType}；current_gold={stat.CurrentGold}；gold_spent={stat.GoldSpent}",
                         "参考：问号房内真商人（rooms 含 room_type=shop）走 ShopGoldSpike；藏宝图 SPOILS_MAP 完成见 completed_quests / cards_removed。"
-                    );
+                    ));
                 }
             }
         }
 
-        return null;
+        return result;
     }
 
     /// <summary>本节点为藏宝图任务宝藏结算：completed_quests 或移除的 SPOILS_MAP，且金币在合理上界内。</summary>

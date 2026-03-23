@@ -104,8 +104,7 @@ public static class RunHistoryAnalyzerCore
             {
                 try
                 {
-                    var anomaly = rule.Check(history);
-                    if (anomaly != null)
+                    foreach (var anomaly in rule.Check(history))
                         anomalies.Add(anomaly);
                 }
                 catch (Exception ex)

@@ -52,6 +52,22 @@
 - **结果呈现**：弹出结果窗口，高/中/低三级分类显示所有异常
 - **导出报告**：结果窗口底部【导出报告】按钮，导出 .txt 文件
 
+### 多异常全列机制（v0.3+）
+
+- **`IAnomalyRule.Check` 返回 `IReadOnlyList<Anomaly>`**：每条规则可返回 0 条（空列表）或 N 条（每条命中的节点/卡牌/遗物各一条），不再只报"第一处"
+- **`RunHistoryAnalyzerCore`**：`foreach (var anomaly in rule.Check(history)) anomalies.Add(anomaly);` — 把所有规则的所有条目全部加入列表后统一按等级排序
+- **已全列的规则**：
+  - `ShopGoldSpikeRule`：每个商店/假商人异常节点各一条（不再遇第一个就 return）
+  - `NonShopLargeGoldGainRule`：每个非商店大额金币节点各一条
+  - `HpBoundaryRule`：每个 CurrentHp > MaxHp 的节点各一条
+  - `RelicMultiPickRule`：每个超限选取节点各一条
+  - `CardSourceTraceRule`：每张无法追溯的卡各一条
+  - `CharacterCardAffinityRule`：每张异色卡各一条
+  - `RelicSourceTraceRule`：每件无法追溯的遗物各一条
+  - `PotionSourceTraceRule`：每瓶无法追溯的药水各一条
+  - `HpConservationRule` / `GoldConservationRule`：每玩家各一条（仍是汇总型）
+- **效果示例**：同一局里 3 个商店各 `gold_gained=1000`，会报出 3 条 `ShopGoldSpike`，每条含各自的楼层号
+
 ### 检测优先级（P0 → P2）
 
 ```
@@ -133,13 +149,13 @@ MaxHP：初始MaxHp + ΣMaxHpGained - ΣMaxHpLost = 最终MaxHp
 
 ## 开发备忘
 
-- **当前阶段**：Demo 发布（0.2.0）
-- **下一步**：UI 面板完善、规则参数可视化调整、游戏更新后数据回归测试
+- **当前阶段**：多异常全列（v0.3+），所有遍历类规则改为返回 `IReadOnlyList<Anomaly>`
+- **下一步**：发布新版本 / 游戏更新后数据回归测试
 - **检测时机**：玩家选定历史记录 → 显示分析按钮 → 点击后检测 → 弹出结果窗口
 - **缓存策略**：检测结果缓存内存中，文件修改时间变化则失效重检
 - **Hook 点**：`NRunHistory` 详情面板底部按钮栏，添加分析按钮
 - **导出**：结果窗口→【导出报告】→ FileDialog → `.txt` 文件
-- **构建**：`dotnet build`（Debug，自动同步到 mods 目录）；`dotnet publish -c Release`（Release）
+- **构建**：`dotnet build`（Debug，自动同步到 mods 目录）；`dotnet publish -c Release`（Release）；构建前需停游戏避免 DLL 锁定
 - **ModConfig**：可简化为仅一个总开关，暂不实现
 
 ---

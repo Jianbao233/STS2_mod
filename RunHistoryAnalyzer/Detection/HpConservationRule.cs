@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace RunHistoryAnalyzer.Detection;
@@ -20,8 +20,9 @@ public class HpConservationRule : Models.IAnomalyRule
     private const int MaxHpTolerance = 1;
     private const int CurrentHpTolerance = 2;
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         foreach (var player in history.Players)
         {
             if (history.AnalysisPlayerId != 0 && player.Id != history.AnalysisPlayerId) continue;
@@ -52,20 +53,20 @@ public class HpConservationRule : Models.IAnomalyRule
             var last = timeline[^1];
             // 极端快照（如 0/0），多为灾厄处决后或损坏存档；用户明确可忽略此类误报时不阻塞整局检视
             if (last.MaxHp <= 0 && last.CurrentHp <= 0)
-                return null;
+                continue;
 
             int expectedMaxHp = initialMaxHp + totalMaxHpGained - totalMaxHpLost;
             int maxHpDeviation = Math.Abs(expectedMaxHp - last.MaxHp);
             if (maxHpDeviation > MaxHpTolerance)
             {
-                return new Models.Anomaly(
+                result.Add(new Models.Anomaly(
                     Models.AnomalyLevel.High,
                     Name,
                     "MaxHP不守恒",
                     $"预期最大HP：{expectedMaxHp}，实际最大HP：{last.MaxHp}，偏差：{maxHpDeviation}",
                     $"初始={initialMaxHp}  + 获得={totalMaxHpGained}  - 失去={totalMaxHpLost}",
                     "可能原因：内存修改 / 存档直接编辑"
-                );
+                ));
             }
 
             // 逐节点递推（含 CurrentHp=0 的死亡节点，不再跳过）
@@ -84,26 +85,26 @@ public class HpConservationRule : Models.IAnomalyRule
 
                 if (maxDev > MaxHpTolerance)
                 {
-                    return new Models.Anomaly(
+                    result.Add(new Models.Anomaly(
                         Models.AnomalyLevel.High,
                         Name,
                         "MaxHP节点不一致",
                         $"第 {i + 1} 个地图节点：预期 MaxHP={newMax}，记录 MaxHP={stat.MaxHp}，偏差={maxDev}",
                         $"上一节点 Max={prevMax}，本节点 +获得{stat.MaxHpGained} -失去{stat.MaxHpLost}",
                         "可能原因：存档与地图流水不一致 / 联机同步异常"
-                    );
+                    ));
                 }
 
                 if (!curOk)
                 {
-                    return new Models.Anomaly(
+                    result.Add(new Models.Anomaly(
                         Models.AnomalyLevel.High,
                         Name,
                         "HP不守恒",
                         $"第 {i + 1} 个地图节点：无法将当前HP 与多种伤/疗顺序下的预期对齐，记录={stat.CurrentHp}",
                         $"上一节点 HP={prevCur}/{prevMax}；本节点 受伤={stat.DamageTaken} 治疗={stat.HpHealed}",
                         "可能原因：治疗/扣血与上限变化顺序与推测不符时为误报；若持续出现再怀疑作弊"
-                    );
+                    ));
                 }
 
                 prevMax = stat.MaxHp;
@@ -111,7 +112,7 @@ public class HpConservationRule : Models.IAnomalyRule
             }
         }
 
-        return null;
+        return result;
     }
 
     /// <summary>

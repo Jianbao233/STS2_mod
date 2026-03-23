@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 using RunHistoryAnalyzer;
 
@@ -20,8 +19,9 @@ public sealed class CharacterCardAffinityRule : Models.IAnomalyRule
         "IRONCLAD", "SILENT", "DEFECT", "NECROBINDER", "NECROMANCER", "REGENT", "HEXAGUARD"
     };
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         foreach (var player in history.Players)
         {
             if (history.AnalysisPlayerId != 0 && player.Id != history.AnalysisPlayerId)
@@ -47,22 +47,20 @@ public sealed class CharacterCardAffinityRule : Models.IAnomalyRule
             if (bad.Count == 0)
                 continue;
 
-            var sb = new StringBuilder();
-            sb.Append("以下卡牌 ID 带有其它职业后缀：");
-            foreach (var b in bad)
-                sb.Append(' ').Append(b);
-
-            return new Models.Anomaly(
-                Models.AnomalyLevel.High,
-                Name,
-                "卡组中存在异色角色卡牌",
-                $"当前角色 {character}，发现 {bad.Count} 张带其它职业后缀的牌。",
-                sb.ToString(),
-                "可能原因：控制台 card 命令 / 存档直接编辑；正常掉落不应含他职业带后缀的牌。"
-            );
+            foreach (var cardId in bad)
+            {
+                result.Add(new Models.Anomaly(
+                    Models.AnomalyLevel.High,
+                    Name,
+                    "卡组中存在异色角色卡牌",
+                    $"卡牌 {cardId} 带有其它职业后缀，角色为 {character}。",
+                    $"卡牌ID：{cardId}",
+                    "可能原因：控制台 card 命令 / 存档直接编辑；正常掉落不应含他职业带后缀的牌。"
+                ));
+            }
         }
 
-        return null;
+        return result;
     }
 
     private static bool PlayerHasSeaGlassRelic(Models.RunHistoryPlayerData player)

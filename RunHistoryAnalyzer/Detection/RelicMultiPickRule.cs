@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using RunHistoryAnalyzer;
@@ -14,8 +15,9 @@ public sealed class RelicMultiPickRule : Models.IAnomalyRule
     public string Name => "RelicMultiPick";
     public string DisplayName => "单节点多遗物选取";
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         var floorIndex = 0;
         foreach (var act in history.MapPointHistory)
         {
@@ -38,19 +40,19 @@ public sealed class RelicMultiPickRule : Models.IAnomalyRule
                     if (picked <= maxLegit)
                         continue;
 
-                    return new Models.Anomaly(
+                    result.Add(new Models.Anomaly(
                         Models.AnomalyLevel.High,
                         Name,
                         "单节点遗物选取次数异常",
                         $"第 {floorIndex} 个地图节点：relic_choices 中 was_picked=true 共 {picked} 次，该节点类型（{node.MapPointType}）通常至多 {maxLegit} 次。",
                         $"map_point_type={node.MapPointType}；model_id={modelId ?? "(null)"}；room_type={roomType ?? "(null)"}",
                         "可能原因：控制台添加遗物 / 修改器；正常流程同一节点不应多次确认遗物奖励。"
-                    );
+                    ));
                 }
             }
         }
 
-        return null;
+        return result;
     }
 
     /// <summary>非商店节点下，按地图点类型（+ model_id + room_type）返回合理上限。</summary>

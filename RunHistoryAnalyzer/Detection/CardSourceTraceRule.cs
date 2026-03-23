@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,8 +31,9 @@ public class CardSourceTraceRule : Models.IAnomalyRule
         "COLORFUL_PHILOSOPHERS"
     };
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         foreach (var player in history.Players)
         {
             if (history.AnalysisPlayerId != 0 && player.Id != history.AnalysisPlayerId) continue;
@@ -120,25 +121,21 @@ public class CardSourceTraceRule : Models.IAnomalyRule
 
             if (untracedCards.Count > 0)
             {
-                var sb = new StringBuilder();
-                sb.Append("无法追溯来源的卡牌：");
-                foreach (var c in untracedCards)
-                    sb.Append($"{c}  ");
-                sb.AppendLine();
-                sb.Append("(来源：初始牌组 / 卡牌选择 / 战斗奖励 / 商店无色卡 / 卡牌转化 / 色彩哲学家 / 海玻璃 SEA_GLASS 等)");
-
-                return new Models.Anomaly(
-                    Models.AnomalyLevel.High,
-                    Name,
-                    "卡牌来源追溯",
-                    $"发现 {untracedCards.Count} 张无法追溯来源的卡牌",
-                    sb.ToString(),
-                    "可能原因：card 控制台作弊 / 存档直接添加"
-                );
+                foreach (var cardId in untracedCards)
+                {
+                    result.Add(new Models.Anomaly(
+                        Models.AnomalyLevel.High,
+                        Name,
+                        "卡牌来源追溯",
+                        $"卡牌 {cardId} 无法追溯来源",
+                        "来源必须为：初始牌组 / 卡牌选择 / 战斗奖励 / 商店无色卡 / 卡牌转化 / 色彩哲学家 / 海玻璃 SEA_GLASS",
+                        "可能原因：card 控制台作弊 / 存档直接添加"
+                    ));
+                }
             }
         }
 
-        return null;
+        return result;
     }
 
     private static bool HasCrossCharacterEvent(Models.MapPointHistoryEntry node)

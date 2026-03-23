@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace RunHistoryAnalyzer.Detection;
 
@@ -17,8 +16,9 @@ public class PotionSourceTraceRule : Models.IAnomalyRule
     public string Name => "PotionSourceTrace";
     public string DisplayName => "药水来源追溯";
 
-    public Models.Anomaly? Check(Models.RunHistoryData history)
+    public IReadOnlyList<Models.Anomaly> Check(Models.RunHistoryData history)
     {
+        var result = new List<Models.Anomaly>();
         foreach (var player in history.Players)
         {
             var acquiredPotionIds = new HashSet<string>();
@@ -47,7 +47,6 @@ public class PotionSourceTraceRule : Models.IAnomalyRule
             }
 
             var finalPotions = player.Potions;
-            var untracedPotions = new List<string>();
 
             foreach (var potion in finalPotions)
             {
@@ -59,30 +58,18 @@ public class PotionSourceTraceRule : Models.IAnomalyRule
                 if (wasConsumed) continue;
 
                 if (!isAcquired)
-                    untracedPotions.Add(potion.Id);
-            }
-
-            if (untracedPotions.Count > 0)
-            {
-                var sb = new StringBuilder();
-                sb.Append("无法追溯来源的药水：");
-                foreach (var p in untracedPotions)
-                    sb.Append($"{p}  ");
-                sb.AppendLine();
-                sb.Append("(药水必须来自：药水选择 / 商店购买)");
-
-                return new Models.Anomaly(
-                    Models.AnomalyLevel.Medium,
-                    Name,
-                    "药水来源追溯",
-                    $"发现 {untracedPotions.Count} 瓶无法追溯来源的药水",
-                    sb.ToString(),
-                    "可能原因：potion 控制台作弊 / 存档直接添加"
-                );
+                    result.Add(new Models.Anomaly(
+                        Models.AnomalyLevel.Medium,
+                        Name,
+                        "药水来源追溯",
+                        $"药水 {potion.Id} 无法追溯来源",
+                        "药水必须来自：药水选择 / 商店购买",
+                        "可能原因：potion 控制台作弊 / 存档直接添加"
+                    ));
             }
         }
 
-        return null;
+        return result;
     }
 
     private static string NormalizePotionId(string id)
