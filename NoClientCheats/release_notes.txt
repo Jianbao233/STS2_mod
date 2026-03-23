@@ -1,0 +1,21 @@
+## v1.1.5（2026-03-22）
+
+- 游戏顶栏注入呼出按钮：Hook `NTopBar._Ready`，在顶栏 PauseButton 左侧注入「记录」按钮，点击直接呼出/隐藏历史面板，完全绕 ModConfig
+- 彻底修复 `_BuildUI()` 未调用 Bug：添加 `CheatHistoryPanel._Ready()` 覆盖，窗口才真正构建出来（之前从未出现过）
+- 移除 `show_history_panel` 开关：历史面板始终存在，由顶栏按钮/F6 控制显隐，不再有关闭后无法再打开的问题
+- 新增 `show_topbar_button` 开关：控制顶栏呼出按钮是否显示
+- 恢复 ModConfig 操作按钮（Toggle 类型，点击触发后重置）
+- 快捷键 F9 → F6
+- 移除 `#if DEBUG` 自动弹出
+
+### 安装说明
+
+1. 解压 `NoClientCheats-v1.1.5.zip` 到游戏 `mods/` 目录
+2. 确保目录结构：`mods/NoClientCheats/NoClientCheats.dll` 和 `mods/NoClientCheats/mod_manifest.json`
+3. 仅房主需安装；客机无需安装
+
+### 依赖
+
+- Slay the Spire 2（Steam 正式版）
+- ModConfig（推荐，用于游戏内配置）
+- Harmony（游戏内置，无需额外安装）
