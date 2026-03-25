@@ -1,10 +1,10 @@
 {
   "id": "NoClientCheats",
   "pck_name": "NoClientCheats",
-  "version": "1.1.6",
+  "version": "1.2.0",
   "name": "禁止客机作弊 / No Client Cheats",
-  "author": "煎包 / Cursor Composer 1.5",
-  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.1.6:\n- 修复打包流程：build.ps1 同时同步到 torelease，prepare-release.ps1 只从 torelease 打包，文件缺失立即报错\n\nv1.1.5:\n- 新增游戏顶栏呼出按钮：Hook NTopBar._Ready，在顶栏 PauseButton 左侧注入「记录」按钮\n- 顶栏按钮点击直接呼出/隐藏历史面板，不依赖 ModConfig\n- 移除 show_history_panel 开关（面板始终存在，F6/顶栏按钮控制显隐）\n- 新增 show_topbar_button 开关（控制顶栏按钮是否显示）\n- 恢复 btn_open_history/btn_center_window ModConfig 操作按钮（Toggle 类型）\n- CheatHistoryPanel._BuildUI() 终于被 _Ready() 调用（之前从未触发，窗口从不出现）\n- 顶栏按钮改用游戏内齿轮图标（复用 PauseButton 纹理），Tooltip 替换为「作弊拦截记录（F6）」\n\n致谢 / Thanks：\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
+  "author": "bili@我叫煎包 / claude-4.6-sonnet",
+  "description": "多人联机时禁止客机（非房主）使用控制台作弊指令（如 gold、relic、card 等）。仅房主需安装。\nMultiplayer: Block clients from using dev console cheat commands (gold, relic, card, etc). Host-only install.\n\nv1.2.0:\n- 新增大厅聊天广播：作弊拦截时可通过 STS2 LAN Connect 大厅聊天向房间内所有玩家广播通知\n- 新增配置项 Broadcast to Lobby Chat：作弊拦截广播开关（默认关闭）\n- 新增 LanConnectBridge 桥接类：反射调用 Sts2LanConnect.LanConnectLobbyRuntime，零编译期依赖\n\n致谢 / Thanks：\n- sts2-heybox-support（小黑盒官方支持）\n- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": true

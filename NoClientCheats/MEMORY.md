@@ -13,6 +13,7 @@
 | **部署** | 仅房主需安装，客机无需安装 |
 | **依赖** | ModConfig（游戏内配置）、Harmony（游戏内置） |
 | **仓库** | `https://github.com/Jianbao233/STS2_mod` |
+| **联机大厅仓库** | `https://github.com/emptylower/STS2-Game-Lobby`（STS2 LAN Connect） |
 
 ---
 
@@ -28,7 +29,7 @@
 | `CheatNotification.cs` | `CanvasLayer` 红色拦截通知弹窗，最多同时 4 个，带 Tween 渐隐 |
 | `HarmonyPatcher.cs` | `ModManager.Initialize` 的 Harmony Postfix，三重保险初始化入口 |
 | `ClientCheatBlockPatch.cs` | `HandleRequestEnqueueActionMessage` 的 Prefix，返回 `false` 静默丢弃作弊指令 |
-| `LanConnectBridge.cs` | 反射桥接 `Sts2LanConnect.LanConnectLobbyRuntime`，将作弊拦截广播到大厅房间聊天 |
+| `LanConnectBridge` | 反射桥接 `Sts2LanConnect.LanConnectLobbyRuntime`，将作弊拦截广播到大厅房间聊天。`SendRoomChatMessageAsync`/`HasActiveRoomSession`/`Instance` 均为 `internal`（需 `BindingFlags.NonPublic`） |
 | `ModListFilterPatch.cs` | `GetGameplayRelevantModNameList` 的 Prefix，从联机 Mod 列表移除本 Mod |
 | `CheatLocHelper.cs` | 反射 `LocString`，汉化角色名/遗物名/指令（无编译期 LocDB 引用） |
 | `HarmonyPatches/` | 各补丁类分目录存放（`ClientCheatBlockPatch.cs` 等） |
@@ -134,12 +135,30 @@ cd NoClientCheats
 - `prepare-release.ps1` **只从 `torelease\` 打包**，且在检测到文件缺失时立即报错退出
 - 绝不能跳过 `build.ps1` 直接运行 `prepare-release.ps1`，否则打包的是旧文件
 
+**GitHub Release Tag 格式**：`NCC_v{主}.{次}.{修订}`（如 `NCC_v1.2.0`），与 release title（如 `No Client Cheats v1.2.0`）分开。发布命令：
+
+```powershell
+# 1. 提交源码
+git add NoClientCheatsMod.cs MEMORY.md README.md mod_manifest.json build.ps1 prepare-release.ps1 release_body.md release_notes.txt
+git commit -m "NoClientCheats v1.2.0: 大厅聊天广播 + 反射修复"
+git push
+
+# 2. 打 tag（须与 GitHub Release tag 名一致，如 NCC_v1.2.0）
+git tag NCC_v1.2.0
+git push origin NCC_v1.2.0
+
+# 3. 创建 GitHub Release 并上传 zip
+gh release create NCC_v1.2.0 --repo Jianbao233/STS2_mod --title "No Client Cheats v1.2.0" --notes-file release_body.md
+gh release upload NCC_v1.2.0 release/NoClientCheats-v1.2.0.zip --repo Jianbao233/STS2_mod
+```
+
 ### 调试日志（GD.Print 输出）
 
 | 日志前缀 | 来源 |
 |----------|------|
 | `[NoClientCheats]` | `NoClientCheatsMod` 初始化/加载 |
 | `[NCCInputHandler]` | `InputHandlerNode` EnterTree / Ready / key pressed |
+| `[NoClientCheats] LanConnect | `LanConnectBridge` 桥接日志：类型未找到、反射未找到、桥接成功/失败/跳过原因 |
 | `[NoClientCheats] ModConfig | `ModConfigIntegration` 注册失败 |
 | `[NoClientCheats] Top bar | `TopBarHistoryButtonPatch` 注入结果 |
 

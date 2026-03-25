@@ -216,42 +216,60 @@ internal static class LanConnectBridge
     private static Node _runtime;
     private static MethodInfo _sendChatMethod;
     private static PropertyInfo _hasRoomProp;
-    private static bool _checked;
+    private static bool _typeResolved;
+    private static bool _bridgeSuccessLogged;
 
-    /// <summary>确保已解析大厅运行时引用（惰性，仅执行一次）。</summary>
+    /// <summary>确保已解析大厅运行时引用。程序集类型只解析一次；运行时实例每次调用时刷新。</summary>
     public static void EnsureInitialized()
     {
-        if (_checked) return;
-        _checked = true;
-
         try
         {
-            var runtimeType = Type.GetType(
-                "Sts2LanConnect.Scripts.LanConnectLobbyRuntime, Sts2LanConnect");
-            if (runtimeType == null)
+            // 程序集类型解析只做一次
+            if (!_typeResolved)
             {
-                GD.Print("[NoClientCheats] LanConnect: 运行时类型未找到（大厅 MOD 未安装？跳过桥接。");
-                return;
+                var runtimeType = Type.GetType(
+                    "Sts2LanConnect.Scripts.LanConnectLobbyRuntime, sts2_lan_connect");
+                if (runtimeType == null)
+                {
+                    GD.Print("[NoClientCheats] LanConnect: 运行时类型未找到（大厅 MOD 未安装？跳过桥接。");
+                    return;
+                }
+
+                // 大厅源码中 SendRoomChatMessageAsync / HasActiveRoomSession / Instance 均为 internal，
+                // 仅用 Public 会取不到（_sendChatMethod 恒为 null，广播静默失败）。
+                const BindingFlags inst = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+                _sendChatMethod = runtimeType.GetMethod(
+                    "SendRoomChatMessageAsync",
+                    inst,
+                    null, new[] { typeof(string) }, null);
+                _hasRoomProp = runtimeType.GetProperty("HasActiveRoomSession", inst);
+                if (_sendChatMethod == null)
+                    GD.Print("[NoClientCheats] LanConnect: SendRoomChatMessageAsync 反射未找到（检查大厅版本）");
+                if (_hasRoomProp == null)
+                    GD.Print("[NoClientCheats] LanConnect: HasActiveRoomSession 反射未找到");
+                _typeResolved = true;
             }
 
-            var instanceField = runtimeType.GetProperty(
-                "Instance", BindingFlags.Public | BindingFlags.Static);
-            var runtime = instanceField?.GetValue(null) as Node;
-            if (runtime == null)
+            if (_sendChatMethod == null || _hasRoomProp == null) return;
+
+            // 运行时实例随房间变化，每次重新获取
+            var rt2 = Type.GetType(
+                "Sts2LanConnect.Scripts.LanConnectLobbyRuntime, sts2_lan_connect");
+            const BindingFlags statFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            var instanceProp = rt2?.GetProperty("Instance", statFlags);
+            var newRuntime = instanceProp?.GetValue(null) as Node;
+
+            if (newRuntime != null && !_bridgeSuccessLogged)
             {
-                GD.Print("[NoClientCheats] LanConnect: 运行时实例为空（尚未进入房间？跳过桥接。）");
-                return;
+                _runtime = newRuntime;
+                GD.Print("[NoClientCheats] LanConnect: 桥接成功，已绑定大厅运行时。");
+                _bridgeSuccessLogged = true;
             }
-
-            _runtime = runtime;
-            _sendChatMethod = runtimeType.GetMethod(
-                "SendRoomChatMessageAsync",
-                BindingFlags.Public | BindingFlags.Instance,
-                null, new[] { typeof(string) }, null);
-            _hasRoomProp = runtimeType.GetProperty(
-                "HasActiveRoomSession", BindingFlags.Public | BindingFlags.Instance);
-
-            GD.Print("[NoClientCheats] LanConnect: 桥接成功，已绑定大厅运行时。");
+            else
+            {
+                _runtime = newRuntime;
+            }
         }
         catch (Exception ex)
         {
@@ -264,8 +282,10 @@ internal static class LanConnectBridge
     {
         get
         {
-            if (_runtime == null) return false;
-            return (bool)(_hasRoomProp?.GetValue(_runtime) ?? false);
+            if (_sendChatMethod == null) return false;
+            var rt = _runtime;
+            if (rt == null) return false;
+            return (bool)(_hasRoomProp?.GetValue(rt) ?? false);
         }
     }
 
@@ -275,10 +295,19 @@ internal static class LanConnectBridge
     /// </summary>
     public static void Broadcast(CheatRecord record)
     {
-        if (!BroadcastToLobby) return;
+        if (!NoClientCheatsMod.BroadcastToLobby) return;
+
         EnsureInitialized();
-        if (_sendChatMethod == null || _runtime == null) return;
-        if (!IsInLobbyRoom) return;
+        if (_sendChatMethod == null || _runtime == null)
+        {
+            GD.Print("[NoClientCheats] LanConnect: 广播跳过（桥接未就绪）");
+            return;
+        }
+        if (!IsInLobbyRoom)
+        {
+            GD.Print("[NoClientCheats] LanConnect: 广播跳过（未在大厅房间）");
+            return;
+        }
 
         try
         {
@@ -292,7 +321,14 @@ internal static class LanConnectBridge
             if (msg.Length > 60) msg = msg[..60];
 
             var task = _sendChatMethod.Invoke(_runtime, new object[] { msg }) as Task;
-            task?.Wait();
+            if (task != null)
+            {
+                _ = task.ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                        GD.Print($"[NoClientCheats] LanConnect: 广播失败: {t.Exception?.InnerException?.Message ?? t.Exception?.Message}");
+                });
+            }
         }
         catch (Exception ex)
         {

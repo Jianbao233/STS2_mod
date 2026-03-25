@@ -11,6 +11,7 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 | 功能 | 说明 |
 |------|------|
 | **Block Client Cheats** | 房主启用时，客机发出的作弊指令被静默丢弃，不入队、不生效 |
+| **大厅聊天广播** | 作弊拦截时通过 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 向房间内所有玩家广播通知 |
 | **Hide from Mod List** | 从联机 Mod 列表中移除本 Mod，客机无法检测到（参考 sts2-heybox-support） |
 | **游戏顶栏呼出按钮** | 在游戏顶栏 PauseButton 左侧注入「记录」按钮，点击直接呼出/隐藏历史面板 |
 | **F6 快捷键** | 按 **F6** 呼出/隐藏作弊拦截历史面板 |
@@ -25,6 +26,7 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 - **Slay the Spire 2**（Steam 正式版）
 - **ModConfig**（推荐，用于游戏内配置；未安装时使用默认开启）
 - **Harmony**（游戏内置，无需额外安装）
+- **STS2 LAN Connect**（可选，用于大厅聊天广播功能；未安装时大厅广播功能自动跳过，[项目地址](https://github.com/emptylower/STS2-Game-Lobby)）
 
 ---
 
@@ -51,6 +53,7 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 | 选项 | 默认 | 说明 |
 |------|------|------|
 | Block Client Cheats | 开 | 禁止客机作弊指令 |
+| Broadcast to Lobby Chat | 关 | 作弊拦截时向 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 房间聊天广播通知 |
 | Show Top Bar Button | 开 | 在游戏顶栏显示呼出按钮 |
 | Show Popup | 开 | 作弊被拦截时显示红色弹窗 |
 | Popup Duration (s) | 5.0 | 弹窗持续时长（秒） |
@@ -69,10 +72,10 @@ Mod for Slay the Spire 2. Blocks client players from using dev console cheat com
 
 ```powershell
 cd NoClientCheats
-.\build.ps1           # 构建 + 同步到 Steam mods + 快照到 torelease
+.\build.ps1 -GodotExe "K:\杀戮尖塔mod制作\Godot_v4.5.1\Godot_v4.5.1\Godot_v4.5.1-stable_mono_win64.exe"
 # --- 测试游戏功能 ---
-.\prepare-release.ps1  # 从 torelease 打包 zip（必须在 build.ps1 之后执行）
-gh release create v1.1.5 --title "v1.1.5" --notes "..."   # 上传到 GitHub
+.\prepare-release.ps1 -Version "1.2.0"   # 从 torelease 打包 zip
+gh release create v1.2.0 --title "No Client Cheats v1.2.0" --notes "..."   # 上传到 GitHub
 ```
 
 需要：.NET 8 SDK、Godot 4.5.1 Mono。
@@ -95,9 +98,10 @@ gh release create v1.1.5 --title "v1.1.5" --notes "..."   # 上传到 GitHub
 
 ### v1.2.0（待发布）
 
-- **新增大厅聊天广播**：作弊拦截时可通过 STS2 LAN Connect 大厅聊天向房间内所有玩家广播通知
-- 新增配置项 `Broadcast to Lobby Chat`：作弊拦截开关（默认关闭）
+- **新增大厅聊天广播**：作弊拦截时可通过 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 大厅聊天向房间内所有玩家广播通知
+- 新增配置项 `Broadcast to Lobby Chat`：作弊拦截广播开关（默认关闭）
 - 新增 `LanConnectBridge` 桥接类：反射调用 `Sts2LanConnect.LanConnectLobbyRuntime`，零编译期依赖
+- **修复大厅聊天广播静默失败**：大厅 MOD 中 `SendRoomChatMessageAsync`/`HasActiveRoomSession`/`Instance` 均为 `internal`，反射须用 `BindingFlags.NonPublic`（只用 `Public` 会取到 `null`，广播静默跳过）
 
 ### v1.1.6（2026-03-23）
 
