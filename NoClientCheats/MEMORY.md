@@ -28,6 +28,7 @@
 | `CheatNotification.cs` | `CanvasLayer` 红色拦截通知弹窗，最多同时 4 个，带 Tween 渐隐 |
 | `HarmonyPatcher.cs` | `ModManager.Initialize` 的 Harmony Postfix，三重保险初始化入口 |
 | `ClientCheatBlockPatch.cs` | `HandleRequestEnqueueActionMessage` 的 Prefix，返回 `false` 静默丢弃作弊指令 |
+| `LanConnectBridge.cs` | 反射桥接 `Sts2LanConnect.LanConnectLobbyRuntime`，将作弊拦截广播到大厅房间聊天 |
 | `ModListFilterPatch.cs` | `GetGameplayRelevantModNameList` 的 Prefix，从联机 Mod 列表移除本 Mod |
 | `CheatLocHelper.cs` | 反射 `LocString`，汉化角色名/遗物名/指令（无编译期 LocDB 引用） |
 | `HarmonyPatches/` | 各补丁类分目录存放（`ClientCheatBlockPatch.cs` 等） |

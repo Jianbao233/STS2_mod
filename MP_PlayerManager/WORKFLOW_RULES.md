@@ -2,7 +2,7 @@
 
 > 本文件为 MP_PlayerManager 项目专属工作流规则，所有开发决策必须遵循本文。  
 > 建立日期：2026-03-23  
-> 更新日期：2026-03-23
+> 更新日期：2026-03-24
 
 ---
 
@@ -26,8 +26,9 @@
 
 ```
 MP_PlayerManager/                    ← 项目根目录
-├── WORKFLOW_RULES.md               ← 本文件
+├── WORKFLOW_RULES.md               ← 本文件（工作流/架构规范）
 ├── MEMORY.md                       ← 子记忆文本（项目动态状态）
+├── DEVLOG.md                       ← 开发细化记录（v2 Python 工具专属）
 ├── SPEC.md                         ← 目标规格说明（当前版本 v2）
 ├── doc/
 │   ├── v1_方案文档.md              ← 第一版方案文档（归档）
@@ -128,6 +129,22 @@ MP_PlayerManager/                    ← 项目根目录
 ```markdown
 ---
 
+
+## 变更记录（2026-03-24）
+
+### 变更概要
+建立三层会话收尾记录规范：MEMORY.md → WORKFLOW_RULES.md → DEVLOG.md
+
+### 详细说明
+
+- 新建 Cursor 规则文件 `MP_PlayerManager_v2/.cursor/rules/session-sync.mdc`
+- 规则指定三层记录优先级：MEMORY.md（始终）→ WORKFLOW_RULES.md（架构/规范变更）→ DEVLOG.md（v2 Python 工具细化）
+- WORKFLOW_RULES.md 新增 `## 7. 会话收尾记录规范` 章节，引用规则文件路径
+- MEMORY.md `## 3.2` 核心文件表加入 `DEVLOG.md`
+- WORKFLOW_RULES.md `## 2` 目录结构规范加入 `DEVLOG.md`
+
+---
+
 ## 变更记录（YYYY-MM-DD）
 
 ### 变更概要
@@ -136,3 +153,18 @@ MP_PlayerManager/                    ← 项目根目录
 ### 详细说明
 [具体变更内容]
 ```
+
+---
+
+## 7. 会话收尾记录规范
+
+每次对话有实质变更后，按以下三层结构依次更新：
+
+| 层级 | 文件 | 触发条件 |
+|------|------|---------|
+| **1** | `MEMORY.md` → `## 10. 会话记录` | **始终** |
+| **2** | `WORKFLOW_RULES.md` 末尾 | 架构/流程/规范变更时 |
+| **3** | `MP_PlayerManager_v2/DEVLOG.md` | 仅 v2 Python 工具代码变动时 |
+
+详细内容见 Cursor 规则文件：
+`MP_PlayerManager_v2/.cursor/rules/session-sync.mdc`

@@ -108,6 +108,12 @@ internal static class ModConfigIntegration
             "作弊被拦截时，在屏幕顶部显示红色弹窗。",
             true, v => { try { NoClientCheatsMod.ShowNotification = Convert.ToBoolean(v); } catch { } }));
 
+        list.Add(MakeHeader("Lobby Chat Broadcast", "大厅聊天广播"));
+        list.Add(MakeToggle("broadcast_to_lobby", "Broadcast to Lobby Chat", "广播到大厅聊天",
+            "When a cheat is blocked, broadcast a notification to all players in the room via lobby chat.",
+            "作弊被拦截时，通过大厅聊天向房间内所有玩家广播通知（需安装 STS2 LAN Connect MOD）。",
+            false, v => { try { NoClientCheatsMod.BroadcastToLobby = Convert.ToBoolean(v); } catch { } }));
+
         list.Add(MakeSlider("notification_duration", "Popup Duration (sec)", "弹窗停留时间（秒）",
             1f, 15f, 0.5f, "0.0", 5f,
             "How long the red popup stays (seconds).", "红色弹窗停留时间（秒）。",
@@ -173,6 +179,7 @@ internal static class ModConfigIntegration
         try { NoClientCheatsMod.ShowNotification = GetValue("show_notification", true); } catch { }
         try { NoClientCheatsMod.ShowTopBarButton = GetValue("show_topbar_button", true); } catch { }
         try { NoClientCheatsMod.ShowHistoryOnCheat = GetValue("show_history_on_cheat", false); } catch { }
+        try { NoClientCheatsMod.BroadcastToLobby = GetValue("broadcast_to_lobby", false); } catch { }
         try { NoClientCheatsMod.HideFromModList = GetValue("hide_from_mod_list", true); } catch { }
         try { NoClientCheatsMod.NotificationDuration = GetValue("notification_duration", 5.0f); } catch { }
         try { var s = GetValue("history_max", "25"); if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var n)) NoClientCheatsMod.HistoryMaxRecords = n; } catch { }

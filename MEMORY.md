@@ -146,6 +146,32 @@
 | quickRestart2 | `mods/quickRestart2/` | - |
 | RemoveMultiplayerPlayerLimit | `mods/RemoveMultiplayerPlayerLimit/` | - |
 
+### 3.5 游戏日志路径与「mods 下任意 .json」陷阱
+
+| 路径 | 说明 |
+|------|------|
+| `%APPDATA%\SlayTheSpire2\logs\godot.log` | 当前会话主日志（启动后滚动写入） |
+| `%APPDATA%\SlayTheSpire2\logs\godot*.log` | 按时间戳归档的历史日志 |
+
+**重要**：`ModManager` 会**递归扫描** `游戏/mods/` 下**所有** `.json` 文件并尝试按 **mod manifest** 解析。凡文件名被扫到且**缺少顶层 `id` 字段**即记一条 `[ERROR] ... missing the 'id' field`，并计入「已加载 N 个模组但检测到错误」的红字提示。
+
+因此：
+
+- **切勿**在单个 Mod 子目录里放 `localization/**/ui.json`、`config.json`、数据用 JSON 等松散文件（除非该文件本身就是合法 manifest）。
+- 本地化、配置应 **打进 .pck**（`res://...` 读取），或放到 **`%APPDATA%\SlayTheSpire2\`** 等非 `mods/` 路径。
+- 皮皮模组管理器写入的 `modmanager.json`、`telemetry_cache.json` 等若放在 `mods/` 根目录，同样会触发误扫（属管理器与游戏扫描策略叠加问题）。
+
+**已修复的 manifest（`mods/` 下）**：
+- `DamageMeter_v1.8.4/mod_manifest.json` — 补 `id: "DamageMeter"`
+- `ModConfig_v0.1.8/mod_manifest.json` — 补 `id: "ModConfig"`
+- `RemoveMultiplayerPlayerLimit/mod_manifest.json` — 补 `id: "RemoveMultiplayerPlayerLimit"`
+- `SpeedX_v0.8.6/mod_manifest.json` — 补 `id: "SpeedX"`
+
+**残留触发报错的非 manifest JSON**（暂不处理）：
+- `RunHistoryAnalyzer/Data/ancient_peoples_rules.json`
+- `sts2_lan_connect/lobby-defaults.json`
+- `【0.99+版本支持】Watcher-STS2_0.99-0.4.6/player_template.json`
+
 ---
 
 ## 四、通用技术决策

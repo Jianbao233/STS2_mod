@@ -1,0 +1,72 @@
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked
+  File "main.py", line 242, in <lambda>
+    command=lambda k=key: self.show_page(k),
+                          ~~~~~~~~~~~~~~^^^
+  File "main.py", line 318, in show_page
+    getattr(self, f"_page_{key}")()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "main.py", line 1137, in _page_settings
+    ctk.CTkLabel(
+    ~~~~~~~~~~~~^
+        font_card, text="界面字体大小",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        padx=12, pady=(8, 6),
+        ^^^^^^^^^^^^^^^^^^^^^
+    ).pack(anchor="w", fill="x")
+    ^
+  File "customtkinter\windows\widgets\ctk_label.py", line 99, in __init__
+  File "tkinter\__init__.py", line 1842, in configure
+  File "tkinter\__init__.py", line 1826, in _configure
+_tkinter.TclError: bad screen distance "8 6"
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked
+  File "main.py", line 242, in <lambda>
+    command=lambda k=key: self.show_page(k),
+                          ~~~~~~~~~~~~~~^^^
+  File "main.py", line 318, in show_page
+    getattr(self, f"_page_{key}")()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "main.py", line 1137, in _page_settings
+    ctk.CTkLabel(
+    ~~~~~~~~~~~~^
+        font_card, text="界面字体大小",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        padx=12, pady=(8, 6),
+        ^^^^^^^^^^^^^^^^^^^^^
+    ).pack(anchor="w", fill="x")
+    ^
+  File "customtkinter\windows\widgets\ctk_label.py", line 99, in __init__
+  File "tkinter\__init__.py", line 1842, in configure
+  File "tkinter\__init__.py", line 1826, in _configure
+_tkinter.TclError: bad screen distance "8 6"
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked
+  File "main.py", line 242, in <lambda>
+    command=lambda k=key: self.show_page(k),
+                          ~~~~~~~~~~~~~~^^^
+  File "main.py", line 318, in show_page
+    getattr(self, f"_page_{key}")()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "main.py", line 1137, in _page_settings
+    ctk.CTkLabel(
+    ~~~~~~~~~~~~^
+        font_card, text="界面字体大小",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        padx=12, pady=(8, 6),
+        ^^^^^^^^^^^^^^^^^^^^^
+    ).pack(anchor="w", fill="x")
+    ^
+  File "customtkinter\windows\widgets\ctk_label.py", line 99, in __init__
+  File "tkinter\__init__.py", line 1842, in configure
+  File "tkinter\__init__.py", line 1826, in _configure
+_tkinter.TclError: bad screen distance "8 6"

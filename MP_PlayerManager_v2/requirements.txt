@@ -1,0 +1,6 @@
+# MP_PlayerManager_v2
+# 运行依赖：Python 3.8 + customtkinter
+# pip install customtkinter
+#
+# 打包：pip install pyinstaller && pyinstaller MP_PlayerManager_v2.spec --clean
+customtkinter>=5.2.0

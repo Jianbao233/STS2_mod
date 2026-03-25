@@ -1,0 +1,190 @@
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "main.py", line 423, in <lambda>
+    lambda _, prof=profile: self._load_profile(prof),
+                            ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "main.py", line 438, in _load_profile
+    self.show_page("takeover")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "main.py", line 302, in show_page
+    getattr(self, f"_page_{key}")()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "main.py", line 479, in _page_takeover
+    ctk.CTkRadioButton(
+    ~~~~~~~~~~~~~~~~~~^
+        card, variable=self._to_selected_idx, value=i,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        radiobutton_width=18, radiobutton_height=18,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        border_width_pressed=2,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ).pack(side="left", padx=(10, 6), anchor="n", pady=10)
+    ^
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 46, in __init__
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 46, in __init__
+  File "customtkinter\windows\widgets\utility\utility_functions.py", line 18, in check_kwargs_empty
+ValueError: ['border_width_pressed'] are not supported arguments. Look at the documentation for supported arguments.
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked
+  File "main.py", line 232, in <lambda>
+    command=lambda k=key: self.show_page(k),
+                          ~~~~~~~~~~~~~~^^^
+  File "main.py", line 300, in show_page
+    w.destroy()
+    ~~~~~~~~~^^
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked
+  File "main.py", line 232, in <lambda>
+    command=lambda k=key: self.show_page(k),
+                          ~~~~~~~~~~~~~~^^^
+  File "main.py", line 300, in show_page
+    w.destroy()
+    ~~~~~~~~~^^
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked
+  File "main.py", line 232, in <lambda>
+    command=lambda k=key: self.show_page(k),
+                          ~~~~~~~~~~~~~~^^^
+  File "main.py", line 300, in show_page
+    w.destroy()
+    ~~~~~~~~~^^
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\ctk_tk.py", line 87, in destroy
+  File "tkinter\__init__.py", line 2522, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\ctk_tk.py", line 87, in destroy
+  File "tkinter\__init__.py", line 2522, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\ctk_tk.py", line 87, in destroy
+  File "tkinter\__init__.py", line 2522, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\ctk_tk.py", line 87, in destroy
+  File "tkinter\__init__.py", line 2522, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "tkinter\__init__.py", line 2088, in __call__
+  File "customtkinter\windows\ctk_tk.py", line 87, in destroy
+  File "tkinter\__init__.py", line 2522, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_scrollable_frame.py", line 94, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 98, in destroy
+  File "tkinter\__init__.py", line 2801, in destroy
+  File "customtkinter\windows\widgets\ctk_radiobutton.py", line 162, in destroy
+AttributeError: 'CTkRadioButton' object has no attribute '_variable'. Did you mean: 'wait_variable'?

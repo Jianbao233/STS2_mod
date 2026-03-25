@@ -1,1093 +1,717 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using FreeLoadout.Tabs;
 using Godot;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
-using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
-using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardLibrary;
-using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
 using MegaCrit.Sts2.Core.Nodes.Screens.PotionLab;
 using MegaCrit.Sts2.Core.Nodes.Screens.RelicCollection;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Runs;
+using MP_PlayerManager.Tabs;
 
 namespace MP_PlayerManager
 {
-	// Token: 0x02000028 RID: 40
-	[NullableContext(1)]
-	[Nullable(0)]
-	internal static class LoadoutPanel
-	{
-		// Token: 0x17000019 RID: 25
-		// (get) Token: 0x060000B4 RID: 180 RVA: 0x00007577 File Offset: 0x00005777
-		// (set) Token: 0x060000B5 RID: 181 RVA: 0x0000757E File Offset: 0x0000577E
-		internal static bool CardsShowUpgraded { get; set; }
+    /// <summary>
+    /// 主面板 UI 壳。管理标签页切换、嵌入屏幕、上下文工具栏和公共 UI 辅助方法。
+    /// </summary>
+    internal static class LoadoutPanel
+    {
+        // === 游戏风格颜色（替代 StsColors） ===
+        private static class SC
+        {
+            internal static readonly Color Gold    = new Color("E3A83D");
+            internal static readonly Color Cream   = new Color("E3D5C1");
+            internal static readonly Color Red     = new Color("C0392B");
+            internal static readonly Color Blue    = new Color("2980B9");
+            internal static readonly Color Green   = new Color("27AE60");
+            internal static readonly Color Gray    = new Color("7F8C8D");
+        }
 
-		// Token: 0x1700001A RID: 26
-		// (get) Token: 0x060000B6 RID: 182 RVA: 0x00007586 File Offset: 0x00005786
-		// (set) Token: 0x060000B7 RID: 183 RVA: 0x0000758D File Offset: 0x0000578D
-		internal static bool ShowMyCards { get; set; }
+        // === 公开状态属性 ===
+        internal static bool CardsShowUpgraded { get; set; }
+        internal static bool ShowMyCards { get; set; }
+        internal static int RelicBatchCount { get; set; } = 1;
+        internal static int PowerBatchCount { get; set; } = 1;
 
-		// Token: 0x1700001B RID: 27
-		// (get) Token: 0x060000B8 RID: 184 RVA: 0x00007595 File Offset: 0x00005795
-		// (set) Token: 0x060000B9 RID: 185 RVA: 0x0000759C File Offset: 0x0000579C
-		internal static int RelicBatchCount { get; set; } = 1;
+        internal static bool IsEmbeddedScreenActive
+        {
+            get
+            {
+                if (_relicScreen != null && _relicScreen.Visible) return true;
+                if (_cardScreen != null && _cardScreen.Visible) return true;
+                if (_potionScreen != null && _potionScreen.Visible) return true;
+                return false;
+            }
+        }
 
-		// Token: 0x1700001C RID: 28
-		// (get) Token: 0x060000BA RID: 186 RVA: 0x000075A4 File Offset: 0x000057A4
-		// (set) Token: 0x060000BB RID: 187 RVA: 0x000075AB File Offset: 0x000057AB
-		internal static int PowerBatchCount { get; set; } = 1;
+        internal static bool IsOpen => _layer != null && GodotObject.IsInstanceValid(_layer) && _layer.Visible;
 
-		// Token: 0x1700001D RID: 29
-		// (get) Token: 0x060000BC RID: 188 RVA: 0x000075B4 File Offset: 0x000057B4
-		internal static bool IsEmbeddedScreenActive
-		{
-			get
-			{
-				NRelicCollection relicScreen = LoadoutPanel._relicScreen;
-				if (relicScreen == null || !relicScreen.Visible)
-				{
-					NCardLibrary cardScreen = LoadoutPanel._cardScreen;
-					if (cardScreen == null || !cardScreen.Visible)
-					{
-						NPotionLab potionScreen = LoadoutPanel._potionScreen;
-						return potionScreen != null && potionScreen.Visible;
-					}
-				}
-				return true;
-			}
-		}
+        // === 生命周期 ===
+        internal static void Toggle()
+        {
+            if (_layer == null || !GodotObject.IsInstanceValid(_layer)) { Build(); return; }
+            _layer.Visible = !_layer.Visible;
+            if (_layer.Visible) { RefreshContextBar(); RefreshCurrentTab(); }
+        }
 
-		// Token: 0x1700001E RID: 30
-		// (get) Token: 0x060000BD RID: 189 RVA: 0x000075F8 File Offset: 0x000057F8
-		internal static bool IsOpen
-		{
-			get
-			{
-				CanvasLayer layer = LoadoutPanel._layer;
-				return layer != null && layer.Visible;
-			}
-		}
+        internal static void Show()
+        {
+            if (_layer == null || !GodotObject.IsInstanceValid(_layer)) { Build(); return; }
+            _layer.Visible = true;
+            RefreshContextBar();
+            RefreshCurrentTab();
+        }
 
-		// Token: 0x060000BE RID: 190 RVA: 0x00007618 File Offset: 0x00005818
-		internal static void Toggle()
-		{
-			if (LoadoutPanel._layer == null || !GodotObject.IsInstanceValid(LoadoutPanel._layer))
-			{
-				LoadoutPanel.Build();
-				return;
-			}
-			LoadoutPanel._layer.Visible = !LoadoutPanel._layer.Visible;
-			if (LoadoutPanel._layer.Visible)
-			{
-				LoadoutPanel.RefreshContextBar();
-				LoadoutPanel.RefreshCurrentTab();
-			}
-		}
+        internal static void Hide()
+        {
+            if (_layer != null && GodotObject.IsInstanceValid(_layer)) _layer.Visible = false;
+        }
 
-		// Token: 0x060000BF RID: 191 RVA: 0x0000766B File Offset: 0x0000586B
-		internal static void Show()
-		{
-			if (LoadoutPanel._layer == null || !GodotObject.IsInstanceValid(LoadoutPanel._layer))
-			{
-				LoadoutPanel.Build();
-				return;
-			}
-			LoadoutPanel._layer.Visible = true;
-			LoadoutPanel.RefreshContextBar();
-			LoadoutPanel.RefreshCurrentTab();
-		}
+        internal static void HideForInspect()
+        {
+            if (_layer != null && GodotObject.IsInstanceValid(_layer)) _layer.Visible = false;
+            if (_hoverTipLayer != null && GodotObject.IsInstanceValid(_hoverTipLayer)) _hoverTipLayer.Visible = false;
+        }
 
-		// Token: 0x060000C0 RID: 192 RVA: 0x0000769B File Offset: 0x0000589B
-		internal static void Hide()
-		{
-			if (LoadoutPanel._layer != null && GodotObject.IsInstanceValid(LoadoutPanel._layer))
-			{
-				LoadoutPanel._layer.Visible = false;
-			}
-		}
+        internal static void ShowAfterInspect()
+        {
+            if (_layer != null && GodotObject.IsInstanceValid(_layer)) _layer.Visible = true;
+            if (_hoverTipLayer != null && GodotObject.IsInstanceValid(_hoverTipLayer)) _hoverTipLayer.Visible = true;
+            RefreshCurrentTab();
+        }
 
-		// Token: 0x060000C1 RID: 193 RVA: 0x000076BB File Offset: 0x000058BB
-		internal static void HideForInspect()
-		{
-			if (LoadoutPanel._layer != null && GodotObject.IsInstanceValid(LoadoutPanel._layer))
-			{
-				LoadoutPanel._layer.Visible = false;
-			}
-			if (LoadoutPanel._hoverTipLayer != null && GodotObject.IsInstanceValid(LoadoutPanel._hoverTipLayer))
-			{
-				LoadoutPanel._hoverTipLayer.Visible = false;
-			}
-		}
+        internal static void ReparentToHoverTipLayer(Node tipSet)
+        {
+            if (_hoverTipLayer == null || !GodotObject.IsInstanceValid(_hoverTipLayer) || tipSet.GetParent() == _hoverTipLayer) return;
+            tipSet.GetParent()?.RemoveChild(tipSet);
+            _hoverTipLayer.AddChild(tipSet, false, Node.InternalMode.Disabled);
+        }
 
-		// Token: 0x060000C2 RID: 194 RVA: 0x000076FC File Offset: 0x000058FC
-		internal static void ShowAfterInspect()
-		{
-			if (LoadoutPanel._layer != null && GodotObject.IsInstanceValid(LoadoutPanel._layer))
-			{
-				LoadoutPanel._layer.Visible = true;
-			}
-			if (LoadoutPanel._hoverTipLayer != null && GodotObject.IsInstanceValid(LoadoutPanel._hoverTipLayer))
-			{
-				LoadoutPanel._hoverTipLayer.Visible = true;
-			}
-			LoadoutPanel.RefreshCurrentTab();
-		}
+        // === HoverTip ===
+        internal static void ShowHoverTip(Control owner, IHoverTip tip, HoverTipAlignment alignment = HoverTipAlignment.Right)
+        {
+            ShowHoverTips(owner, new IHoverTip[] { tip }, alignment);
+        }
 
-		// Token: 0x060000C3 RID: 195 RVA: 0x0000774C File Offset: 0x0000594C
-		internal static void ReparentToHoverTipLayer(Node tipSet)
-		{
-			if (LoadoutPanel._hoverTipLayer == null || !GodotObject.IsInstanceValid(LoadoutPanel._hoverTipLayer))
-			{
-				return;
-			}
-			if (tipSet.GetParent() == LoadoutPanel._hoverTipLayer)
-			{
-				return;
-			}
-			Node parent = tipSet.GetParent();
-			if (parent != null)
-			{
-				parent.RemoveChild(tipSet);
-			}
-			LoadoutPanel._hoverTipLayer.AddChild(tipSet, false, Node.InternalMode.Disabled);
-		}
+        internal static void ShowHoverTips(Control owner, IEnumerable<IHoverTip> tips, HoverTipAlignment alignment = HoverTipAlignment.Right)
+        {
+            try
+            {
+                var nhoverTipSet = NHoverTipSet.CreateAndShow(owner, tips, alignment);
+                if (_hoverTipLayer != null && GodotObject.IsInstanceValid(_hoverTipLayer) && nhoverTipSet != null && GodotObject.IsInstanceValid(nhoverTipSet))
+                {
+                    nhoverTipSet.GetParent()?.RemoveChild(nhoverTipSet);
+                    _hoverTipLayer.AddChild(nhoverTipSet, false, Node.InternalMode.Disabled);
+                }
+            }
+            catch { }
+        }
 
-		// Token: 0x060000C4 RID: 196 RVA: 0x0000779B File Offset: 0x0000599B
-		internal static void ShowHoverTip(Control owner, IHoverTip tip, HoverTipAlignment alignment = HoverTipAlignment.Right)
-		{
-			LoadoutPanel.ShowHoverTips(owner, new IHoverTip[] { tip }, alignment);
-		}
+        // === 游戏上下文 ===
+        internal static Player? GetPlayer()
+        {
+            var rm = RunManager.Instance;
+            return rm?.DebugOnlyGetState() is { } state ? LocalContext.GetMe(state) : null;
+        }
 
-		// Token: 0x060000C5 RID: 197 RVA: 0x000077B0 File Offset: 0x000059B0
-		internal static void ShowHoverTips(Control owner, IEnumerable<IHoverTip> tips, HoverTipAlignment alignment = HoverTipAlignment.Right)
-		{
-			try
-			{
-				NHoverTipSet nhoverTipSet = NHoverTipSet.CreateAndShow(owner, tips, alignment);
-				if (LoadoutPanel._hoverTipLayer != null && GodotObject.IsInstanceValid(LoadoutPanel._hoverTipLayer) && nhoverTipSet != null && GodotObject.IsInstanceValid(nhoverTipSet))
-				{
-					Node parent = nhoverTipSet.GetParent();
-					if (parent != null)
-					{
-						parent.RemoveChild(nhoverTipSet);
-					}
-					LoadoutPanel._hoverTipLayer.AddChild(nhoverTipSet, false, Node.InternalMode.Disabled);
-				}
-			}
-			catch
-			{
-			}
-		}
+        internal static void RequestRefresh()
+        {
+            if (_layer != null && GodotObject.IsInstanceValid(_layer) && _layer.Visible) RefreshCurrentTab();
+        }
 
-		// Token: 0x060000C6 RID: 198 RVA: 0x0000781C File Offset: 0x00005A1C
-		[NullableContext(2)]
-		internal static Player GetPlayer()
-		{
-			RunManager instance = RunManager.Instance;
-			RunState runState = ((instance != null) ? instance.DebugOnlyGetState() : null);
-			if (runState == null)
-			{
-				return null;
-			}
-			return LocalContext.GetMe(runState);
-		}
+        // === UI 辅助方法 ===
+        internal static void ClearChildren(Node parent)
+        {
+            foreach (var child in parent.GetChildren(false))
+            {
+                parent.RemoveChild(child);
+                child.QueueFree();
+            }
+        }
 
-		// Token: 0x060000C7 RID: 199 RVA: 0x00007846 File Offset: 0x00005A46
-		internal static void RequestRefresh()
-		{
-			if (LoadoutPanel._layer != null && GodotObject.IsInstanceValid(LoadoutPanel._layer) && LoadoutPanel._layer.Visible)
-			{
-				LoadoutPanel.RefreshCurrentTab();
-			}
-		}
+        internal static Label CreateSectionHeader(string text)
+        {
+            var label = new Label { Text = text };
+            label.AddThemeFontSizeOverride("font_size", 18);
+            label.AddThemeColorOverride("font_color", SC.Gold);
+            label.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.15f, 0.18f, 0.8f));
+            label.AddThemeConstantOverride("outline_size", 4);
+            var font = GD.Load<Font>("res://themes/kreon_bold_glyph_space_two.tres");
+            if (font != null) label.AddThemeFontOverride("font", font);
+            return label;
+        }
 
-		// Token: 0x060000C8 RID: 200 RVA: 0x0000786C File Offset: 0x00005A6C
-		private static void Build()
-		{
-			LoadoutPanel._layer = new CanvasLayer();
-			LoadoutPanel._layer.Layer = 100;
-			LoadoutPanel._layer.Name = "LoadoutPanel";
-			ColorRect backstop = new ColorRect();
-			backstop.Color = new Color(0f, 0f, 0f, 0.5f);
-			backstop.AnchorRight = 1f;
-			backstop.AnchorBottom = 1f;
-			backstop.MouseFilter = Control.MouseFilterEnum.Stop;
-			backstop.GuiInput += delegate(InputEvent ev)
-			{
-				InputEventMouseButton inputEventMouseButton = ev as InputEventMouseButton;
-				if (inputEventMouseButton != null && inputEventMouseButton.Pressed && inputEventMouseButton.ButtonIndex == MouseButton.Left)
-				{
-					LoadoutPanel.Hide();
-					Viewport viewport = backstop.GetViewport();
-					if (viewport == null)
-					{
-						return;
-					}
-					viewport.SetInputAsHandled();
-				}
-			};
-			LoadoutPanel._layer.AddChild(backstop, false, Node.InternalMode.Disabled);
-			PanelContainer panelContainer = new PanelContainer();
-			panelContainer.AnchorLeft = 0.05f;
-			panelContainer.AnchorRight = 0.95f;
-			panelContainer.AnchorTop = 0.05f;
-			panelContainer.AnchorBottom = 0.95f;
-			panelContainer.GrowHorizontal = Control.GrowDirection.Both;
-			panelContainer.GrowVertical = Control.GrowDirection.Both;
-			panelContainer.MouseFilter = Control.MouseFilterEnum.Stop;
-			StyleBoxFlat styleBoxFlat = new StyleBoxFlat();
-			styleBoxFlat.BgColor = new Color(0.08f, 0.06f, 0.1f, 0.95f);
-			styleBoxFlat.SetBorderWidthAll(0);
-			styleBoxFlat.SetCornerRadiusAll(8);
-			styleBoxFlat.SetContentMarginAll(12f);
-			styleBoxFlat.ShadowSize = 0;
-			styleBoxFlat.ShadowColor = Colors.Transparent;
-			styleBoxFlat.SetExpandMarginAll(0f);
-			panelContainer.AddThemeStyleboxOverride("panel", styleBoxFlat);
-			LoadoutPanel._panel = panelContainer;
-			LoadoutPanel._panelStyleNormal = styleBoxFlat;
-			LoadoutPanel._panelStyleClear = new StyleBoxFlat();
-			LoadoutPanel._panelStyleClear.BgColor = Colors.Transparent;
-			LoadoutPanel._panelStyleClear.SetBorderWidthAll(0);
-			LoadoutPanel._panelStyleClear.SetContentMarginAll(0f);
-			LoadoutPanel._panelStyleClear.ShadowSize = 0;
-			LoadoutPanel._panelStyleClear.ShadowColor = Colors.Transparent;
-			LoadoutPanel._panelStyleClear.SetExpandMarginAll(0f);
-			LoadoutPanel._layer.AddChild(panelContainer, false, Node.InternalMode.Disabled);
-			VBoxContainer vboxContainer = new VBoxContainer();
-			vboxContainer.AnchorRight = 1f;
-			vboxContainer.AnchorBottom = 1f;
-			vboxContainer.AddThemeConstantOverride("separation", 8);
-			panelContainer.AddChild(vboxContainer, false, Node.InternalMode.Disabled);
-			LoadoutPanel._mainVBox = vboxContainer;
-			HBoxContainer hboxContainer = new HBoxContainer();
-			hboxContainer.AddThemeConstantOverride("separation", 4);
-			vboxContainer.AddChild(hboxContainer, false, Node.InternalMode.Disabled);
-			string[] array = new string[]
-			{
-				Loc.Get("tab.cards", null),
-				Loc.Get("tab.relics", null),
-				Loc.Get("tab.potions", null),
-				Loc.Get("tab.powers", null),
-				Loc.Get("tab.events", null),
-				Loc.Get("tab.encounters", null),
-				Loc.Get("tab.character", null)
-			};
-			LoadoutPanel._tabButtons = new Button[array.Length];
-			for (int i = 0; i < array.Length; i++)
-			{
-				int tabIndex = i;
-				Button button = LoadoutPanel.CreateTabButton(array[i]);
-				button.Pressed += delegate
-				{
-					LoadoutPanel.SwitchTab(tabIndex);
-				};
-				hboxContainer.AddChild(button, false, Node.InternalMode.Disabled);
-				LoadoutPanel._tabButtons[i] = button;
-			}
-			hboxContainer.AddChild(new Control
-			{
-				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-			}, false, Node.InternalMode.Disabled);
-			LoadoutPanel._contextBar = new HBoxContainer();
-			LoadoutPanel._contextBar.AddThemeConstantOverride("separation", 4);
-			hboxContainer.AddChild(LoadoutPanel._contextBar, false, Node.InternalMode.Disabled);
-			Button button2 = LoadoutPanel.CreateTabButton("✕");
-			button2.CustomMinimumSize = new Vector2(40f, 36f);
-			BaseButton baseButton = button2;
-			Action action;
-			if ((action = LoadoutPanel.<>O.<0>__Hide) == null)
-			{
-				action = (LoadoutPanel.<>O.<0>__Hide = new Action(LoadoutPanel.Hide));
-			}
-			baseButton.Pressed += action;
-			hboxContainer.AddChild(button2, false, Node.InternalMode.Disabled);
-			LoadoutPanel._divider = new ColorRect();
-			LoadoutPanel._divider.CustomMinimumSize = new Vector2(0f, 2f);
-			LoadoutPanel._divider.Color = new Color(0.91f, 0.86f, 0.75f, 0.25f);
-			LoadoutPanel._divider.MouseFilter = Control.MouseFilterEnum.Ignore;
-			vboxContainer.AddChild(LoadoutPanel._divider, false, Node.InternalMode.Disabled);
-			LoadoutPanel._scrollContainer = new ScrollContainer();
-			LoadoutPanel._scrollContainer.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-			LoadoutPanel._scrollContainer.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
-			vboxContainer.AddChild(LoadoutPanel._scrollContainer, false, Node.InternalMode.Disabled);
-			LoadoutPanel._contentContainer = new VBoxContainer();
-			LoadoutPanel._contentContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-			LoadoutPanel._contentContainer.AddThemeConstantOverride("separation", 6);
-			LoadoutPanel._scrollContainer.AddChild(LoadoutPanel._contentContainer, false, Node.InternalMode.Disabled);
-			LoadoutPanel._hoverTipLayer = new CanvasLayer();
-			LoadoutPanel._hoverTipLayer.Layer = 101;
-			LoadoutPanel._hoverTipLayer.Name = "LoadoutHoverTips";
-			NGame instance = NGame.Instance;
-			if (instance != null)
-			{
-				instance.AddChild(LoadoutPanel._layer, false, Node.InternalMode.Disabled);
-			}
-			NGame instance2 = NGame.Instance;
-			if (instance2 != null)
-			{
-				instance2.AddChild(LoadoutPanel._hoverTipLayer, false, Node.InternalMode.Disabled);
-			}
-			LoadoutPanel._activeTab = 0;
-			LoadoutPanel.UpdateTabHighlights();
-			LoadoutPanel.RefreshContextBar();
-			LoadoutPanel.RefreshCurrentTab();
-		}
+        internal static Button CreateItemButton(string text, Vector2? minSize = null, int fontSize = 14)
+        {
+            var btn = new Button { Text = text };
+            btn.CustomMinimumSize = minSize ?? new Vector2(0, 32);
+            btn.AddThemeFontSizeOverride("font_size", fontSize);
+            btn.AddThemeColorOverride("font_color", SC.Cream);
+            btn.AddThemeColorOverride("font_hover_color", SC.Gold);
+            btn.AddThemeColorOverride("font_pressed_color", SC.Gray);
+            btn.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.15f, 0.18f, 0.8f));
+            btn.AddThemeConstantOverride("outline_size", 4);
+            ApplyFlatStyle(btn);
+            return btn;
+        }
 
-		// Token: 0x060000C9 RID: 201 RVA: 0x00007D63 File Offset: 0x00005F63
-		private static void SwitchTab(int index)
-		{
-			LoadoutPanel._activeTab = index;
-			LoadoutPanel.UpdateTabHighlights();
-			LoadoutPanel.RefreshContextBar();
-			LoadoutPanel.RefreshCurrentTab();
-		}
+        internal static Button CreateActionButton(string text, Color? fontColor = null)
+        {
+            var btn = new Button { Text = text };
+            btn.CustomMinimumSize = new Vector2(60, 28);
+            btn.AddThemeFontSizeOverride("font_size", 13);
+            btn.AddThemeColorOverride("font_color", fontColor ?? SC.Cream);
+            btn.AddThemeColorOverride("font_hover_color", SC.Gold);
+            btn.AddThemeColorOverride("font_pressed_color", SC.Gray);
+            ApplyFlatStyle(btn);
+            return btn;
+        }
 
-		// Token: 0x060000CA RID: 202 RVA: 0x00007D7C File Offset: 0x00005F7C
-		private static void RefreshCurrentTab()
-		{
-			if (LoadoutPanel._contentContainer == null || LoadoutPanel._mainVBox == null)
-			{
-				return;
-			}
-			switch (LoadoutPanel._activeTab)
-			{
-			case 0:
-				if (LoadoutPanel.ShowMyCards)
-				{
-					LoadoutPanel.HideEmbeddedScreens();
-					LoadoutPanel.ClearChildren(LoadoutPanel._contentContainer);
-					Player player = LoadoutPanel.GetPlayer();
-					if (player != null)
-					{
-						LoadoutPanel.BuildMyCardsView(LoadoutPanel._contentContainer, player);
-						return;
-					}
-				}
-				else
-				{
-					Func<NCardLibrary> func;
-					if ((func = LoadoutPanel.<>O.<1>__CreateCardScreen) == null)
-					{
-						func = (LoadoutPanel.<>O.<1>__CreateCardScreen = new Func<NCardLibrary>(LoadoutPanel.CreateCardScreen));
-					}
-					LoadoutPanel.ShowEmbeddedScreen<NCardLibrary>(ref LoadoutPanel._cardScreen, func);
-				}
-				return;
-			case 1:
-			{
-				Func<NRelicCollection> func2;
-				if ((func2 = LoadoutPanel.<>O.<2>__CreateRelicScreen) == null)
-				{
-					func2 = (LoadoutPanel.<>O.<2>__CreateRelicScreen = new Func<NRelicCollection>(LoadoutPanel.CreateRelicScreen));
-				}
-				LoadoutPanel.ShowEmbeddedScreen<NRelicCollection>(ref LoadoutPanel._relicScreen, func2);
-				return;
-			}
-			case 2:
-			{
-				Func<NPotionLab> func3;
-				if ((func3 = LoadoutPanel.<>O.<3>__CreatePotionScreen) == null)
-				{
-					func3 = (LoadoutPanel.<>O.<3>__CreatePotionScreen = new Func<NPotionLab>(LoadoutPanel.CreatePotionScreen));
-				}
-				LoadoutPanel.ShowEmbeddedScreen<NPotionLab>(ref LoadoutPanel._potionScreen, func3);
-				return;
-			}
-			default:
-			{
-				LoadoutPanel.HideEmbeddedScreens();
-				LoadoutPanel.ClearChildren(LoadoutPanel._contentContainer);
-				Player player2 = LoadoutPanel.GetPlayer();
-				if (player2 == null)
-				{
-					Label label = new Label();
-					label.Text = Loc.Get("not_in_game", null);
-					label.AddThemeFontSizeOverride("font_size", 20);
-					label.AddThemeColorOverride("font_color", StsColors.cream);
-					LoadoutPanel._contentContainer.AddChild(label, false, Node.InternalMode.Disabled);
-					return;
-				}
-				switch (LoadoutPanel._activeTab)
-				{
-				case 3:
-					PowersTab.Build(LoadoutPanel._contentContainer, player2);
-					return;
-				case 4:
-					EventsTab.Build(LoadoutPanel._contentContainer, player2);
-					return;
-				case 5:
-					EncountersTab.Build(LoadoutPanel._contentContainer, player2);
-					return;
-				case 6:
-					CharacterTab.Build(LoadoutPanel._contentContainer, player2);
-					return;
-				default:
-					return;
-				}
-				break;
-			}
-			}
-		}
+        internal static Button CreateToggleButton(string text, bool enabled)
+        {
+            var btn = CreateTabButton(text);
+            btn.CustomMinimumSize = new Vector2(100, 36);
+            UpdateToggleButton(btn, enabled);
+            return btn;
+        }
 
-		// Token: 0x060000CB RID: 203 RVA: 0x00007F08 File Offset: 0x00006108
-		private static void RefreshContextBar()
-		{
-			if (LoadoutPanel._contextBar == null)
-			{
-				return;
-			}
-			LoadoutPanel.ClearChildren(LoadoutPanel._contextBar);
-			switch (LoadoutPanel._activeTab)
-			{
-			case 0:
-				LoadoutPanel.BuildCardsPileContextBar();
-				return;
-			case 1:
-				LoadoutPanel.BuildBatchContextBar("relics");
-				return;
-			case 2:
-				break;
-			case 3:
-				LoadoutPanel.BuildBatchContextBar("powers");
-				LoadoutPanel.BuildPowersPresetContextBar();
-				break;
-			default:
-				return;
-			}
-		}
+        internal static void UpdateToggleButton(Button btn, bool enabled)
+        {
+            if (enabled)
+                btn.AddThemeStyleboxOverride("normal", CreateStyleBox(new Color(0.15f, 0.25f, 0.15f, 0.9f), new Color(0.3f, 0.6f, 0.3f, 0.7f)));
+            else
+                btn.AddThemeStyleboxOverride("normal", CreateStyleBox(new Color(0.12f, 0.1f, 0.15f, 0.85f), new Color(0.35f, 0.3f, 0.25f, 0.5f)));
+        }
 
-		// Token: 0x060000CC RID: 204 RVA: 0x00007F64 File Offset: 0x00006164
-		private static void BuildCardsPileContextBar()
-		{
-			if (LoadoutPanel._contextBar == null)
-			{
-				return;
-			}
-			Button myCardsToggle = LoadoutPanel.CreateToggleButton(Loc.Get("pile.my_cards", null), LoadoutPanel.ShowMyCards);
-			myCardsToggle.CustomMinimumSize = new Vector2(90f, 36f);
-			myCardsToggle.Pressed += delegate
-			{
-				LoadoutPanel.ShowMyCards = !LoadoutPanel.ShowMyCards;
-				LoadoutPanel.UpdateToggleButton(myCardsToggle, LoadoutPanel.ShowMyCards);
-				LoadoutPanel.RefreshCurrentTab();
-			};
-			LoadoutPanel._contextBar.AddChild(myCardsToggle, false, Node.InternalMode.Disabled);
-		}
+        // === 内部 UI 构建 ===
+        private static Button CreateTabButton(string text)
+        {
+            var btn = new Button { Text = text };
+            btn.CustomMinimumSize = new Vector2(80, 36);
+            btn.AddThemeFontSizeOverride("font_size", 16);
+            btn.AddThemeColorOverride("font_color", SC.Cream);
+            btn.AddThemeColorOverride("font_hover_color", SC.Gold);
+            btn.AddThemeColorOverride("font_pressed_color", SC.Gray);
+            btn.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.15f, 0.18f, 0.8f));
+            btn.AddThemeConstantOverride("outline_size", 4);
+            var font = GD.Load<Font>("res://themes/kreon_bold_glyph_space_two.tres");
+            if (font != null) btn.AddThemeFontOverride("font", font);
+            ApplyFlatStyle(btn);
+            return btn;
+        }
 
-		// Token: 0x060000CD RID: 205 RVA: 0x00007FE0 File Offset: 0x000061E0
-		private static void BuildMyCardsView(VBoxContainer container, Player player)
-		{
-			CombatManager instance = CombatManager.Instance;
-			if (instance != null && instance.IsInProgress)
-			{
-				LoadoutPanel.BuildMyCardsPileGroup(container, player, PileType.Hand, Loc.Get("pile.hand", null));
-				LoadoutPanel.BuildMyCardsPileGroup(container, player, PileType.Draw, Loc.Get("pile.draw", null));
-				LoadoutPanel.BuildMyCardsPileGroup(container, player, PileType.Discard, Loc.Get("pile.discard", null));
-				LoadoutPanel.BuildMyCardsPileGroup(container, player, PileType.Exhaust, Loc.Get("pile.exhaust", null));
-			}
-			LoadoutPanel.BuildMyCardsPileGroup(container, player, PileType.Deck, Loc.Get("pile.deck", null));
-		}
+        internal static void ApplyFlatStyle(Button btn)
+        {
+            btn.AddThemeStyleboxOverride("normal", CreateStyleBox(new Color(0.12f, 0.1f, 0.15f, 0.85f), new Color(0.35f, 0.3f, 0.25f, 0.5f)));
+            btn.AddThemeStyleboxOverride("hover", CreateStyleBox(new Color(0.18f, 0.15f, 0.22f, 0.92f), SC.Gold));
+            btn.AddThemeStyleboxOverride("pressed", CreateStyleBox(new Color(0.08f, 0.06f, 0.1f, 0.95f), new Color("B89840")));
+            btn.AddThemeStyleboxOverride("focus", CreateStyleBox(new Color(0.18f, 0.15f, 0.22f, 0.92f), SC.Gold));
+        }
 
-		// Token: 0x060000CE RID: 206 RVA: 0x00008060 File Offset: 0x00006260
-		private static void BuildMyCardsPileGroup(VBoxContainer container, Player player, PileType pileType, string label)
-		{
-			CardPile cardPile = CardPile.Get(pileType, player);
-			if (cardPile == null)
-			{
-				return;
-			}
-			IReadOnlyList<CardModel> cards = cardPile.Cards;
-			DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(3, 2);
-			defaultInterpolatedStringHandler.AppendFormatted(label);
-			defaultInterpolatedStringHandler.AppendLiteral(" (");
-			defaultInterpolatedStringHandler.AppendFormatted<int>(cards.Count);
-			defaultInterpolatedStringHandler.AppendLiteral(")");
-			container.AddChild(LoadoutPanel.CreateSectionHeader(defaultInterpolatedStringHandler.ToStringAndClear()), false, Node.InternalMode.Disabled);
-			if (cards.Count == 0)
-			{
-				Label label2 = new Label();
-				label2.Text = Loc.Get("empty", null);
-				label2.AddThemeFontSizeOverride("font_size", 13);
-				label2.AddThemeColorOverride("font_color", StsColors.gray);
-				container.AddChild(label2, false, Node.InternalMode.Disabled);
-				return;
-			}
-			List<CardModel> list = cards.ToList<CardModel>();
-			foreach (IGrouping<CardType, CardModel> grouping in from c in list
-				group c by c.Type into g
-				orderby g.Key
-				select g)
-			{
-				defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(5, 1);
-				defaultInterpolatedStringHandler.AppendLiteral("type.");
-				defaultInterpolatedStringHandler.AppendFormatted<CardType>(grouping.Key);
-				string text = Loc.Get(defaultInterpolatedStringHandler.ToStringAndClear(), grouping.Key.ToString());
-				Color color;
-				switch (grouping.Key)
-				{
-				case CardType.Attack:
-					color = StsColors.red;
-					break;
-				case CardType.Skill:
-					color = StsColors.blue;
-					break;
-				case CardType.Power:
-					color = new Color("CC77FF");
-					break;
-				default:
-					color = StsColors.gray;
-					break;
-				}
-				Color color2 = color;
-				Label label3 = new Label();
-				Label label4 = label3;
-				defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(5, 2);
-				defaultInterpolatedStringHandler.AppendLiteral("  ");
-				defaultInterpolatedStringHandler.AppendFormatted(text);
-				defaultInterpolatedStringHandler.AppendLiteral(" (");
-				defaultInterpolatedStringHandler.AppendFormatted<int>(grouping.Count<CardModel>());
-				defaultInterpolatedStringHandler.AppendLiteral(")");
-				label4.Text = defaultInterpolatedStringHandler.ToStringAndClear();
-				label3.AddThemeFontSizeOverride("font_size", 14);
-				label3.AddThemeColorOverride("font_color", color2);
-				container.AddChild(label3, false, Node.InternalMode.Disabled);
-				GridContainer gridContainer = new GridContainer
-				{
-					Columns = 6
-				};
-				gridContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-				gridContainer.AddThemeConstantOverride("h_separation", 4);
-				gridContainer.AddThemeConstantOverride("v_separation", 4);
-				container.AddChild(gridContainer, false, Node.InternalMode.Disabled);
-				foreach (CardModel cardModel in grouping.OrderBy(delegate(CardModel c)
-				{
-					string text2;
-					try
-					{
-						text2 = c.Title;
-					}
-					catch
-					{
-						text2 = c.Id.Entry;
-					}
-					return text2;
-				}))
-				{
-					CardModel capturedCard = cardModel;
-					List<CardModel> capturedList = list;
-					Control control = CardsTab.CreateNCardWrapperPublic(cardModel, pileType, list, delegate
-					{
-						int num = capturedList.IndexOf(capturedCard);
-						if (num < 0)
-						{
-							num = 0;
-						}
-						NGame instance = NGame.Instance;
-						NInspectCardScreen ninspectCardScreen = ((instance != null) ? instance.GetInspectCardScreen() : null);
-						if (ninspectCardScreen == null)
-						{
-							return;
-						}
-						ninspectCardScreen.Open(capturedList, num, false);
-						InspectCardEdit.Attach(ninspectCardScreen);
-					});
-					gridContainer.AddChild(control, false, Node.InternalMode.Disabled);
-				}
-			}
-		}
+        private static StyleBoxFlat CreateStyleBox(Color bg, Color border)
+        {
+            var sb = new StyleBoxFlat { BgColor = bg, BorderColor = border };
+            sb.SetBorderWidthAll(2);
+            sb.SetCornerRadiusAll(6);
+            sb.SetContentMarginAll(6);
+            return sb;
+        }
 
-		// Token: 0x060000CF RID: 207 RVA: 0x000083C0 File Offset: 0x000065C0
-		private static void BuildBatchContextBar(string target)
-		{
-			if (LoadoutPanel._contextBar == null)
-			{
-				return;
-			}
-			int num = ((target == "relics") ? LoadoutPanel.RelicBatchCount : LoadoutPanel.PowerBatchCount);
-			Label label = new Label();
-			label.Text = Loc.Get("quantity", null);
-			label.AddThemeFontSizeOverride("font_size", 14);
-			label.AddThemeColorOverride("font_color", StsColors.cream);
-			label.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-			LoadoutPanel._contextBar.AddChild(label, false, Node.InternalMode.Disabled);
-			int[] array = new int[] { 1, 5, 10, 20 };
-			for (int i = 0; i < array.Length; i++)
-			{
-				int num2 = array[i];
-				int c = num2;
-				bool flag = num == c;
-				DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(1, 1);
-				defaultInterpolatedStringHandler.AppendLiteral("×");
-				defaultInterpolatedStringHandler.AppendFormatted<int>(c);
-				Button button = LoadoutPanel.CreateToggleButton(defaultInterpolatedStringHandler.ToStringAndClear(), flag);
-				button.CustomMinimumSize = new Vector2(50f, 36f);
-				button.Pressed += delegate
-				{
-					if (target == "relics")
-					{
-						LoadoutPanel.RelicBatchCount = c;
-					}
-					else
-					{
-						LoadoutPanel.PowerBatchCount = c;
-					}
-					LoadoutPanel.RefreshContextBar();
-					LoadoutPanel.RequestRefresh();
-				};
-				LoadoutPanel._contextBar.AddChild(button, false, Node.InternalMode.Disabled);
-			}
-		}
+        private static void Build()
+        {
+            _layer = new CanvasLayer { Layer = 100, Name = "LoadoutPanel" };
 
-		// Token: 0x060000D0 RID: 208 RVA: 0x00008518 File Offset: 0x00006718
-		private static void BuildPowersPresetContextBar()
-		{
-			if (LoadoutPanel._contextBar == null)
-			{
-				return;
-			}
-			VSeparator vseparator = new VSeparator();
-			vseparator.CustomMinimumSize = new Vector2(2f, 0f);
-			LoadoutPanel._contextBar.AddChild(vseparator, false, Node.InternalMode.Disabled);
-			Button presetToggle = LoadoutPanel.CreateToggleButton(Loc.Get("presets", null), PowerPresets.Enabled);
-			presetToggle.CustomMinimumSize = new Vector2(70f, 36f);
-			presetToggle.Pressed += delegate
-			{
-				PowerPresets.Enabled = !PowerPresets.Enabled;
-				LoadoutPanel.UpdateToggleButton(presetToggle, PowerPresets.Enabled);
-			};
-			LoadoutPanel._contextBar.AddChild(presetToggle, false, Node.InternalMode.Disabled);
-			Button button = LoadoutPanel.CreateToggleButton(Loc.Get("to_player", null), PowerPresets.PresetTarget == 0);
-			button.CustomMinimumSize = new Vector2(80f, 36f);
-			button.Pressed += delegate
-			{
-				PowerPresets.PresetTarget = 0;
-				LoadoutPanel.RefreshContextBar();
-				LoadoutPanel.RequestRefresh();
-			};
-			LoadoutPanel._contextBar.AddChild(button, false, Node.InternalMode.Disabled);
-			Button button2 = LoadoutPanel.CreateToggleButton(Loc.Get("to_enemy", null), PowerPresets.PresetTarget == 1);
-			button2.CustomMinimumSize = new Vector2(80f, 36f);
-			button2.Pressed += delegate
-			{
-				PowerPresets.PresetTarget = 1;
-				LoadoutPanel.RefreshContextBar();
-				LoadoutPanel.RequestRefresh();
-			};
-			LoadoutPanel._contextBar.AddChild(button2, false, Node.InternalMode.Disabled);
-		}
+            // 半透明遮罩
+            var backstop = new ColorRect
+            {
+                Color = new Color(0, 0, 0, 0.5f),
+                AnchorRight = 1, AnchorBottom = 1,
+                MouseFilter = Control.MouseFilterEnum.Stop
+            };
+            backstop.GuiInput += ev =>
+            {
+                if (ev is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+                {
+                    Hide();
+                    backstop.GetViewport()?.SetInputAsHandled();
+                }
+            };
+            _layer.AddChild(backstop, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D1 RID: 209 RVA: 0x00008680 File Offset: 0x00006880
-		private static void UpdateTabHighlights()
-		{
-			if (LoadoutPanel._tabButtons == null)
-			{
-				return;
-			}
-			for (int i = 0; i < LoadoutPanel._tabButtons.Length; i++)
-			{
-				Button button = LoadoutPanel._tabButtons[i];
-				if (i == LoadoutPanel._activeTab)
-				{
-					button.AddThemeColorOverride("font_color", StsColors.gold);
-					button.AddThemeColorOverride("font_hover_color", StsColors.gold);
-				}
-				else
-				{
-					button.AddThemeColorOverride("font_color", StsColors.cream);
-					button.AddThemeColorOverride("font_hover_color", StsColors.gold);
-				}
-			}
-		}
+            // 主面板
+            _panel = new PanelContainer
+            {
+                AnchorLeft = 0.05f, AnchorRight = 0.95f,
+                AnchorTop = 0.05f, AnchorBottom = 0.95f,
+                GrowHorizontal = Control.GrowDirection.Both,
+                GrowVertical = Control.GrowDirection.Both,
+                MouseFilter = Control.MouseFilterEnum.Stop
+            };
+            _panelStyleNormal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.08f, 0.06f, 0.1f, 0.95f),
+                ShadowSize = 0, ShadowColor = Colors.Transparent
+            };
+            _panelStyleNormal.SetBorderWidthAll(0);
+            _panelStyleNormal.SetCornerRadiusAll(8);
+            _panelStyleNormal.SetContentMarginAll(12);
+            _panelStyleNormal.SetExpandMarginAll(0);
+            _panel.AddThemeStyleboxOverride("panel", _panelStyleNormal);
+            _panelStyleClear = new StyleBoxFlat { BgColor = Colors.Transparent, ShadowSize = 0, ShadowColor = Colors.Transparent };
+            _panelStyleClear.SetBorderWidthAll(0);
+            _panelStyleClear.SetContentMarginAll(0);
+            _panelStyleClear.SetExpandMarginAll(0);
+            _layer.AddChild(_panel, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D2 RID: 210 RVA: 0x00008710 File Offset: 0x00006910
-		private static void ShowEmbeddedScreen<[Nullable(0)] T>([Nullable(2)] ref T screen, Func<T> factory) where T : NSubmenu
-		{
-			LoadoutPanel.HideEmbeddedScreens();
-			if (LoadoutPanel._scrollContainer != null)
-			{
-				LoadoutPanel._scrollContainer.Visible = false;
-			}
-			if (screen == null || !GodotObject.IsInstanceValid(screen))
-			{
-				screen = factory();
-				screen.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-				screen.Visible = false;
-				LoadoutPanel._mainVBox.AddChild(screen, false, Node.InternalMode.Disabled);
-			}
-			screen.Visible = true;
-			screen.OnSubmenuOpened();
-			NSubmenu capturedForBtn = screen;
-			Callable.From(delegate
-			{
-				if (!GodotObject.IsInstanceValid(capturedForBtn))
-				{
-					return;
-				}
-				Control nodeOrNull = capturedForBtn.GetNodeOrNull<Control>("BackButton");
-				if (nodeOrNull != null)
-				{
-					nodeOrNull.Hide();
-				}
-				LoadoutPanel.HideScreenShadows(capturedForBtn);
-			}).CallDeferred(Array.Empty<Variant>());
-			if (LoadoutPanel._panel != null && LoadoutPanel._panelStyleClear != null)
-			{
-				LoadoutPanel._panel.AddThemeStyleboxOverride("panel", LoadoutPanel._panelStyleClear);
-			}
-			ColorRect divider = LoadoutPanel._divider;
-			if (divider != null)
-			{
-				divider.Hide();
-			}
-			LoadoutPanel.SetTabButtonsChrome(false);
-		}
+            _mainVBox = new VBoxContainer { AnchorRight = 1, AnchorBottom = 1 };
+            _mainVBox.AddThemeConstantOverride("separation", 8);
+            _panel.AddChild(_mainVBox, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D3 RID: 211 RVA: 0x0000881B File Offset: 0x00006A1B
-		private static NRelicCollection CreateRelicScreen()
-		{
-			return NRelicCollection.Create();
-		}
+            // 标签栏
+            var header = new HBoxContainer();
+            header.AddThemeConstantOverride("separation", 4);
+            _mainVBox.AddChild(header, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D4 RID: 212 RVA: 0x00008822 File Offset: 0x00006A22
-		private static NCardLibrary CreateCardScreen()
-		{
-			return NCardLibrary.Create();
-		}
+            string[] tabNames = new[]
+            {
+                Loc.Get("tab.cards", "Cards"),
+                Loc.Get("tab.relics", "Relics"),
+                Loc.Get("tab.potions", "Potions"),
+                Loc.Get("tab.powers", "Powers"),
+                Loc.Get("tab.events", "Events"),
+                Loc.Get("tab.encounters", "Encounters"),
+                Loc.Get("tab.character", "Character"),
+                Loc.Get("tab.templates", "Templates")
+            };
+            _tabButtons = new Button[tabNames.Length];
+            for (int i = 0; i < tabNames.Length; i++)
+            {
+                int idx = i;
+                var btn = CreateTabButton(tabNames[i]);
+                btn.Pressed += () => SwitchTab(idx);
+                header.AddChild(btn, false, Node.InternalMode.Disabled);
+                _tabButtons[i] = btn;
+            }
+            header.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D5 RID: 213 RVA: 0x00008829 File Offset: 0x00006A29
-		private static NPotionLab CreatePotionScreen()
-		{
-			return NPotionLab.Create();
-		}
+            _contextBar = new HBoxContainer();
+            _contextBar.AddThemeConstantOverride("separation", 4);
+            header.AddChild(_contextBar, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D6 RID: 214 RVA: 0x00008830 File Offset: 0x00006A30
-		private static void HideEmbeddedScreens()
-		{
-			NRelicCollection relicScreen = LoadoutPanel._relicScreen;
-			if (relicScreen != null && relicScreen.Visible)
-			{
-				try
-				{
-					LoadoutPanel._relicScreen.OnSubmenuClosed();
-				}
-				catch
-				{
-				}
-				LoadoutPanel._relicScreen.Visible = false;
-			}
-			NCardLibrary cardScreen = LoadoutPanel._cardScreen;
-			if (cardScreen != null && cardScreen.Visible)
-			{
-				try
-				{
-					LoadoutPanel._cardScreen.OnSubmenuClosed();
-				}
-				catch
-				{
-				}
-				LoadoutPanel._cardScreen.Visible = false;
-			}
-			NPotionLab potionScreen = LoadoutPanel._potionScreen;
-			if (potionScreen != null && potionScreen.Visible)
-			{
-				try
-				{
-					LoadoutPanel._potionScreen.OnSubmenuClosed();
-				}
-				catch
-				{
-				}
-				LoadoutPanel._potionScreen.Visible = false;
-			}
-			if (LoadoutPanel._scrollContainer != null)
-			{
-				LoadoutPanel._scrollContainer.Visible = true;
-			}
-			if (LoadoutPanel._panel != null && LoadoutPanel._panelStyleNormal != null)
-			{
-				LoadoutPanel._panel.AddThemeStyleboxOverride("panel", LoadoutPanel._panelStyleNormal);
-			}
-			ColorRect divider = LoadoutPanel._divider;
-			if (divider != null)
-			{
-				divider.Show();
-			}
-			LoadoutPanel.SetTabButtonsChrome(true);
-		}
+            var closeBtn = CreateTabButton("✕");
+            closeBtn.CustomMinimumSize = new Vector2(40, 36);
+            closeBtn.Pressed += Hide;
+            header.AddChild(closeBtn, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D7 RID: 215 RVA: 0x00008938 File Offset: 0x00006B38
-		private static void SetTabButtonsChrome(bool visible)
-		{
-			if (LoadoutPanel._tabButtons == null)
-			{
-				return;
-			}
-			foreach (Button button in LoadoutPanel._tabButtons)
-			{
-				if (visible)
-				{
-					LoadoutPanel.ApplyFlatStyle(button);
-					button.AddThemeConstantOverride("outline_size", 4);
-				}
-				else
-				{
-					StyleBoxEmpty styleBoxEmpty = new StyleBoxEmpty();
-					button.AddThemeStyleboxOverride("normal", styleBoxEmpty);
-					button.AddThemeStyleboxOverride("hover", styleBoxEmpty);
-					button.AddThemeStyleboxOverride("pressed", styleBoxEmpty);
-					button.AddThemeStyleboxOverride("focus", styleBoxEmpty);
-					button.AddThemeConstantOverride("outline_size", 0);
-				}
-			}
-			LoadoutPanel.UpdateTabHighlights();
-		}
+            // 分隔线
+            _divider = new ColorRect { CustomMinimumSize = new Vector2(0, 2), Color = new Color(0.91f, 0.86f, 0.75f, 0.25f), MouseFilter = Control.MouseFilterEnum.Ignore };
+            _mainVBox.AddChild(_divider, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D8 RID: 216 RVA: 0x000089E4 File Offset: 0x00006BE4
-		private static void HideScreenShadows(Node screen)
-		{
-			foreach (string text in new string[] { "*Shadow*", "*shadow*", "*Gradient*", "*gradient*", "*Fade*", "*fade*", "*Vignette*", "*Darkener*" })
-			{
-				Control control = screen.FindChild(text, true, false) as Control;
-				if (control != null)
-				{
-					control.Visible = false;
-				}
-			}
-			LoadoutPanel.HideBottomTextures(screen);
-		}
+            // 滚动容器
+            _scrollContainer = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+            _mainVBox.AddChild(_scrollContainer, false, Node.InternalMode.Disabled);
+            _contentContainer = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            _contentContainer.AddThemeConstantOverride("separation", 6);
+            _scrollContainer.AddChild(_contentContainer, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000D9 RID: 217 RVA: 0x00008A6C File Offset: 0x00006C6C
-		private static void HideBottomTextures(Node parent)
-		{
-			foreach (Node node in parent.GetChildren(false))
-			{
-				TextureRect textureRect = node as TextureRect;
-				if (textureRect != null && textureRect.AnchorTop >= 0.8f)
-				{
-					textureRect.Visible = false;
-				}
-				if (node is Control)
-				{
-					foreach (Node node2 in node.GetChildren(false))
-					{
-						TextureRect textureRect2 = node2 as TextureRect;
-						if (textureRect2 != null && textureRect2.AnchorTop >= 0.8f)
-						{
-							textureRect2.Visible = false;
-						}
-					}
-				}
-			}
-		}
+            // HoverTip 层
+            _hoverTipLayer = new CanvasLayer { Layer = 101, Name = "LoadoutHoverTips" };
 
-		// Token: 0x060000DA RID: 218 RVA: 0x00008B30 File Offset: 0x00006D30
-		internal static void ClearChildren(Node parent)
-		{
-			foreach (Node node in parent.GetChildren(false))
-			{
-				parent.RemoveChild(node);
-				node.QueueFree();
-			}
-		}
+            NGame.Instance?.AddChild(_layer, false, Node.InternalMode.Disabled);
+            NGame.Instance?.AddChild(_hoverTipLayer, false, Node.InternalMode.Disabled);
 
-		// Token: 0x060000DB RID: 219 RVA: 0x00008B84 File Offset: 0x00006D84
-		internal static Label CreateSectionHeader(string text)
-		{
-			Label label = new Label();
-			label.Text = text;
-			label.AddThemeFontSizeOverride("font_size", 18);
-			label.AddThemeColorOverride("font_color", StsColors.gold);
-			label.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.15f, 0.18f, 0.8f));
-			label.AddThemeConstantOverride("outline_size", 4);
-			Font font = GD.Load<Font>("res://themes/kreon_bold_glyph_space_two.tres");
-			if (font != null)
-			{
-				label.AddThemeFontOverride("font", font);
-			}
-			return label;
-		}
+            _activeTab = 0;
+            UpdateTabHighlights();
+            RefreshContextBar();
+            RefreshCurrentTab();
+        }
 
-		// Token: 0x060000DC RID: 220 RVA: 0x00008C20 File Offset: 0x00006E20
-		internal static Button CreateItemButton(string text, Vector2? minSize = null, int fontSize = 14)
-		{
-			Button button = new Button();
-			button.Text = text;
-			button.CustomMinimumSize = minSize ?? new Vector2(0f, 32f);
-			button.AddThemeFontSizeOverride("font_size", fontSize);
-			button.AddThemeColorOverride("font_color", StsColors.cream);
-			button.AddThemeColorOverride("font_hover_color", StsColors.gold);
-			button.AddThemeColorOverride("font_pressed_color", StsColors.gray);
-			button.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.15f, 0.18f, 0.8f));
-			button.AddThemeConstantOverride("outline_size", 4);
-			LoadoutPanel.ApplyFlatStyle(button);
-			return button;
-		}
+        private static void SwitchTab(int idx)
+        {
+            _activeTab = idx;
+            UpdateTabHighlights();
+            RefreshContextBar();
+            RefreshCurrentTab();
+        }
 
-		// Token: 0x060000DD RID: 221 RVA: 0x00008CF4 File Offset: 0x00006EF4
-		internal static Button CreateActionButton(string text, Color? fontColor = null)
-		{
-			Button button = new Button();
-			button.Text = text;
-			button.CustomMinimumSize = new Vector2(60f, 28f);
-			button.AddThemeFontSizeOverride("font_size", 13);
-			button.AddThemeColorOverride("font_color", fontColor ?? StsColors.cream);
-			button.AddThemeColorOverride("font_hover_color", StsColors.gold);
-			button.AddThemeColorOverride("font_pressed_color", StsColors.gray);
-			LoadoutPanel.ApplyFlatStyle(button);
-			return button;
-		}
+        private static void RefreshCurrentTab()
+        {
+            if (_contentContainer == null || _mainVBox == null) return;
 
-		// Token: 0x060000DE RID: 222 RVA: 0x00008D90 File Offset: 0x00006F90
-		private static Button CreateTabButton(string text)
-		{
-			Button button = new Button();
-			button.Text = text;
-			button.CustomMinimumSize = new Vector2(80f, 36f);
-			button.AddThemeFontSizeOverride("font_size", 16);
-			button.AddThemeColorOverride("font_color", StsColors.cream);
-			button.AddThemeColorOverride("font_hover_color", StsColors.gold);
-			button.AddThemeColorOverride("font_pressed_color", StsColors.gray);
-			button.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.15f, 0.18f, 0.8f));
-			button.AddThemeConstantOverride("outline_size", 4);
-			Font font = GD.Load<Font>("res://themes/kreon_bold_glyph_space_two.tres");
-			if (font != null)
-			{
-				button.AddThemeFontOverride("font", font);
-			}
-			LoadoutPanel.ApplyFlatStyle(button);
-			return button;
-		}
+            switch (_activeTab)
+            {
+                case 0: // Cards
+                    if (ShowMyCards)
+                    {
+                        HideEmbeddedScreens();
+                        ClearChildren(_contentContainer);
+                        var player = GetPlayer();
+                        if (player != null) BuildMyCardsView(_contentContainer, player);
+                    }
+                    else
+                    {
+                        ShowEmbeddedCardScreen();
+                    }
+                    return;
+                case 1: // Relics
+                    ShowEmbeddedRelicScreen();
+                    return;
+                case 2: // Potions
+                    ShowEmbeddedPotionScreen();
+                    return;
+                default: // Powers / Events / Encounters / Character / Templates
+                    HideEmbeddedScreens();
+                    ClearChildren(_contentContainer);
+                    // 角色模板仅依赖 ModelDb + 本地 JSON，主菜单即可编辑，不要求局内 Player
+                    if (_activeTab == 7)
+                    {
+                        TemplatesTab.Build(_contentContainer, null);
+                        return;
+                    }
+                    var p = GetPlayer();
+                    if (p == null)
+                    {
+                        var lbl = new Label { Text = Loc.Get("not_in_game", "Not in a run") };
+                        lbl.AddThemeFontSizeOverride("font_size", 20);
+                        lbl.AddThemeColorOverride("font_color", SC.Cream);
+                        _contentContainer.AddChild(lbl, false, Node.InternalMode.Disabled);
+                        return;
+                    }
+                    switch (_activeTab)
+                    {
+                        case 3: PowersTab.Build(_contentContainer, p); break;
+                        case 4: EventsTab.Build(_contentContainer, p); break;
+                        case 5: EncountersTab.Build(_contentContainer, p); break;
+                        case 6: CharacterTab.Build(_contentContainer, p); break;
+                    }
+                    return;
+            }
+        }
 
-		// Token: 0x060000DF RID: 223 RVA: 0x00008E70 File Offset: 0x00007070
-		internal static Button CreateToggleButton(string text, bool enabled)
-		{
-			Button button = LoadoutPanel.CreateTabButton(text);
-			button.CustomMinimumSize = new Vector2(100f, 36f);
-			LoadoutPanel.UpdateToggleButton(button, enabled);
-			return button;
-		}
+        private static void RefreshContextBar()
+        {
+            if (_contextBar == null) return;
+            ClearChildren(_contextBar);
 
-		// Token: 0x060000E0 RID: 224 RVA: 0x00008E94 File Offset: 0x00007094
-		internal static void UpdateToggleButton(Button btn, bool enabled)
-		{
-			if (enabled)
-			{
-				btn.AddThemeStyleboxOverride("normal", LoadoutPanel.CreateStyleBox(new Color(0.15f, 0.25f, 0.15f, 0.9f), new Color(0.3f, 0.6f, 0.3f, 0.7f)));
-				return;
-			}
-			btn.AddThemeStyleboxOverride("normal", LoadoutPanel.CreateStyleBox(new Color(0.12f, 0.1f, 0.15f, 0.85f), new Color(0.35f, 0.3f, 0.25f, 0.5f)));
-		}
+            switch (_activeTab)
+            {
+                case 0:
+                    var myCardsToggle = CreateToggleButton(Loc.Get("pile.my_cards", "My Cards"), ShowMyCards);
+                    myCardsToggle.CustomMinimumSize = new Vector2(90, 36);
+                    myCardsToggle.Pressed += () =>
+                    {
+                        ShowMyCards = !ShowMyCards;
+                        UpdateToggleButton(myCardsToggle, ShowMyCards);
+                        RefreshCurrentTab();
+                    };
+                    _contextBar.AddChild(myCardsToggle, false, Node.InternalMode.Disabled);
+                    return;
+                case 1: BuildBatchBar("relics"); return;
+                case 3: BuildBatchBar("powers"); BuildPowersPresetBar(); break;
+            }
+        }
 
-		// Token: 0x060000E1 RID: 225 RVA: 0x00008F34 File Offset: 0x00007134
-		private static void ApplyFlatStyle(Button btn)
-		{
-			btn.AddThemeStyleboxOverride("normal", LoadoutPanel.CreateStyleBox(new Color(0.12f, 0.1f, 0.15f, 0.85f), new Color(0.35f, 0.3f, 0.25f, 0.5f)));
-			btn.AddThemeStyleboxOverride("hover", LoadoutPanel.CreateStyleBox(new Color(0.18f, 0.15f, 0.22f, 0.92f), StsColors.gold));
-			btn.AddThemeStyleboxOverride("pressed", LoadoutPanel.CreateStyleBox(new Color(0.08f, 0.06f, 0.1f, 0.95f), new Color("B89840")));
-			btn.AddThemeStyleboxOverride("focus", LoadoutPanel.CreateStyleBox(new Color(0.18f, 0.15f, 0.22f, 0.92f), StsColors.gold));
-		}
+        private static void BuildMyCardsView(VBoxContainer container, Player player)
+        {
+            var cm = CombatManager.Instance;
+            if (cm != null && cm.IsInProgress)
+            {
+                BuildMyCardsPileGroup(container, player, PileType.Hand, Loc.Get("pile.hand", "Hand"));
+                BuildMyCardsPileGroup(container, player, PileType.Draw, Loc.Get("pile.draw", "Draw"));
+                BuildMyCardsPileGroup(container, player, PileType.Discard, Loc.Get("pile.discard", "Discard"));
+                BuildMyCardsPileGroup(container, player, PileType.Exhaust, Loc.Get("pile.exhaust", "Exhaust"));
+            }
+            BuildMyCardsPileGroup(container, player, PileType.Deck, Loc.Get("pile.deck", "Deck"));
+        }
 
-		// Token: 0x060000E2 RID: 226 RVA: 0x00009026 File Offset: 0x00007226
-		private static StyleBoxFlat CreateStyleBox(Color bg, Color border)
-		{
-			StyleBoxFlat styleBoxFlat = new StyleBoxFlat();
-			styleBoxFlat.BgColor = bg;
-			styleBoxFlat.BorderColor = border;
-			styleBoxFlat.SetBorderWidthAll(2);
-			styleBoxFlat.SetCornerRadiusAll(6);
-			styleBoxFlat.SetContentMarginAll(6f);
-			return styleBoxFlat;
-		}
+        private static void BuildMyCardsPileGroup(VBoxContainer container, Player player, PileType pileType, string label)
+        {
+            var pile = CardPile.Get(pileType, player);
+            if (pile == null) return;
 
-		// Token: 0x04000046 RID: 70
-		[Nullable(2)]
-		private static CanvasLayer _layer;
+            var cards = pile.Cards;
+            container.AddChild(CreateSectionHeader($"{label} ({cards.Count})"), false, Node.InternalMode.Disabled);
 
-		// Token: 0x04000047 RID: 71
-		[Nullable(2)]
-		private static CanvasLayer _hoverTipLayer;
+            if (cards.Count == 0)
+            {
+                var empty = new Label { Text = Loc.Get("empty", "Empty") };
+                empty.AddThemeFontSizeOverride("font_size", 13);
+                empty.AddThemeColorOverride("font_color", SC.Gray);
+                container.AddChild(empty, false, Node.InternalMode.Disabled);
+                return;
+            }
 
-		// Token: 0x04000048 RID: 72
-		[Nullable(2)]
-		private static VBoxContainer _contentContainer;
+            var grouped = cards.GroupBy(c => c.Type).OrderBy(g => g.Key);
+            foreach (var group in grouped)
+            {
+                Color color = group.Key switch
+                {
+                    CardType.Attack => SC.Red,
+                    CardType.Skill => SC.Blue,
+                    CardType.Power => new Color("CC77FF"),
+                    _ => SC.Gray
+                };
+                var typeLabel = new Label { Text = $"  {Loc.Get($"type.{group.Key}", group.Key.ToString())} ({group.Count()})" };
+                typeLabel.AddThemeFontSizeOverride("font_size", 14);
+                typeLabel.AddThemeColorOverride("font_color", color);
+                container.AddChild(typeLabel, false, Node.InternalMode.Disabled);
 
-		// Token: 0x04000049 RID: 73
-		[Nullable(2)]
-		private static ScrollContainer _scrollContainer;
+                var grid = new GridContainer { Columns = 6, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+                grid.AddThemeConstantOverride("h_separation", 4);
+                grid.AddThemeConstantOverride("v_separation", 4);
+                container.AddChild(grid, false, Node.InternalMode.Disabled);
 
-		// Token: 0x0400004A RID: 74
-		[Nullable(2)]
-		private static HBoxContainer _contextBar;
+                foreach (var card in group.OrderBy(c => c.Title))
+                {
+                    var wrap = CardsTab.CreateNCardWrapperPublic(card, pileType, cards.ToList());
+                    grid.AddChild(wrap, false, Node.InternalMode.Disabled);
+                }
+            }
+        }
 
-		// Token: 0x0400004B RID: 75
-		[Nullable(2)]
-		private static VBoxContainer _mainVBox;
+        private static void BuildBatchBar(string target)
+        {
+            int count = target == "relics" ? RelicBatchCount : PowerBatchCount;
+            var lbl = new Label { Text = Loc.Get("quantity", "Qty") };
+            lbl.AddThemeFontSizeOverride("font_size", 14);
+            lbl.AddThemeColorOverride("font_color", SC.Cream);
+            lbl.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            _contextBar!.AddChild(lbl, false, Node.InternalMode.Disabled);
 
-		// Token: 0x0400004C RID: 76
-		[Nullable(2)]
-		private static PanelContainer _panel;
+            foreach (int n in new[] { 1, 5, 10, 20 })
+            {
+                int c = n;
+                bool active = count == c;
+                var btn = CreateToggleButton($"×{n}", active);
+                btn.CustomMinimumSize = new Vector2(50, 36);
+                btn.Pressed += () =>
+                {
+                    if (target == "relics") RelicBatchCount = c; else PowerBatchCount = c;
+                    RefreshContextBar();
+                    RequestRefresh();
+                };
+                _contextBar.AddChild(btn, false, Node.InternalMode.Disabled);
+            }
+        }
 
-		// Token: 0x0400004D RID: 77
-		[Nullable(2)]
-		private static StyleBoxFlat _panelStyleNormal;
+        private static void BuildPowersPresetBar()
+        {
+            var sep = new VSeparator { CustomMinimumSize = new Vector2(2, 0) };
+            _contextBar!.AddChild(sep, false, Node.InternalMode.Disabled);
 
-		// Token: 0x0400004E RID: 78
-		[Nullable(2)]
-		private static StyleBoxFlat _panelStyleClear;
+            var toggleBtn = CreateToggleButton(Loc.Get("presets", "Presets"), PowerPresets.Enabled);
+            toggleBtn.CustomMinimumSize = new Vector2(70, 36);
+            toggleBtn.Pressed += () =>
+            {
+                PowerPresets.Enabled = !PowerPresets.Enabled;
+                UpdateToggleButton(toggleBtn, PowerPresets.Enabled);
+            };
+            _contextBar.AddChild(toggleBtn, false, Node.InternalMode.Disabled);
 
-		// Token: 0x0400004F RID: 79
-		[Nullable(2)]
-		private static ColorRect _divider;
+            var toPlayer = CreateToggleButton(Loc.Get("to_player", "To Player"), PowerPresets.PresetTarget == 0);
+            toPlayer.CustomMinimumSize = new Vector2(80, 36);
+            toPlayer.Pressed += () => { PowerPresets.PresetTarget = 0; RefreshContextBar(); RequestRefresh(); };
+            _contextBar.AddChild(toPlayer, false, Node.InternalMode.Disabled);
 
-		// Token: 0x04000050 RID: 80
-		[Nullable(2)]
-		private static NRelicCollection _relicScreen;
+            var toEnemy = CreateToggleButton(Loc.Get("to_enemy", "To Enemy"), PowerPresets.PresetTarget == 1);
+            toEnemy.CustomMinimumSize = new Vector2(80, 36);
+            toEnemy.Pressed += () => { PowerPresets.PresetTarget = 1; RefreshContextBar(); RequestRefresh(); };
+            _contextBar.AddChild(toEnemy, false, Node.InternalMode.Disabled);
+        }
 
-		// Token: 0x04000051 RID: 81
-		[Nullable(2)]
-		private static NCardLibrary _cardScreen;
+        private static void UpdateTabHighlights()
+        {
+            if (_tabButtons == null) return;
+            for (int i = 0; i < _tabButtons.Length; i++)
+            {
+                var btn = _tabButtons[i];
+                if (i == _activeTab)
+                {
+                    btn.AddThemeColorOverride("font_color", SC.Gold);
+                    btn.AddThemeColorOverride("font_hover_color", SC.Gold);
+                }
+                else
+                {
+                    btn.AddThemeColorOverride("font_color", SC.Cream);
+                    btn.AddThemeColorOverride("font_hover_color", SC.Gold);
+                }
+            }
+        }
 
-		// Token: 0x04000052 RID: 82
-		[Nullable(2)]
-		private static NPotionLab _potionScreen;
+        // === 嵌入屏幕（非泛型，避免 ref lambda 问题） ===
+        private static void ShowEmbeddedCardScreen()
+        {
+            HideEmbeddedScreens();
+            if (_scrollContainer != null) _scrollContainer.Visible = false;
 
-		// Token: 0x04000053 RID: 83
-		private static int _activeTab;
+            if (_cardScreen == null || !GodotObject.IsInstanceValid(_cardScreen))
+            {
+                _cardScreen = NCardLibrary.Create();
+                _cardScreen.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+                _cardScreen.Visible = false;
+                _mainVBox!.AddChild(_cardScreen, false, Node.InternalMode.Disabled);
+            }
+            _cardScreen.Visible = true;
+            try { _cardScreen.Call("OnSubmenuOpened"); } catch { }
 
-		// Token: 0x04000054 RID: 84
-		[Nullable(new byte[] { 2, 1 })]
-		private static Button[] _tabButtons;
+            Callable.From(() =>
+            {
+                if (!GodotObject.IsInstanceValid(_cardScreen!)) return;
+                _cardScreen!.GetNodeOrNull<Control>("BackButton")?.Hide();
+                HideScreenShadows(_cardScreen!);
+            }).CallDeferred();
 
-		// Token: 0x02000057 RID: 87
-		[CompilerGenerated]
-		private static class <>O
-		{
-			// Token: 0x040000BF RID: 191
-			[Nullable(0)]
-			public static Action <0>__Hide;
+            _panel?.AddThemeStyleboxOverride("panel", _panelStyleClear!);
+            _divider?.Hide();
+            SetTabButtonsChrome(false);
+        }
 
-			// Token: 0x040000C0 RID: 192
-			[Nullable(new byte[] { 0, 1 })]
-			public static Func<NCardLibrary> <1>__CreateCardScreen;
+        private static void ShowEmbeddedRelicScreen()
+        {
+            HideEmbeddedScreens();
+            if (_scrollContainer != null) _scrollContainer.Visible = false;
 
-			// Token: 0x040000C1 RID: 193
-			[Nullable(new byte[] { 0, 1 })]
-			public static Func<NRelicCollection> <2>__CreateRelicScreen;
+            if (_relicScreen == null || !GodotObject.IsInstanceValid(_relicScreen))
+            {
+                _relicScreen = NRelicCollection.Create();
+                _relicScreen.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+                _relicScreen.Visible = false;
+                _mainVBox!.AddChild(_relicScreen, false, Node.InternalMode.Disabled);
+            }
+            _relicScreen.Visible = true;
+            try { _relicScreen.Call("OnSubmenuOpened"); } catch { }
 
-			// Token: 0x040000C2 RID: 194
-			[Nullable(new byte[] { 0, 1 })]
-			public static Func<NPotionLab> <3>__CreatePotionScreen;
-		}
-	}
+            Callable.From(() =>
+            {
+                if (!GodotObject.IsInstanceValid(_relicScreen!)) return;
+                _relicScreen!.GetNodeOrNull<Control>("BackButton")?.Hide();
+                HideScreenShadows(_relicScreen!);
+            }).CallDeferred();
+
+            _panel?.AddThemeStyleboxOverride("panel", _panelStyleClear!);
+            _divider?.Hide();
+            SetTabButtonsChrome(false);
+        }
+
+        private static void ShowEmbeddedPotionScreen()
+        {
+            HideEmbeddedScreens();
+            if (_scrollContainer != null) _scrollContainer.Visible = false;
+
+            if (_potionScreen == null || !GodotObject.IsInstanceValid(_potionScreen))
+            {
+                _potionScreen = NPotionLab.Create();
+                _potionScreen.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+                _potionScreen.Visible = false;
+                _mainVBox!.AddChild(_potionScreen, false, Node.InternalMode.Disabled);
+            }
+            _potionScreen.Visible = true;
+            try { _potionScreen.Call("OnSubmenuOpened"); } catch { }
+
+            Callable.From(() =>
+            {
+                if (!GodotObject.IsInstanceValid(_potionScreen!)) return;
+                _potionScreen!.GetNodeOrNull<Control>("BackButton")?.Hide();
+                HideScreenShadows(_potionScreen!);
+            }).CallDeferred();
+
+            _panel?.AddThemeStyleboxOverride("panel", _panelStyleClear!);
+            _divider?.Hide();
+            SetTabButtonsChrome(false);
+        }
+
+        private static void HideEmbeddedScreens()
+        {
+            Action<Control?> hide = s =>
+            {
+                if (s != null && s.Visible)
+                {
+                    try { s.Call("OnSubmenuClosed"); } catch { }
+                    s.Visible = false;
+                }
+            };
+            hide(_relicScreen);
+            hide(_cardScreen);
+            hide(_potionScreen);
+
+            if (_scrollContainer != null) _scrollContainer.Visible = true;
+            if (_panel != null && _panelStyleNormal != null) _panel.AddThemeStyleboxOverride("panel", _panelStyleNormal);
+            _divider?.Show();
+            SetTabButtonsChrome(true);
+        }
+
+        private static void SetTabButtonsChrome(bool visible)
+        {
+            if (_tabButtons == null) return;
+            foreach (var btn in _tabButtons)
+            {
+                if (visible)
+                {
+                    ApplyFlatStyle(btn);
+                    btn.AddThemeConstantOverride("outline_size", 4);
+                }
+                else
+                {
+                    var empty = new StyleBoxEmpty();
+                    btn.AddThemeStyleboxOverride("normal", empty);
+                    btn.AddThemeStyleboxOverride("hover", empty);
+                    btn.AddThemeStyleboxOverride("pressed", empty);
+                    btn.AddThemeStyleboxOverride("focus", empty);
+                    btn.AddThemeConstantOverride("outline_size", 0);
+                }
+            }
+            UpdateTabHighlights();
+        }
+
+        private static void HideScreenShadows(Node screen)
+        {
+            foreach (string pattern in new[] { "*Shadow*", "*shadow*", "*Gradient*", "*gradient*", "*Fade*", "*fade*", "*Vignette*", "*Darkener*" })
+            {
+                var child = screen.FindChild(pattern, true, false) as Control;
+                if (child != null) child.Visible = false;
+            }
+            HideBottomTextures(screen);
+        }
+
+        private static void HideBottomTextures(Node parent)
+        {
+            foreach (var node in parent.GetChildren(false))
+            {
+                if (node is TextureRect tr && tr.AnchorTop >= 0.8f) { tr.Visible = false; continue; }
+                if (node is Control ctrl)
+                {
+                    foreach (var child in ctrl.GetChildren(false))
+                    {
+                        if (child is TextureRect tr2 && tr2.AnchorTop >= 0.8f) tr2.Visible = false;
+                    }
+                }
+            }
+        }
+
+        // === 私有字段 ===
+        private static CanvasLayer? _layer;
+        private static CanvasLayer? _hoverTipLayer;
+        private static VBoxContainer? _contentContainer;
+        private static ScrollContainer? _scrollContainer;
+        private static HBoxContainer? _contextBar;
+        private static VBoxContainer? _mainVBox;
+        private static PanelContainer? _panel;
+        private static StyleBoxFlat? _panelStyleNormal;
+        private static StyleBoxFlat? _panelStyleClear;
+        private static ColorRect? _divider;
+        private static NRelicCollection? _relicScreen;
+        private static NCardLibrary? _cardScreen;
+        private static NPotionLab? _potionScreen;
+        private static int _activeTab;
+        private static Button[]? _tabButtons;
+    }
 }

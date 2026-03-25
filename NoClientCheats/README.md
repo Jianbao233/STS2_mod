@@ -93,6 +93,12 @@ gh release create v1.1.5 --title "v1.1.5" --notes "..."   # 上传到 GitHub
 
 ## Changelog / 更新日志
 
+### v1.2.0（待发布）
+
+- **新增大厅聊天广播**：作弊拦截时可通过 STS2 LAN Connect 大厅聊天向房间内所有玩家广播通知
+- 新增配置项 `Broadcast to Lobby Chat`：作弊拦截开关（默认关闭）
+- 新增 `LanConnectBridge` 桥接类：反射调用 `Sts2LanConnect.LanConnectLobbyRuntime`，零编译期依赖
+
 ### v1.1.6（2026-03-23）
 
 - **修复：打包流程重建**：修复 GitHub release zip 包含旧文件的问题

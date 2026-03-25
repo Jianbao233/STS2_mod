@@ -1,8 +1,8 @@
 # 杀戮尖塔2 Mod 制作 | Slay the Spire 2 Mods
 
-Mods for Slay the Spire 2. Built with **vibe coding** — I'm a Chinese high school student who started learning this approach yesterday. I haven't studied any programming language systematically; these projects are created with AI assistance (Cursor / Composer).
+Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarantees. The author has zero programming background; all projects are created with AI assistance (Cursor / claude-4.6-sonnet).
 
-杀戮尖塔 2 Mod 合集。采用 **vibe coding** 方式开发——我是一名中国高中生，昨天才开始接触并学习 vibe coding，没有系统性地学过任何一门编程语言，项目均由 AI 协助完成。
+杀戮尖塔 2 Mod 合集。采用 **vibe coding** 方式开发——代码混乱，质量不保证。作者是零编程基础的小白，项目均由 AI 协助完成。
 
 ---
 

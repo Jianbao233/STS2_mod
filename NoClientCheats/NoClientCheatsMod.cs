@@ -2,6 +2,8 @@ using Godot;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace NoClientCheats;
 
@@ -17,6 +19,8 @@ public static class NoClientCheatsMod
     internal static bool ShowTopBarButton = true;
     /// <summary>客机作弊被拦截时是否自动唤起历史记录面板。</summary>
     internal static bool ShowHistoryOnCheat = false;
+    /// <summary>作弊拦截时是否广播到大厅房间聊天。</summary>
+    internal static bool BroadcastToLobby = false;
     internal static float NotificationDuration = 5.0f;
     internal static int HistoryMaxRecords = 25;
     internal static Key HistoryToggleKey = Key.F6;
@@ -144,6 +148,9 @@ public static class NoClientCheatsMod
 
         if (GodotObject.IsInstanceValid(_historyPanel))
             _historyPanel.CallDeferred("RefreshList");
+
+        // 作弊拦截时广播到大厅房间聊天
+        LanConnectBridge.Broadcast(record);
     }
 
     /// <summary>返回当前所有历史记录（最新在末尾）。</summary>
@@ -198,3 +205,98 @@ public static class NoClientCheatsMod
 
 /// <summary>单条作弊拦截记录。</summary>
 public record CheatRecord(string Time, string SenderName, string CharacterName, string Command, ulong SenderId, bool WasBlocked);
+
+/// <summary>
+/// 与 STS2 LAN Connect 大厅 MOD 的桥接。
+/// 通过反射调用 LanConnectLobbyRuntime，实现作弊拦截通知广播到房间聊天。
+/// 不编译期依赖大厅 MOD，完全运行时解耦。
+/// </summary>
+internal static class LanConnectBridge
+{
+    private static Node _runtime;
+    private static MethodInfo _sendChatMethod;
+    private static PropertyInfo _hasRoomProp;
+    private static bool _checked;
+
+    /// <summary>确保已解析大厅运行时引用（惰性，仅执行一次）。</summary>
+    public static void EnsureInitialized()
+    {
+        if (_checked) return;
+        _checked = true;
+
+        try
+        {
+            var runtimeType = Type.GetType(
+                "Sts2LanConnect.Scripts.LanConnectLobbyRuntime, Sts2LanConnect");
+            if (runtimeType == null)
+            {
+                GD.Print("[NoClientCheats] LanConnect: 运行时类型未找到（大厅 MOD 未安装？跳过桥接。");
+                return;
+            }
+
+            var instanceField = runtimeType.GetProperty(
+                "Instance", BindingFlags.Public | BindingFlags.Static);
+            var runtime = instanceField?.GetValue(null) as Node;
+            if (runtime == null)
+            {
+                GD.Print("[NoClientCheats] LanConnect: 运行时实例为空（尚未进入房间？跳过桥接。）");
+                return;
+            }
+
+            _runtime = runtime;
+            _sendChatMethod = runtimeType.GetMethod(
+                "SendRoomChatMessageAsync",
+                BindingFlags.Public | BindingFlags.Instance,
+                null, new[] { typeof(string) }, null);
+            _hasRoomProp = runtimeType.GetProperty(
+                "HasActiveRoomSession", BindingFlags.Public | BindingFlags.Instance);
+
+            GD.Print("[NoClientCheats] LanConnect: 桥接成功，已绑定大厅运行时。");
+        }
+        catch (Exception ex)
+        {
+            GD.Print($"[NoClientCheats] LanConnect: 桥接失败: {ex.Message}");
+        }
+    }
+
+    /// <summary>当前是否处于大厅联机房间中。</summary>
+    public static bool IsInLobbyRoom
+    {
+        get
+        {
+            if (_runtime == null) return false;
+            return (bool)(_hasRoomProp?.GetValue(_runtime) ?? false);
+        }
+    }
+
+    /// <summary>
+    /// 将作弊拦截广播到大厅房间聊天。
+    /// 每调用一次发送一条消息，格式：[作弊拦截] 玩家名 尝试使用 指令
+    /// </summary>
+    public static void Broadcast(CheatRecord record)
+    {
+        if (!BroadcastToLobby) return;
+        EnsureInitialized();
+        if (_sendChatMethod == null || _runtime == null) return;
+        if (!IsInLobbyRoom) return;
+
+        try
+        {
+            string msg;
+            if (record.WasBlocked)
+                msg = $"[作弊拦截] {record.SenderName} 尝试使用 {record.Command}";
+            else
+                msg = $"[作弊记录] {record.SenderName} 执行了 {record.Command}";
+
+            // 消息最长60字符截断（大厅聊天限制）
+            if (msg.Length > 60) msg = msg[..60];
+
+            var task = _sendChatMethod.Invoke(_runtime, new object[] { msg }) as Task;
+            task?.Wait();
+        }
+        catch (Exception ex)
+        {
+            GD.Print($"[NoClientCheats] LanConnect: 广播失败: {ex.Message}");
+        }
+    }
+}

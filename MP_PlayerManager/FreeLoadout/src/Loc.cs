@@ -1,84 +1,83 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Godot;
 using MegaCrit.Sts2.Core.Localization;
 
 namespace MP_PlayerManager
 {
-	// Token: 0x02000027 RID: 39
-	internal static class Loc
-	{
-		// Token: 0x060000AF RID: 175 RVA: 0x00007438 File Offset: 0x00005638
-		private static Dictionary<string, string> LoadTable(string language)
-		{
-			string text = "res://MP_PlayerManager/localization/" + language + "/ui.json";
-			if (!FileAccess.FileExists(text))
-			{
-				return new Dictionary<string, string>();
-			}
-			Dictionary<string, string> dictionary;
-			using (FileAccess fileAccess = FileAccess.Open(text, FileAccess.ModeFlags.Read))
-			{
-				if (fileAccess == null)
-				{
-					dictionary = new Dictionary<string, string>();
-				}
-				else
-				{
-					dictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(fileAccess.GetAsText(false), null) ?? new Dictionary<string, string>();
-				}
-			}
-			return dictionary;
-		}
+    internal static class Loc
+    {
+        /// <summary>将游戏语言代码归一到 ui.json 目录名（eng / zho）。</summary>
+        private static string NormalizeGameLanguage(string? raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "eng";
+            if (raw.Equals("zho", StringComparison.OrdinalIgnoreCase)) return "zho";
+            if (raw.Equals("chs", StringComparison.OrdinalIgnoreCase)) return "zho";
+            if (raw.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zho";
+            return raw;
+        }
 
-		// Token: 0x060000B0 RID: 176 RVA: 0x000074AC File Offset: 0x000056AC
-		private static Dictionary<string, string> GetStrings()
-		{
-			LocManager instance = LocManager.Instance;
-			string text = ((instance != null) ? instance.Language : null) ?? "eng";
-			if (Loc._strings != null && Loc._loadedLanguage == text)
-			{
-				return Loc._strings;
-			}
-			Loc._strings = Loc.LoadTable(text);
-			if (Loc._strings.Count == 0 && text != "eng")
-			{
-				Loc._strings = Loc.LoadTable("eng");
-			}
-			Loc._loadedLanguage = text;
-			return Loc._strings;
-		}
+        private static string ResolveUiLanguage()
+        {
+            Config.EnsureLoaded();
+            var forced = Config.ModUiLanguage;
+            if (string.Equals(forced, "zho", StringComparison.OrdinalIgnoreCase))
+                return "zho";
+            if (string.Equals(forced, "eng", StringComparison.OrdinalIgnoreCase))
+                return "eng";
+            // game：跟随游戏 LocManager
+            return NormalizeGameLanguage(LocManager.Instance?.Language);
+        }
 
-		// Token: 0x060000B1 RID: 177 RVA: 0x0000752C File Offset: 0x0000572C
-		internal static void Reload()
-		{
-			Loc._strings = null;
-			Loc._loadedLanguage = null;
-		}
+        private static Dictionary<string, string> LoadTable(string language)
+        {
+            // 与 Godot 项目根一致：打包进 PCK 后为 res://localization/{lang}/ui.json
+            // 勿在 mods/ 下放 localization/*.json，游戏会递归当作 mod_manifest 解析并报错
+            string path = $"res://localization/{language}/ui.json";
+            if (!FileAccess.FileExists(path))
+                return new Dictionary<string, string>();
 
-		// Token: 0x060000B2 RID: 178 RVA: 0x0000753C File Offset: 0x0000573C
-		internal static string Get(string key, string fallback = null)
-		{
-			string text;
-			if (Loc.GetStrings().TryGetValue(key, out text) && !string.IsNullOrEmpty(text))
-			{
-				return text;
-			}
-			return fallback ?? key;
-		}
+            using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+            if (file == null)
+                return new Dictionary<string, string>();
 
-		// Token: 0x060000B3 RID: 179 RVA: 0x00007568 File Offset: 0x00005768
-		internal static string Fmt(string key, params object[] args)
-		{
-			return string.Format(Loc.Get(key, null), args);
-		}
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(file.GetAsText(false)) ?? new Dictionary<string, string>();
+        }
 
-		// Token: 0x04000044 RID: 68
-		private static Dictionary<string, string> _strings;
+        private static Dictionary<string, string> GetStrings()
+        {
+            string lang = ResolveUiLanguage();
+            if (_strings != null && _loadedLanguage == lang)
+                return _strings;
 
-		// Token: 0x04000045 RID: 69
-		private static string _loadedLanguage;
-	}
+            _strings = LoadTable(lang);
+            if (_strings.Count == 0 && lang != "eng")
+                _strings = LoadTable("eng");
+
+            _loadedLanguage = lang;
+            return _strings;
+        }
+
+        public static void Reload()
+        {
+            _strings = null;
+            _loadedLanguage = null;
+        }
+
+        public static string Get(string key, string fallback = null)
+        {
+            if (GetStrings().TryGetValue(key, out var text) && !string.IsNullOrEmpty(text))
+                return text;
+            return fallback ?? key;
+        }
+
+        public static string Fmt(string key, params object[] args)
+        {
+            return string.Format(Get(key, null), args);
+        }
+
+        private static Dictionary<string, string>? _strings;
+        private static string? _loadedLanguage;
+    }
 }

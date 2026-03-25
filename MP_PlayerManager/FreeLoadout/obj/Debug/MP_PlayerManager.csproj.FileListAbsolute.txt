@@ -1,2 +1,0 @@
-K:\杀戮尖塔mod制作\STS2_mod\MP_PlayerManager\FreeLoadout\obj\Debug\MP_PlayerManager.csproj.AssemblyReference.cache
-K:\杀戮尖塔mod制作\STS2_mod\MP_PlayerManager\FreeLoadout\obj\Debug\MP_PlayerManager.csproj.CoreCompileInputs.cache
