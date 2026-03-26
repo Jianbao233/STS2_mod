@@ -287,3 +287,87 @@ flowchart BT
     style UI fill:#fff3e0,stroke:#ef6c00
     style Util fill:#f3e5f5,stroke:#7b1fa2
 ```
+
+---
+
+## 图 7：大厅聊天广播（LanConnectBridge）
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Patch as ClientCheatBlockPrefix
+    participant Mod as NoClientCheatsMod
+    participant Bridge as LanConnectBridge
+    participant LobbyRuntime as LanConnectLobbyRuntime (大厅 MOD)
+    participant RoomChat as 房间聊天面板
+
+    Note over Patch, RoomChat: 前提：房主安装了 NCC + STS2 LAN Connect
+    Note over Patch, RoomChat: 且 NCC ModConfig 中「Broadcast to Lobby Chat」已开启
+
+    Patch->>Mod: RecordCheat(senderId, name, char, cmd, wasBlocked=true)
+    Mod->>Bridge: LanConnectBridge.Broadcast(record)
+
+    alt 大厅 MOD 未安装 / 类型解析失败
+        Bridge-->>Mod: GD.Print("[NoClientCheats] LanConnect: 运行时类型未找到")
+        Note over Bridge: 静默跳过，不影响本地拦截
+    else 大厅 MOD 已安装
+        Bridge->>Bridge: BindingFlags.NonPublic|Public|Instance<br/>反射获取 SendRoomChatMessageAsync 方法
+        Bridge->>Bridge: BindingFlags.NonPublic|Public|Instance<br/>反射获取 HasActiveRoomSession 属性
+        Bridge->>Bridge: BindingFlags.NonPublic|Public|Static<br/>反射获取 Instance 静态属性
+
+        alt 反射任一步骤返回 null
+            Bridge-->>Mod: GD.Print("反射未找到 / 桥接未就绪")
+            Note over Bridge: 静默跳过；通常因只用 BindingFlags.Public<br/>而大厅源码这些成员均为 internal
+        else 反射全部成功
+            Bridge->>Bridge: 获取 LanConnectLobbyRuntime.Instance（Node）
+            Bridge->>Bridge: HasActiveRoomSession == true ?
+
+            alt 未在大厅房间
+                Bridge-->>Mod: GD.Print("广播跳过（未在大厅房间）")
+            else 在大厅房间中
+                Bridge->>LobbyRuntime: SendRoomChatMessageAsync(msg)
+                LobbyRuntime->>RoomChat: 房间内所有玩家收到聊天消息
+                RoomChat-->>Patch: 消息广播完毕
+                Note over RoomChat: 格式：[作弊拦截] 玩家名 尝试使用 指令<br/>           或：[作弊记录] 玩家名 执行了 指令
+            end
+        end
+    end
+
+    Note over Patch, RoomChat: 关键：大厅 MOD 中 SendRoomChatMessageAsync / HasActiveRoomSession /<br/>Instance 均为 internal，跨程序集反射必须加 BindingFlags.NonPublic
+```
+
+> **调试线索**：`godot.log` 中搜索 `[NoClientCheats] LanConnect:` 可见所有桥接状态。若日志全无，检查大厅 MOD 是否正确安装到 `mods\sts2_lan_connect\`。
+
+---
+
+## 图 8：发布工作流（v1.2.0+）
+
+```mermaid
+flowchart TD
+    A[修改源码 / 功能开发] --> B{测试完成？}
+    B -->|否| A
+    B -->|是| C[.\build.ps1]
+
+    C --> D[dotnet build Debug]
+    D --> E[Godot --export-pack → NoClientCheats.pck]
+    E --> F[复制到 Steam mods\NoClientCheats\]
+    F --> G[复制到 torelease\（发布快照）]
+
+    G --> H[.\prepare-release.ps1 -Version "1.2.0"]
+    H --> I{torelease 包含全部文件？}
+    I -->|有缺失| J[ERROR：缺少 XXX，跳过打包]
+    I -->|完整| K[生成 release\NoClientCheats-v1.2.0.zip]
+
+    K --> L[提交 Git：git add + commit + push]
+    L --> M[打 tag：git tag NCC_v1.2.0 + push]
+    M --> N[创建 Release：gh release create NCC_v1.2.0]
+    N --> O[上传 zip：gh release upload NCC_v1.2.0]
+
+    O --> P[✅ 发布完成]
+
+    style J fill:#ffcdd2,stroke:#f44336
+    style P fill:#c8e6c9,stroke:#4caf50
+    style C fill:#fff9c4,stroke:#f9a825
+```
+
+> **Tag 命名规范**：`NCC_v{主}.{次}.{修订}`（如 `NCC_v1.2.0`），Release title 为 `No Client Cheats v1.2.0`，两者分开。
