@@ -16,7 +16,7 @@ public partial class NControlPanel : CanvasLayer
     private static readonly Color GoldBorder = new Color(1f, 0.84f, 0f, 0.3f);
     private const string ModVersion = "0.2.0";
     private const string ProjectName = "ControlPanel";
-    private const string AuthorInfo = "煎包 / bili@我叫煎包 / Composer 1.5 | 生成敌人参考 ParasiteSpire";
+    private const string AuthorInfo = "煎包 / bili@我叫煎包 / claude-4.6-sonnet | 生成敌人参考 ParasiteSpire";
 
     private Panel _mainPanel;
     private Button _titleBtn;

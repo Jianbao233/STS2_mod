@@ -3,7 +3,7 @@
   "pck_name": "HostPriority",
   "version": "1.0.0",
   "name": "房主优先 / Host Priority",
-  "author": "Cursor Composer",
+  "author": "bili@我叫煎包 / claude-4.6-sonnet",
   "description": "多人联机时，让房主在遗物猜拳、地图路径、事件选项分歧中胜出。仅房主需安装。需 ModConfig 方可配置。\nMultiplayer: Host wins in relic rock-paper-scissors, map path selection, and event option splits. Host-only install. ModConfig for settings.",
   "has_pck": false,
   "has_dll": true,

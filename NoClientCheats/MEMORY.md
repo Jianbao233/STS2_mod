@@ -29,6 +29,7 @@
 | `CheatNotification.cs` | `CanvasLayer` 红色拦截通知弹窗，最多同时 4 个，带 Tween 渐隐 |
 | `HarmonyPatcher.cs` | `ModManager.Initialize` 的 Harmony Postfix，三重保险初始化入口 |
 | `ClientCheatBlockPatch.cs` | `HandleRequestEnqueueActionMessage` 的 Prefix，返回 `false` 静默丢弃作弊指令 |
+| `Localization.cs` | 静态本地化模块：`GetLocale()` 检测语言，`Tr(key)` 返回中/英文本，UI 字符串集中管理 |
 | `LanConnectBridge` | 反射桥接 `Sts2LanConnect.LanConnectLobbyRuntime`，将作弊拦截广播到大厅房间聊天。`SendRoomChatMessageAsync`/`HasActiveRoomSession`/`Instance` 均为 `internal`（需 `BindingFlags.NonPublic`） |
 | `ModListFilterPatch.cs` | `GetGameplayRelevantModNameList` 的 Prefix，从联机 Mod 列表移除本 Mod |
 | `CheatLocHelper.cs` | 反射 `LocString`，汉化角色名/遗物名/指令（无编译期 LocDB 引用） |
@@ -78,6 +79,15 @@ _prevDown = down;
 - `ModConfigApi` / `ConfigEntry` / `ConfigType` / `ModConfigManager` 均通过 `Type.GetType("...ModConfig, ModConfig")` 运行时解析
 - 操作按钮使用 `ModConfigManager.SetValue`（私有 API）绕过 `OnChanged` 回调，防止递归
 - 注册延迟 2 帧（`ProcessFrame += OnFrame1` → `OnFrame2` → `DoRegister`）
+
+### 本地化（Localization）
+
+- `Localization.cs`：语言**每次 `Tr()` 时**解析，随设置页改语言生效（无需重启）
+- **优先**反射 `MegaCrit.Sts2.Core.Localization.LocManager.Instance.Language`（与游戏内 Language 下拉一致）；`zho`/`chs`/`zhs`/`zh*` → 中文，其余（如 `eng`）→ 英文
+- **回退** `TranslationServer.GetLocale()`（STS2 常仍为系统区域，不可靠，仅作兜底）
+- `Localization.Tr` / `Localization.Trf` 返回当前语言字符串；`Trf` 内部用 `string.Format`，占位符须为 **`{0}`、`{1}`**（勿用 C 风格 `%d`/`%s`）
+- **禁止**在继承 `Node` 的类里 `using static Localization` 后写裸 `Tr(...)`：会与 Godot **`Node.Tr`** 冲突，解析到引擎翻译，找不到 key 就原样显示 key 名（如 `btn_clear`、`empty`）。应写 **`Localization.Tr`**
+- 所有 UI 字符串集中在 `_tr` 字典：`_tr["key"] = ("English", "中文")`
 
 ---
 

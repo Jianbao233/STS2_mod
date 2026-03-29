@@ -13,6 +13,21 @@ namespace MP_PlayerManager.Tabs
 {
     internal static class CardsTab
     {
+        /// <summary>
+        /// 批量模式选卡时，给已选中卡牌的 clip 容器加亮边框。
+        /// </summary>
+        internal static void ApplyCardSelectedHighlight(Control clip)
+        {
+            var sb = new StyleBoxFlat
+            {
+                BgColor = Colors.Transparent,
+                BorderColor = new Color(0.2f, 0.7f, 1f, 0.9f)
+            };
+            sb.SetBorderWidthAll(3);
+            sb.SetCornerRadiusAll(4);
+            clip.AddThemeStyleboxOverride("normal", sb);
+        }
+
         internal static Control CreateNCardWrapperPublic(CardModel card, PileType pileType, List<CardModel> inspectList, Action onClick = null)
         {
             return CreateNCardWrapper(card, pileType, inspectList, onClick);

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
+using static NoClientCheats.Localization;
 
 namespace NoClientCheats;
 
@@ -313,9 +314,9 @@ internal static class LanConnectBridge
         {
             string msg;
             if (record.WasBlocked)
-                msg = $"[作弊拦截] {record.SenderName} 尝试使用 {record.Command}";
+                msg = $"{Tr("lobby_blocked")} {record.SenderName} {Tr("tried_use")} {record.Command}";
             else
-                msg = $"[作弊记录] {record.SenderName} 执行了 {record.Command}";
+                msg = $"{Tr("lobby_logged")} {record.SenderName} {Tr("executed")} {record.Command}";
 
             // 消息最长60字符截断（大厅聊天限制）
             if (msg.Length > 60) msg = msg[..60];

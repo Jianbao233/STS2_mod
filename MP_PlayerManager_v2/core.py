@@ -12,6 +12,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 from .characters import CharacterTemplate
+from .i18n import _
 
 
 # ─── 辅助函数 ────────────────────────────────────────────────────────────────
@@ -157,15 +158,13 @@ def take_over_player(
     save_data: dict,
     source_player_idx: int,
     new_net_id: int,
-    new_character_id: Optional[str] = None,
 ) -> OperationResult:
     """
-    夺舍：替换 source_player_idx 位置的玩家 net_id（及可选 character_id）
-    保留所有游戏数据（deck/relics/gold/rng/odds），只换身份
+    夺舍：替换 source_player_idx 位置的玩家 net_id，保留所有游戏数据（deck/relics/gold/rng/odds），只换身份
     """
     players = save_data.get("players", [])
     if not (0 <= source_player_idx < len(players)):
-        return OperationResult(False, f"玩家序号 {source_player_idx} 超出范围（当前共 {len(players)} 名玩家）")
+        return OperationResult(False, _("result.takeover.idx_out_of_range", source_player_idx, len(players)))
 
     source = players[source_player_idx]
     original_id = source.get("net_id")
@@ -173,11 +172,6 @@ def take_over_player(
     # 替换身份
     source["net_id"] = new_net_id
     remap_player_id_in_map_history(save_data, original_id, new_net_id)
-    if new_character_id:
-        source["character_id"] = new_character_id
-        # 换角色时重置遗物（换角色后原遗物无效）
-        source["relics"] = []
-        source["discovered_relics"] = []
 
     # 清理发现列表（新玩家视角）
     source["discovered_cards"] = []
@@ -194,7 +188,7 @@ def take_over_player(
 
     return OperationResult(
         True,
-        f"成功夺舍玩家 {source_player_idx + 1}（原 ID: {original_id} → 新 ID: {new_net_id}）",
+        _("result.takeover.success", source_player_idx + 1, original_id, new_net_id),
         {
             "original_id": original_id,
             "new_id": new_net_id,
@@ -207,19 +201,16 @@ def add_player_copy(
     save_data: dict,
     source_player_idx: int,
     new_net_id: int,
-    new_character_id: Optional[str] = None,
-    template: Optional[CharacterTemplate] = None,
 ) -> OperationResult:
     """
-    添加玩家（复制模式）：深拷贝源玩家（与 v1 一致），满血、清空药水，并注入 map 历史。
-    可选换角色时清空遗物，保留其余进度字段。
+    添加玩家（复制模式）：深拷贝源玩家，满血、清空药水，并注入 map 历史
     """
     players = save_data.get("players", [])
     if not (0 <= source_player_idx < len(players)):
-        return OperationResult(False, f"源玩家序号 {source_player_idx} 超出范围")
+        return OperationResult(False, _("result.add.idx_out_of_range", source_player_idx))
 
     if any(p.get("net_id") == new_net_id for p in players):
-        return OperationResult(False, f"net_id {new_net_id} 已存在于本存档中")
+        return OperationResult(False, _("result.add.id_conflict", new_net_id))
 
     source = players[source_player_idx]
     new_player = copy.deepcopy(source)
@@ -227,10 +218,6 @@ def add_player_copy(
     new_player["net_id"] = new_net_id
     new_player["current_hp"] = new_player.get("max_hp", new_player.get("current_hp", 0))
     new_player["potions"] = []
-
-    if new_character_id and template and new_character_id != source.get("character_id"):
-        new_player["character_id"] = new_character_id
-        new_player["relics"] = []
 
     char_id = new_player.get("character_id", "?")
 
@@ -240,7 +227,7 @@ def add_player_copy(
 
     return OperationResult(
         True,
-        f"成功添加玩家（复制模式）：ID={new_net_id}，角色={char_id}",
+        _("result.add.copy_success", str(new_net_id), char_id),
         {"player_index": len(players) - 1, "character_id": char_id},
     )
 
@@ -266,7 +253,7 @@ def add_player_fresh(
 
     return OperationResult(
         True,
-        f"成功添加玩家（初始牌组模式）：ID={new_net_id}，角色={template.name}",
+        _("result.add.fresh_success", str(new_net_id), template.name),
         {"player_index": len(save_data["players"]) - 1, "character_id": template.character_id},
     )
 
@@ -280,7 +267,7 @@ def remove_player(
     """
     players = save_data.get("players", [])
     if not (0 <= player_idx < len(players)):
-        return OperationResult(False, f"玩家序号 {player_idx} 超出范围")
+        return OperationResult(False, _("result.remove.idx_out_of_range", player_idx))
 
     removed = players.pop(player_idx)
     removed_id = removed.get("net_id")
@@ -333,7 +320,7 @@ def remove_player(
 
     return OperationResult(
         True,
-        f"成功移除玩家 {player_idx + 1}（{removed_char}，ID: {removed_id}）",
+        _("result.remove.success", player_idx + 1, removed_char, removed_id),
         {
             "removed_id": removed_id,
             "character_id": removed_char,

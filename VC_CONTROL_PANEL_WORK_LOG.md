@@ -15,7 +15,7 @@
 - **药水删除**：实时显示腰带药水，左键尝试 potion remove ✓
 - **能力/Buff**：PotionAndCardData.PowerData 表，点击施加，无需手动输入 ID ✓
 - **生成敌人**：战斗控制新增「生成敌人」，预设遭遇列表，fight \<id\> 跳转 ✓
-- **标题**：ControlPanel v0.2.0 | 作者：煎包 / bili@我叫煎包 / Composer 1.5 ✓
+- **标题**：ControlPanel v0.2.0 | 作者：煎包 / bili@我叫煎包 / claude-4.6-sonnet ✓
 
 ---
 

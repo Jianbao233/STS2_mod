@@ -12,8 +12,9 @@ from typing import Optional
 # ─── 基础角色定义 ───────────────────────────────────────────────────────────
 
 BUILTIN_CHARACTERS = {
+    # Note: name field is filled lazily via _get_name() to avoid circular import
     "CHARACTER.IRONCLAD": {
-        "name": "铁甲战士",
+        "i18n_key": "char.ironclad",
         "max_hp": 80,
         "starter_relic": "RELIC.BURNING_BLOOD",
         "starter_deck": [
@@ -26,7 +27,7 @@ BUILTIN_CHARACTERS = {
         ],
     },
     "CHARACTER.SILENT": {
-        "name": "静默猎手",
+        "i18n_key": "char.silent",
         "max_hp": 70,
         "starter_relic": "RELIC.RING_OF_THE_SNAKE",
         "starter_deck": [
@@ -39,8 +40,8 @@ BUILTIN_CHARACTERS = {
         ],
     },
     "CHARACTER.DEFECT": {
-        "name": "故障机器人",
-        "max_hp": 70,
+        "i18n_key": "char.defect",
+        "max_hp": 75,
         "starter_relic": "RELIC.CRACKED_CORE",
         "starter_deck": [
             "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT",
@@ -52,8 +53,8 @@ BUILTIN_CHARACTERS = {
         ],
     },
     "CHARACTER.NECROBINDER": {
-        "name": "亡灵契约师",
-        "max_hp": 70,
+        "i18n_key": "char.necrobinder",
+        "max_hp": 66,
         "starter_relic": "RELIC.BOUND_PHYLACTERY",
         "starter_deck": [
             "CARD.STRIKE_NECROBINDER", "CARD.STRIKE_NECROBINDER",
@@ -65,8 +66,8 @@ BUILTIN_CHARACTERS = {
         ],
     },
     "CHARACTER.REGENT": {
-        "name": "储君",
-        "max_hp": 72,
+        "i18n_key": "char.regent",
+        "max_hp": 75,
         "starter_relic": "RELIC.CROWN",
         "starter_deck": [
             "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT",
@@ -88,6 +89,7 @@ class CharacterTemplate:
     starter_deck: list[str]
     is_mod: bool = False
     source: str = ""  # 文件来源路径
+    _i18n_key: str = ""  # i18n 翻译键，内置角色有值
 
     def display_name(self) -> str:
         return self.name or self.character_id
@@ -144,15 +146,19 @@ def load_steam_names(appdata_dir: str) -> dict[str, str]:
 
 def get_all_characters(game_mods_dir: str) -> dict[str, CharacterTemplate]:
     """返回所有可用角色（内置 + Mod）"""
+    from .i18n import _ as _i18n
     result = {}
     for cid, data in BUILTIN_CHARACTERS.items():
+        i18n_key = data.get("i18n_key", "")
+        resolved_name = _i18n(i18n_key) if i18n_key else cid
         result[cid] = CharacterTemplate(
             character_id=cid,
-            name=data["name"],
+            name=resolved_name,
             max_hp=data["max_hp"],
             starter_relic=data["starter_relic"],
             starter_deck=data["starter_deck"],
             is_mod=False,
+            _i18n_key=i18n_key,
         )
     result.update(load_mod_templates(game_mods_dir))
     return result

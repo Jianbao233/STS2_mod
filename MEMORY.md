@@ -590,4 +590,98 @@ devConsole.ProcessCommand(rawCommand) → CmdResult{success, msg}
 
 ---
 
-*工作区总记忆 · 2026-03-23*
+---
+
+### 会话记录 2026-03-26 · 紧急修复 i18n + 本地化导入
+
+**背景**：i18n 本地化改造后程序无法启动，发现多个编译/运行时错误。
+
+**修复的 bug（共 4 个）：**
+
+1. **`main.py` · `_render_user_group` 折叠箭头引用错误**
+   - 问题：`self._group_arrow[group.steam_id] = arrow` 缺失，导致折叠/展开时箭头元素引用丢失
+   - 修复：折叠头注册时追加 `self._group_arrow[group.steam_id] = arrow`
+
+2. **`main.py` · `_render_backup_card` 的 `card.info` 参数数量错误**
+   - 问题：调用 `_("card.info", ...)` 时传了 6 个参数，但 `card.info` 的中英文字符串只各定义了 5 个 `{}` 占位符
+   - 修复：简化为 5 个明确参数 `be.player_count, "?", 0, "?", save_time_str`
+
+3. **`core.py` / `characters.py` · 绝对导入路径导致 `ModuleNotFoundError`**
+   - 问题：模块使用 `from i18n import ...`（绝对导入），但 PyInstaller 打包后 `i18n` 不在 `sys.path`
+   - 修复：`core.py` 改为 `from .i18n import _`；`characters.py` 改为 `from .i18n import _ as _i18n`
+
+4. **`main.py` · `CTkRadioButton` 的 `fg_color`/`bg_color` 不接受 `"transparent"`**
+   - 问题：CustomTkinter 禁止 `fg_color`/`bg_color` 使用 `"transparent"` 字符串值
+   - 修复：改为与父框架一致的暗色背景值 `("#0D1117", "#0D1117")`
+
+5. **`main.py` · 备份浏览器的 mod 模式判断错误**
+   - 问题：`is_modded = profile_key.startswith("modded/")`，但 `profile_key` 格式为 `steam_id/modded/profile1`，前导 Steam ID 导致永远不匹配
+   - 修复：改为 `"modded" in profile_parts`（`profile_parts = profile_key.split("/")`）
+
+**验证**：`python run.py` 可正常启动 GUI，无异常输出。
+
+**后续计划**（来自 `language_selector_+_backup_ui_improvement_71c479ad.plan.md`）：
+1. ✅ 导航栏底部语言切换（已完成，运行时正常）
+2. ⏳ 备份管理页重构为全局备份浏览器（`save_io.scan_all_backups()` 已实现，UI 待完善）
+3. ⏳ 构建 exe：`pyinstaller MP_PlayerManager_v2.spec --clean`
+
+---
+
+*工作区总记忆 · 2026-03-26*
+
+---
+
+## 2026-03-20 BaseLib-StS2 调研
+
+### 本次完成内容
+
+1. **调研 BaseLib**：访问 [Alchyr/BaseLib-StS2](https://github.com/Alchyr/BaseLib-StS2)（⭐105，v0.1.8 2026-03-19）
+2. **生成报告**：`VC_BASELIB_ANALYSIS_REPORT.md`（7 大模块详解 + 借鉴优先级）
+3. **模板字段整理**：`VC_MOD_CHARACTER_TEMPLATE_FIELDS.md`（Mod 角色初始遗物/卡组字段参考）
+
+### 核心结论
+
+BaseLib `CustomCharacterModel` **不直接处理初始遗物/初始牌组**（由游戏 `CharacterModel` 原生管理），BaseLib 专注于视觉/动画/能量/音效资源路径。
+
+### BaseLib CustomCharacterModel 提供的虚属性
+
+| 类别 | 属性 | 说明 |
+|------|------|------|
+| 视觉 | `CustomVisualPath`、`CustomTrailPath`、`CustomIconTexturePath`、`CustomIconPath` | 角色立绘、拖尾、小/大图标 |
+| 选角 | `CustomCharacterSelectBg`、`CustomCharacterSelectIconPath`、`CustomCharacterSelectLockedIconPath`、`CustomCharacterSelectTransitionPath` | 选角界面资源 |
+| 地图 | `CustomMapMarkerPath` | 地图标记 |
+| 休息/商店 | `CustomRestSiteAnimPath`、`CustomMerchantAnimPath` | 休息站/商店动画 |
+| 能量 | `CustomEnergyCounter`（结构体）、`CustomEnergyCounterPath` | 自定义能量计数器 |
+| 手势 | `CustomArm*TexturePath`（Rock/Paper/Scissors/Pointing） | 猜拳手势 |
+| 音效 | `CustomAttackSfx`、`CustomCastSfx`、`CustomDeathSfx` | `event:/sfx/...` 格式 |
+| 数值 | `StartingGold`、`AttackAnimDelay`、`CastAnimDelay` | 可覆盖默认值 |
+
+### 游戏源码 CharacterModel 初始模板字段
+
+| 字段 | 说明 |
+|------|------|
+| `StarterRelic` / `StarterRelicId` | 初始遗物（实例/ID） |
+| `StarterDeck` / `StarterDeckIds` | 初始牌组（CardModel[]/string[]） |
+| `MaxHP` | 最大生命值 |
+
+### player_template.json 标准格式（MP_PlayerManager 已采纳）
+
+```json
+{
+    "character_id": "CHARACTER.WATCHER",
+    "name": "观者",
+    "max_hp": 72,
+    "starter_relic": "RELIC.PURE_WATER",
+    "starter_deck": ["CARD.STRIKE_P", "CARD.DEFEND_P", ...]
+}
+```
+
+ID 命名约定：`CHARACTER.XXX` / `RELIC.XXX` / `CARD.XXX`（大写），卡牌后缀 `_I/S/D/P` 表示角色归属。
+
+### 最高优先级借鉴
+
+`SimpleModConfig` 配置系统（代码量减少 70%），详细见 `VC_BASELIB_ANALYSIS_REPORT.md`。
+
+---
+
+*工作区总记忆 · 2026-03-20*

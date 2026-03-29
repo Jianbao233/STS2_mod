@@ -1,0 +1,8 @@
+{
+  "MOD_LIST_HIDER": {
+    "TOOLTIP_OPEN": "Show this mod in multiplayer",
+    "TOOLTIP_CLOSED": "Hide this mod from multiplayer",
+    "VANILLA_TOOLTIP_ON": "Vanilla Mode: ON\nAll mods hidden from MP.\nYou appear as vanilla to other players.\nClick to disable.",
+    "VANILLA_TOOLTIP_OFF": "Vanilla Mode: OFF\nPer-mod eye icons control hiding.\nClick to enable Vanilla Mode.\n(Required to join vanilla players)"
+  }
+}

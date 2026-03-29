@@ -267,6 +267,7 @@ flowchart BT
     subgraph Util["工具"]
         L["CheatLocHelper.cs<br/>本地化汉化"]
         M["ModConfigIntegration.cs<br///ModConfig API 注册（可选）"]
+        Lo["Localization.cs<br/>中英双语 Tr()"]
     end
 
     Entry --> CM3
@@ -276,6 +277,7 @@ flowchart BT
     CM2 --> U1
     CM2 --> U2
     CM2 --> L
+    CM2 --> Lo
     CM3 --> M
 
     P1 --> CM2
@@ -286,6 +288,7 @@ flowchart BT
     style Patches fill:#fce4ec,stroke:#c62828
     style UI fill:#fff3e0,stroke:#ef6c00
     style Util fill:#f3e5f5,stroke:#7b1fa2
+    style Lo fill:#e0f7fa,stroke:#006064
 ```
 
 ---

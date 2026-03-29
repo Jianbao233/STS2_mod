@@ -1,0 +1,8 @@
+{
+  "MOD_LIST_HIDER": {
+    "TOOLTIP_OPEN": "联机时显示此 Mod",
+    "TOOLTIP_CLOSED": "联机时隐藏此 Mod",
+    "VANILLA_TOOLTIP_ON": "原版模式: 已开启\n所有 Mod 对联机玩家隐藏。\n你将以原版身份出现在其他玩家面前。\n点击关闭。",
+    "VANILLA_TOOLTIP_OFF": "原版模式: 已关闭\n使用各 Mod 的眼睛图标控制隐藏。\n点击开启原版模式。\n(加入原版玩家房间必须开启)"
+  }
+}

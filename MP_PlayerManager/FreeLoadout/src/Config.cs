@@ -46,6 +46,19 @@ namespace MP_PlayerManager
             }
         }
 
+        /// <summary>导出/导入模板文件的目录路径（末尾不带路径分隔符）。</summary>
+        internal static string ExportDir
+        {
+            get
+            {
+                EnsureLoaded();
+                return _exportDir ?? DefaultExportDir;
+            }
+        }
+
+        private static string? _exportDir;
+        private const string DefaultExportDir = "MP_Templates";
+
         internal static void EnsureLoaded()
         {
             if (_hotkeys != null) return;
@@ -99,6 +112,13 @@ namespace MP_PlayerManager
                         _modUiLanguage = s;
                 }
 
+                if (doc.RootElement.TryGetProperty("export_dir", out var dirEl))
+                {
+                    var s = dirEl.GetString()?.Trim();
+                    if (!string.IsNullOrWhiteSpace(s))
+                        _exportDir = s;
+                }
+
                 GD.Print($"[MP_PlayerManager] Loaded config.json: mod_ui_language={_modUiLanguage}, hotkeys=[{string.Join(", ", _hotkeys)}], flags=[{string.Join(", ", _flags)}]");
             }
             catch (System.Exception ex)
@@ -132,8 +152,9 @@ namespace MP_PlayerManager
             {
                 var dict = new Dictionary<string, object>
                 {
-                    ["_readme"] = "Hotkey format: Key or Ctrl+Key or Shift+Alt+Key. mod_ui_language: game | zho | eng (game=follow game UI language).",
+                    ["_readme"] = "Hotkey format: Key or Ctrl+Key or Shift+Alt+Key. mod_ui_language: game | zho | eng (game=follow game UI language). export_dir: folder name for template export/import (relative to user documents).",
                     ["mod_ui_language"] = DefaultModUiLanguage,
+                    ["export_dir"] = DefaultExportDir,
                     ["hotkeys"] = new Dictionary<string, string>(DefaultHotkeys),
                     ["flags"] = new Dictionary<string, bool>(DefaultFlags)
                 };

@@ -13,6 +13,7 @@ elseif ($cmd = Get-Command "Godot" -ErrorAction SilentlyContinue) { $GodotPath =
 else {
     $candidates = @(
         (Join-Path $ProjectRoot "..\..\Godot_v4.5.1\Godot_v4.5.1\Godot_v4.5.1-stable_mono_win64.exe"),
+        (Join-Path $ProjectRoot "..\..\..\..\..\SteamLibrary\steamapps\common\Slay the Spire 2\Godot_v4.5.1-stable_mono_win64.exe"),
         "C:\Godot\Godot_v4.5.1-stable_mono_win64.exe",
         "$env:USERPROFILE\Godot\Godot_v4.5.1-stable_mono_win64.exe"
     )

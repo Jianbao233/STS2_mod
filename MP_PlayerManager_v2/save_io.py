@@ -27,15 +27,19 @@ def _discover_mp_save_files(steam_folder: Path) -> list[tuple[Path, str]]:
     返回 [(绝对路径, profile_key), ...]，profile_key 形如 profile1、modded/profile2。
     游戏实际使用 profile1/profile2…，而非仅有 profile。
     """
-    patterns = (
-        "profile/saves/current_run_mp.save",
+    # 正常模式（非 mod 模式）存档
+    normal_patterns = (
+        "profile*/saves/current_run.save",
+        "modded/profile*/saves/current_run.save",
+    )
+    # mod 模式存档
+    modded_patterns = (
         "profile*/saves/current_run_mp.save",
-        "modded/profile/saves/current_run_mp.save",
         "modded/profile*/saves/current_run_mp.save",
     )
     seen: set[Path] = set()
     out: list[tuple[Path, str]] = []
-    for pat in patterns:
+    for pat in normal_patterns + modded_patterns:
         for save_file in steam_folder.glob(pat):
             if not save_file.is_file():
                 continue
@@ -69,6 +73,9 @@ class SaveProfile:
     players_summary: str   # "静默猎手、铁甲战士"
     save_time: Optional[datetime]
     is_active: bool       # run_time > 0 表示对局进行中
+    is_modded: bool        # True = modded/profileN，False = profileN
+    is_mp_save: bool       # 固定为 True（只扫描 current_run_mp.save）
+    steam_id: str          # 所属 SteamID64
 
 
 @dataclass
@@ -136,6 +143,7 @@ def scan_save_profiles(steam_id: str = "") -> list[SaveProfile]:
             save_dt = datetime.fromtimestamp(st) if st else None
 
             profile_key = f"{steam_folder.name}/{sub_key}"
+            is_modded = sub_key.startswith("modded/")
             results.append(SaveProfile(
                 path=save_file,
                 rel_path=f"{steam_folder.name}/{sub_key}/saves/current_run_mp.save",
@@ -146,10 +154,26 @@ def scan_save_profiles(steam_id: str = "") -> list[SaveProfile]:
                 players_summary=_detect_players_summary(data),
                 save_time=save_dt,
                 is_active=run_time > 0,
+                is_modded=is_modded,
+                is_mp_save=True,
+                steam_id=steam_folder.name,
             ))
 
     results.sort(key=lambda x: x.path.stat().st_mtime, reverse=True)
     return results
+
+
+@dataclass
+class BackupEntry:
+    """一个备份文件条目，可定位到其所属的 Steam 用户 + profile"""
+    path: Path
+    timestamp: str           # "YYYYMMDD_HHMMSS"
+    player_count: int
+    players_summary: str
+    save_time: Optional[datetime]
+    steam_id: str
+    profile_key: str         # "7656.../profile1" 格式
+    save_path: Path          # 对应的 current_run_mp.save 路径
 
 
 def scan_backups(save_path: Path) -> list[SaveBackup]:
@@ -221,3 +245,82 @@ def restore_backup(backup_path: Path, original_path: Path) -> bool:
         return True
     except OSError:
         return False
+
+
+def delete_backup_file(backup_path: Path) -> bool:
+    """删除单个备份文件（不触碰主存档）"""
+    try:
+        backup_path.unlink()
+        return True
+    except OSError:
+        return False
+
+
+# ── 全局备份扫描 ─────────────────────────────────────────────────────────────
+
+
+def _discover_all_profile_dirs(steam_folder: Path) -> list[Path]:
+    """返回 steam_folder 下所有包含 saves 目录的子目录（profile 根）"""
+    seen: set[Path] = set()
+    for p in steam_folder.glob("profile*/saves"):
+        if p.is_dir():
+            seen.add(p.parent)
+    for p in steam_folder.glob("modded/profile*/saves"):
+        if p.is_dir():
+            seen.add(p.parent)
+    return list(seen)
+
+
+def scan_all_backups() -> list[BackupEntry]:
+    """
+    扫描所有存档目录下所有 .backup.* 文件，返回 flat list。
+    每条记录含所属 Steam 用户、profile_key、对应存档路径，可直接恢复。
+    """
+    results: list[BackupEntry] = []
+    if not STEAM_DIR.exists():
+        return results
+
+    for steam_folder in STEAM_DIR.iterdir():
+        if not steam_folder.is_dir():
+            continue
+        sid = steam_folder.name
+
+        for profile_root in _discover_all_profile_dirs(steam_folder):
+            saves_dir = profile_root / "saves"
+
+            # 找主存档文件（用于恢复）
+            main_save = saves_dir / "current_run_mp.save"
+            if not main_save.exists():
+                main_save = saves_dir / "current_run.save"
+
+            profile_key = f"{sid}/{profile_root.relative_to(steam_folder).as_posix()}"
+
+            # 扫描该目录所有 .backup.* 文件
+            if not saves_dir.exists():
+                continue
+            for f in saves_dir.iterdir():
+                if f.name.startswith("current_run_mp.save.backup."):
+                    ts = f.name[len("current_run_mp.save.backup."):]
+                elif f.name.startswith("current_run.save.backup."):
+                    ts = f.name[len("current_run.save.backup."):]
+                else:
+                    continue
+
+                data = _load_raw(f)
+                if not data:
+                    continue
+
+                players = data.get("players", [])
+                results.append(BackupEntry(
+                    path=f,
+                    timestamp=ts,
+                    player_count=len(players),
+                    players_summary=_detect_players_summary(data),
+                    save_time=datetime.fromtimestamp(data.get("save_time", 0)) or None,
+                    steam_id=sid,
+                    profile_key=profile_key,
+                    save_path=main_save,
+                ))
+
+    results.sort(key=lambda x: x.timestamp, reverse=True)
+    return results

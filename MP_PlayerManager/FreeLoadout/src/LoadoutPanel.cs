@@ -16,7 +16,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.PotionLab;
 using MegaCrit.Sts2.Core.Nodes.Screens.RelicCollection;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Runs;
-using MP_PlayerManager.Tabs;
+using MP_PlayerManager.Tabs; // CardsTab, PowersTab, EventsTab, etc.
 
 namespace MP_PlayerManager
 {
@@ -548,6 +548,8 @@ namespace MP_PlayerManager
         }
 
         // === 嵌入屏幕（非泛型，避免 ref lambda 问题） ===
+        private static Control? _cardScreenShiftGuard;
+
         private static void ShowEmbeddedCardScreen()
         {
             HideEmbeddedScreens();
@@ -570,9 +572,54 @@ namespace MP_PlayerManager
                 HideScreenShadows(_cardScreen!);
             }).CallDeferred();
 
+            RebuildCardScreenShiftGuard();
+
             _panel?.AddThemeStyleboxOverride("panel", _panelStyleClear!);
             _divider?.Hide();
             SetTabButtonsChrome(false);
+        }
+
+        /// <summary>
+        /// 透明遮罩拦截 Shift+点击：事件向上冒泡到 _cardScreen 时捕获，
+        /// 若 Shift 键按下则追加卡牌到当前模板，而非打开检查界面。
+        /// MouseFilter=Pass 让正常点击继续向下传递给 _cardScreen。
+        /// </summary>
+        private static void RebuildCardScreenShiftGuard()
+        {
+            if (_cardScreenShiftGuard != null && GodotObject.IsInstanceValid(_cardScreenShiftGuard))
+            {
+                _cardScreenShiftGuard.QueueFree();
+                _cardScreenShiftGuard = null;
+            }
+
+            _cardScreenShiftGuard = new Control
+            {
+                AnchorLeft = 0, AnchorRight = 1, AnchorTop = 0, AnchorBottom = 1,
+                MouseFilter = Control.MouseFilterEnum.Pass
+            };
+
+            _cardScreenShiftGuard.GuiInput += ev =>
+            {
+                if (ev is not InputEventMouseButton mb || !mb.Pressed || mb.ButtonIndex != MouseButton.Left)
+                    return;
+                if (!Input.IsKeyPressed(Key.Shift))
+                    return;
+
+                // Shift+点击：拦截，向下找 NCard 节点
+                var cardScreen = _cardScreen;
+                if (cardScreen == null || !GodotObject.IsInstanceValid(cardScreen)) return;
+
+                var allCards = MegaCrit.Sts2.Core.Models.ModelDb.AllCards
+                    .OrderBy(c => c.Id?.Entry ?? "")
+                    .ToList();
+                if (allCards.Count == 0) return;
+
+                // 弹出卡牌选择浏览器（Shift 模式下批量追加）
+                global::MP_PlayerManager.TemplatesTab.OpenCardBrowserForShiftAdd(allCards);
+            };
+
+            _mainVBox!.AddChild(_cardScreenShiftGuard, false, Node.InternalMode.Disabled);
+            _cardScreenShiftGuard.ZIndex = 999; // 盖在最上，但 MouseFilter=Pass 不挡事件
         }
 
         private static void ShowEmbeddedRelicScreen()

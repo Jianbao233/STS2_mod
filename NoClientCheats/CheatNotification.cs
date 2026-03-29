@@ -119,10 +119,10 @@ public partial class CheatNotification : CanvasLayer
         row.AddThemeConstantOverride("separation", 12);
         panel.AddChild(row);
 
-        var mid = string.IsNullOrEmpty(displayChar) ? "" : $"  |  角色：{displayChar}  |  ";
+        var mid = string.IsNullOrEmpty(displayChar) ? "" : $"  |  {Localization.Tr("label_role")}：{displayChar}  |  ";
         var label = new Label
         {
-            Text = $"[禁止作弊]  {senderName}{mid}  {displayCmd}",
+            Text = $"{Localization.Tr("notify_blocked")}  {senderName}{mid}  {displayCmd}",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.Fill,
             VerticalAlignment = VerticalAlignment.Center
@@ -134,12 +134,12 @@ public partial class CheatNotification : CanvasLayer
         // 查看历史按钮
         var histBtn = new Button
         {
-            Text = "查看历史  →",
+            Text = Localization.Tr("btn_history"),
             Flat = true,
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd,
             SizeFlagsVertical = Control.SizeFlags.Fill,
             CustomMinimumSize = new Vector2(100, 0),
-            TooltipText = "呼出拦截历史面板"
+            TooltipText = Localization.Tr("tooltip_history")
         };
         histBtn.AddThemeColorOverride("font_color", new Color(0.85f, 0.75f, 0.55f, 1f));
         histBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.9f, 0.6f, 1f));

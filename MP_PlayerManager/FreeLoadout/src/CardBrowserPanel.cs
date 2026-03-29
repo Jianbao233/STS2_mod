@@ -10,16 +10,32 @@ using MP_PlayerManager.Tabs;
 namespace MP_PlayerManager
 {
     /// <summary>
-    /// 模态卡牌选择弹窗：搜索 + 网格展示，选中后回调 onSelected(card)。
+    /// 模态卡牌选择弹窗：搜索 + 网格展示。
+    /// 支持两种模式：
+    /// - 普通模式：点击卡牌后回调 onSelected(card) 并关闭弹窗
+    /// - 批量模式：点击卡牌切换选中状态，全部选完后按"完成"才回调 onBatchSelected
     /// </summary>
     internal static class CardBrowserPanel
     {
-        /// <summary>打开弹窗，allCards 为候选卡牌列表，onSelected 回调选中结果。</summary>
+        /// <summary>普通模式：选中一张卡后立即回调并关闭。</summary>
         internal static void Open(List<CardModel> allCards, Action<CardModel> onSelected)
         {
             Close();
             _allCards = allCards;
             _onSelected = onSelected;
+            _batchMode = false;
+            _searchText = "";
+            Build();
+        }
+
+        /// <summary>批量模式：可选择多张卡，点击"完成"后一次性回调所有选中卡。</summary>
+        internal static void OpenForBatch(List<CardModel> allCards, Action<List<CardModel>> onBatchSelected)
+        {
+            Close();
+            _allCards = allCards;
+            _onBatchSelected = onBatchSelected;
+            _batchMode = true;
+            _selectedCards = new HashSet<string>();
             _searchText = "";
             Build();
         }
@@ -31,6 +47,9 @@ namespace MP_PlayerManager
             _layer = null;
             _allCards = null;
             _onSelected = null;
+            _onBatchSelected = null;
+            _batchMode = false;
+            _selectedCards = null;
         }
 
         private static void Build()
@@ -86,22 +105,48 @@ namespace MP_PlayerManager
             vbox.AddThemeConstantOverride("separation", 8);
             panel.AddChild(vbox, false, Node.InternalMode.Disabled);
 
-            // 标题栏
+            // ── 标题栏 ─────────────────────────────────────────────────────
             var header = new HBoxContainer();
             header.AddThemeConstantOverride("separation", 8);
             vbox.AddChild(header, false, Node.InternalMode.Disabled);
 
-            var title = new Label { Text = Loc.Get("cb.title", "Select Card"), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            title.AddThemeFontSizeOverride("font_size", 20);
-            title.AddThemeColorOverride("font_color", SC.Gold);
-            header.AddChild(title, false, Node.InternalMode.Disabled);
+            _titleLabel = new Label
+            {
+                Text = _batchMode
+                    ? Loc.Get("cb.title_batch", "Batch Add Cards")
+                    : Loc.Get("cb.title", "Select Card"),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            };
+            _titleLabel.AddThemeFontSizeOverride("font_size", 20);
+            _titleLabel.AddThemeColorOverride("font_color", SC.Gold);
+            header.AddChild(_titleLabel, false, Node.InternalMode.Disabled);
+
+            // 批量模式：显示已选计数
+            if (_batchMode)
+            {
+                _selectedCountLabel = new Label { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+                _selectedCountLabel.AddThemeFontSizeOverride("font_size", 14);
+                _selectedCountLabel.AddThemeColorOverride("font_color", SC.Blue);
+                RefreshSelectedCountLabel();
+                header.AddChild(_selectedCountLabel, false, Node.InternalMode.Disabled);
+            }
 
             var closeBtn = LoadoutPanel.CreateActionButton("×", new Color(0.7f, 0.2f, 0.15f));
             closeBtn.CustomMinimumSize = new Vector2(36, 36);
             closeBtn.Pressed += Close;
             header.AddChild(closeBtn, false, Node.InternalMode.Disabled);
 
-            // 搜索栏
+            // 批量模式：完成按钮
+            if (_batchMode)
+            {
+                _doneBtn = LoadoutPanel.CreateActionButton(
+                    Loc.Get("cb.confirm_batch", "Done (0)"), new Color(0.3f, 0.6f, 0.3f));
+                _doneBtn.CustomMinimumSize = new Vector2(100, 36);
+                _doneBtn.Pressed += OnBatchConfirm;
+                header.AddChild(_doneBtn, false, Node.InternalMode.Disabled);
+            }
+
+            // ── 搜索栏 ───────────────────────────────────────────────────
             var searchRow = new HBoxContainer();
             searchRow.AddThemeConstantOverride("separation", 8);
             vbox.AddChild(searchRow, false, Node.InternalMode.Disabled);
@@ -120,13 +165,12 @@ namespace MP_PlayerManager
             _searchEdit.TextChanged += OnSearchChanged;
             searchRow.AddChild(_searchEdit, false, Node.InternalMode.Disabled);
 
-            // 计数标签
             _countLabel = new Label();
             _countLabel.AddThemeFontSizeOverride("font_size", 13);
             _countLabel.AddThemeColorOverride("font_color", SC.Gray);
             searchRow.AddChild(_countLabel, false, Node.InternalMode.Disabled);
 
-            // 网格区域：单 Scroll + 单 Grid，全宽铺开（避免多段 Grid 挤成左缘细条）
+            // ── 网格区域 ───────────────────────────────────────────────────
             _gridScroll = new ScrollContainer
             {
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
@@ -188,18 +232,61 @@ namespace MP_PlayerManager
             foreach (var card in listCopy)
             {
                 CardModel c = card;
-                var clip = CardsTab.CreateNCardWrapperPublic(
-                    c,
-                    PileType.Deck,
-                    listCopy,
-                    () =>
+                string cardId = c.Id?.Entry ?? Guid.NewGuid().ToString();
+                bool isSelected = _batchMode && _selectedCards?.Contains(cardId) == true;
+
+                Action onClick = _batchMode
+                    ? () => OnCardToggle(c, cardId)
+                    : (Action)(() =>
                     {
                         _onSelected?.Invoke(c);
                         Close();
                     });
+
+                var clip = CardsTab.CreateNCardWrapperPublic(c, PileType.Deck, listCopy, onClick);
                 clip.CustomMinimumSize = new Vector2(172, 300);
+
+                // 批量模式下：被选中的卡牌加边框高亮
+                if (isSelected)
+                    CardsTab.ApplyCardSelectedHighlight(clip);
+
                 grid.AddChild(clip, false, Node.InternalMode.Disabled);
             }
+        }
+
+        private static void OnCardToggle(CardModel card, string cardId)
+        {
+            if (_selectedCards == null) return;
+            if (_selectedCards.Contains(cardId))
+                _selectedCards.Remove(cardId);
+            else
+                _selectedCards.Add(cardId);
+
+            RefreshSelectedCountLabel();
+            RebuildGrid(); // 刷新边框高亮
+        }
+
+        private static void RefreshSelectedCountLabel()
+        {
+            int count = _selectedCards?.Count ?? 0;
+            if (_selectedCountLabel != null && GodotObject.IsInstanceValid(_selectedCountLabel))
+                _selectedCountLabel.Text = string.Format(Loc.Get("cb.selected_count", "Selected {0}"), count);
+            if (_doneBtn != null && GodotObject.IsInstanceValid(_doneBtn))
+                _doneBtn.Text = string.Format(Loc.Get("cb.confirm_batch", "Done ({0})"), count);
+        }
+
+        private static void OnBatchConfirm()
+        {
+            if (_selectedCards == null || _selectedCards.Count == 0)
+            {
+                Close();
+                return;
+            }
+            var ids = _selectedCards;
+            var selected = _allCards?.Where(c => ids.Contains(c.Id?.Entry ?? "")).ToList()
+                ?? new List<CardModel>();
+            Close();
+            _onBatchSelected?.Invoke(selected);
         }
 
         private static bool MatchesSearch(CardModel card, string text)
@@ -223,14 +310,21 @@ namespace MP_PlayerManager
             internal static readonly Color Gold  = new Color("E3A83D");
             internal static readonly Color Cream = new Color("E3D5C1");
             internal static readonly Color Gray  = new Color("7F8C8D");
+            internal static readonly Color Blue  = new Color("2980B9");
         }
 
         private static CanvasLayer? _layer;
         private static List<CardModel>? _allCards;
         private static Action<CardModel>? _onSelected;
+        private static Action<List<CardModel>>? _onBatchSelected;
+        private static bool _batchMode;
+        private static HashSet<string>? _selectedCards;
         private static string _searchText = "";
         private static LineEdit? _searchEdit;
         private static Label? _countLabel;
+        private static Label? _titleLabel;
+        private static Label? _selectedCountLabel;
+        private static Button? _doneBtn;
         private static VBoxContainer? _gridVBox;
         private static ScrollContainer? _gridScroll;
     }

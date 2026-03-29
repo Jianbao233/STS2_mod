@@ -224,9 +224,9 @@ public partial class CheatHistoryPanel : CanvasLayer
         }
 
         if (_titleLabel != null && GodotObject.IsInstanceValid(_titleLabel))
-            _titleLabel.Text = $"  作弊拦截记录  ({_totalCount} 条)";
+            _titleLabel.Text = $"  {Localization.Trf("panel_title", _totalCount)}";
         if (_hintLabel != null && GodotObject.IsInstanceValid(_hintLabel))
-            _hintLabel.Text = $"  {NoClientCheatsMod.GetHistoryKeyDisplayName()} 呼出/隐藏  |  记录保存本局  |  总计 {_totalCount} 条";
+            _hintLabel.Text = $"  {Localization.Trf("hint_row", NoClientCheatsMod.GetHistoryKeyDisplayName(), _totalCount)}";
     }
 
     // ── 缩放边缘检测 ────────────────────────────────────────────────────
@@ -345,10 +345,10 @@ public partial class CheatHistoryPanel : CanvasLayer
         _titleLabel = new Label
         {
             Name = "Title",
-            Text = "  作弊拦截记录  (0 条)",
+            Text = $"  {Localization.Trf("panel_title", 0)}",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            TooltipText = "拖拽移动  |  边缘拖拽调整大小"
+            TooltipText = Localization.Tr("tooltip_move")
         };
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.9f, 1f));
         _titleLabel.AddThemeFontSizeOverride("font_size", 14);
@@ -362,7 +362,7 @@ public partial class CheatHistoryPanel : CanvasLayer
             Text = "⊡",
             Flat = true,
             CustomMinimumSize = new Vector2(28, 32),
-            TooltipText = "居中"
+            TooltipText = Localization.Tr("tooltip_center")
         };
         centerBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
         centerBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.85f, 0.4f, 1f));
@@ -372,10 +372,10 @@ public partial class CheatHistoryPanel : CanvasLayer
         // 清空按钮
         var clearBtn = new Button
         {
-            Text = "清空",
+            Text = Localization.Tr("btn_clear"),
             Flat = true,
             CustomMinimumSize = new Vector2(50, 32),
-            TooltipText = "清空历史记录"
+            TooltipText = Localization.Tr("tooltip_clear")
         };
         clearBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
         clearBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.5f, 0.2f, 1f));
@@ -388,7 +388,7 @@ public partial class CheatHistoryPanel : CanvasLayer
             Text = "✕",
             Flat = true,
             CustomMinimumSize = new Vector2(32, 32),
-            TooltipText = $"关闭（{NoClientCheatsMod.GetHistoryKeyDisplayName()} 重新呼出）"
+            TooltipText = string.Format(Localization.Tr("tooltip_close"), NoClientCheatsMod.GetHistoryKeyDisplayName())
         };
         closeBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
         closeBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f, 1f));
@@ -398,10 +398,10 @@ public partial class CheatHistoryPanel : CanvasLayer
         // 呼出按钮（在关闭前，点此按钮确保面板可见）
         var showBtn = new Button
         {
-            Text = "呼出",
+            Text = Localization.Tr("btn_show"),
             Flat = true,
             CustomMinimumSize = new Vector2(50, 32),
-            TooltipText = "呼出历史面板（重新显示）"
+            TooltipText = Localization.Tr("tooltip_show")
         };
         showBtn.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f, 1f));
         showBtn.AddThemeColorOverride("font_hover_color", new Color(0.4f, 0.9f, 0.5f, 1f));
@@ -416,7 +416,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         _hintLabel = new Label
         {
             Name = "Hint",
-            Text = $"  {NoClientCheatsMod.GetHistoryKeyDisplayName()} 呼出/隐藏  |  记录保存本局  |  总计 0 条",
+            Text = $"  {Localization.Trf("hint_row", NoClientCheatsMod.GetHistoryKeyDisplayName(), 0)}",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ShrinkEnd
         };
@@ -444,7 +444,7 @@ public partial class CheatHistoryPanel : CanvasLayer
         // ── 空状态提示 ──
         _emptyLabel = new Label
         {
-            Text = "  暂无拦截记录",
+            Text = $"  {Localization.Tr("empty")}",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
             HorizontalAlignment = HorizontalAlignment.Left,
