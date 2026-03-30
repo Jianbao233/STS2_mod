@@ -16,6 +16,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 | **RunHistoryAnalyzer** | 历史记录异常检测：守恒定律+来源追溯，检测作弊 | [README](RunHistoryAnalyzer/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ControlPanel** | F7 控制面板：卡牌/药水/遗物/战斗快捷 | [README](ControlPanel/README.md) |
 | **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/VC_RICH_PING_README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
+| **ModListHider** | 联机时隐藏 Mod 列表 / 原版模式（欺骗服务端与原版玩家联机） | [README](ModListHider/README.md) · [Releases](https://github.com/Jianbao233/ModListHider/releases) |
 
 ---
 
@@ -35,7 +36,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 
 | 项目 | 命令 | 依赖 |
 |------|------|------|
-| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
+| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer、ModListHider） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
 | MP_PlayerManager | `cd MP_PlayerManager` → `.\build_exe.bat` 或 `pyinstaller ... manage_players.py` | Python 3.8+、PyInstaller |
 | ~~MP_SavePlayerRemover~~ | ~~已废弃，使用 MP_PlayerManager~~ | ~~Python 3.8+、PyInstaller~~ |
 
