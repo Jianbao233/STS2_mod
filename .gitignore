@@ -9,6 +9,7 @@ release/
 .publish/
 releases/
 *.zip
+!ModListHider/toRelease/*.zip
 dist/
 
 # IDE
