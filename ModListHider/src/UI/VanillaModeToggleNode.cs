@@ -34,10 +34,45 @@ namespace ModListHider.UI
 
         private void UpdateTooltip()
         {
-            string key = IsVanillaOn
-                ? "MOD_LIST_HIDER:VANILLA_TOOLTIP_ON"
-                : "MOD_LIST_HIDER:VANILLA_TOOLTIP_OFF";
-            TooltipText = TranslationServer.Translate(key);
+            // Game TranslationServer does not load mod JSON; use locale-based copy.
+            TooltipText = IsVanillaOn ? VanillaTooltipOn() : VanillaTooltipOff();
+        }
+
+        private static bool PreferChinese()
+        {
+            var loc = TranslationServer.GetLocale();
+            if (!string.IsNullOrEmpty(loc) && loc.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return true;
+            var os = OS.GetLocale();
+            return !string.IsNullOrEmpty(os) && os.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string VanillaTooltipOn()
+        {
+            if (PreferChinese())
+            {
+                return "原版模式：已开启\n"
+                    + "联机握手时不会向对方报告任何 Mod，对方会把你当作原版客户端。\n"
+                    + "本地 Mod（皮肤、界面等）仍会照常生效。\n"
+                    + "点击图标关闭原版模式；关闭后由各 Mod 行右侧小眼睛决定是否在对方列表中隐藏。";
+            }
+            return "Vanilla mode: ON\n"
+                + "Multiplayer handshake sends no mods; peers see you as unmodded.\n"
+                + "Mods still run locally (skins, UI, etc.).\n"
+                + "Click to turn OFF; then each mod’s eye icon controls visibility in others’ mod lists.";
+        }
+
+        private static string VanillaTooltipOff()
+        {
+            if (PreferChinese())
+            {
+                return "原版模式：已关闭\n"
+                    + "联机时是否向对方显示某个 Mod，由各 Mod 行右侧小眼睛控制（睁开=显示，闭上=隐藏）。\n"
+                    + "若要与未装 Mod 的玩家联机或加入其房间，请点击图标开启原版模式。";
+            }
+            return "Vanilla mode: OFF\n"
+                + "Each mod’s eye icon (right of the row) controls whether that mod appears in others’ lists (open = visible, closed = hidden).\n"
+                + "Turn ON vanilla mode (this icon) to join unmodded players or rooms.";
         }
 
         public override void _Draw()
@@ -95,6 +130,7 @@ namespace ModListHider.UI
         public void Configure(bool vanillaMode)
         {
             IsVanillaOn = vanillaMode;
+            UpdateTooltip();
             UpdateVisuals();
         }
 
