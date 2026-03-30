@@ -1,40 +1,130 @@
-# MP_PlayerManager
+# MP_PlayerManager | 多人存档玩家管理
 
-多人存档玩家管理：**游戏内 Mod**（基于 FreeLoadout 扩展，角色模板等）+ **游戏外工具**（夺舍 / 添加 / 移除玩家，读写 `current_run_mp.save`）。
+**当前版本**：v2（开发中）  
+**多人联机存档玩家管理**：游戏内角色模板 Mod（FreeLoadout 扩展）+ 游戏外存档工具（Python）。
 
 ---
 
-## 文档入口
+## 功能一览
 
-| 内容 | 说明 |
+### 游戏内（Mod — FreeLoadout 扩展）
+
+| 功能 | 说明 |
 |------|------|
-| [FreeLoadout/README.md](FreeLoadout/README.md) | **Mod 端**：安装、功能、构建、致谢（主文档） |
-| [MP_PlayerManager_v1/README.md](../MP_PlayerManager_v1/README.md) | **v1**：独立 exe 工具（已归档，仍可参考） |
-| [MEMORY.md](MEMORY.md) | 开发状态与架构笔记（维护者 / AI 上下文） |
-| [WORKFLOW_RULES.md](WORKFLOW_RULES.md) | 工作流约定 |
+| **F1 呼出面板** | 继承 FreeLoadout 全部原有功能 |
+| **Templates Tab** | 创建 / 复制 / 删除 / 重命名角色模板 |
+| **角色选择** | Ironclad / Silent / Defect / Necrobinder / Regent + Mod 角色 |
+| **基础属性编辑** | MaxHp / CurHp / Energy / Gold |
+| **卡牌列表** | 右键移除，Shift+点击批量添加 |
+| **模板导入 / 导出** | FileDialog 选择路径，JSON 文件格式 |
+| **本地化** | 中文（zho）/ 英文（eng），跟随游戏语言 |
+
+### 游戏外（外部工具 — Python）
+
+| 操作 | 说明 |
+|------|------|
+| **夺舍玩家** | 输入离线玩家序号 + 接替者 Steam64 位 ID，继承所有状态继续游戏 |
+| **添加新玩家 — 复制模式** | 选择源玩家，复制其牌组 / 遗物 / 金币 / 随机数状态，满血加入 |
+| **添加新玩家 — 初始牌组模式** | 选择角色，以该角色初始状态加入（基础牌组 + 初始遗物 + 100 金 + 满血） |
+| **移除玩家** | 清理离线玩家的所有数据（deck / relics / potions / map_history 等） |
+| **备份管理** | 自动备份历史 + 手动恢复 |
 
 ---
 
-## 发行
+## 安装 | Installation
 
-从 **[STS2_mod Releases](https://github.com/Jianbao233/STS2_mod/releases)** 下载对应 zip / exe。
+### Mod（游戏内）
+
+1. **停游戏**（游戏运行时会锁定 DLL）
+2. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 `MP_PlayerManager-vX.X.X.zip`，或自行构建（见下）
+3. 将 `MP_PlayerManager.dll` 和 `mod_manifest.json` 放入游戏 mods 目录：
+   ```
+   Steam\steamapps\common\Slay the Spire 2\mods\MP_PlayerManager\
+   ```
+4. 重启游戏，按 **F1** 打开面板
+
+### 外部工具（游戏外）
+
+1. **退出游戏**（重要！修改存档期间游戏必须关闭）
+2. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 `MP_PlayerManager-vX.X.X.exe`
+3. 双击运行，无需放入游戏目录
 
 ---
 
-## 快速构建
+## 从源码构建
 
-| 组件 | 命令 | 依赖 |
+### Mod（FreeLoadout 扩展）
+
+```powershell
+cd "K:\杀戮尖塔mod制作\STS2_mod\MP_PlayerManager\FreeLoadout"
+.\build.ps1
+```
+
+**依赖**：.NET 8 SDK、Godot 4.5.1 Mono
+
+**输出**：
+- Mod 安装目录：`Steam\steamapps\common\Slay the Spire 2\mods\MP_PlayerManager\`
+- 发布快照：`FreeLoadout\toRelease\`
+
+### 外部工具（Python）
+
+```powershell
+cd "K:\杀戮尖塔mod制作\STS2_mod\MP_PlayerManager\tools"
+pyinstaller --onefile --noconsole manage_players.py
+```
+
+**依赖**：Python 3.8+、PyInstaller
+
+---
+
+## 项目结构
+
+```
+MP_PlayerManager/
+├── FreeLoadout/                   ← 游戏内 Mod（FreeLoadout 扩展，Godot C# Mod）
+│   ├── src/                       ← C# 源码（命名空间：MP_PlayerManager）
+│   ├── MP_PlayerManager.csproj
+│   ├── project.godot
+│   ├── mod_manifest.json
+│   ├── build.ps1                  ← 构建脚本
+│   ├── export_presets.cfg
+│   ├── toRelease/                 ← 各版本发布快照
+│   └── README.md                  ← Mod 端详细文档
+├── tools/                         ← 游戏外工具（Python + CustomTkinter）
+│   ├── manage_players.py          ← 主程序
+│   ├── characters.py
+│   ├── save_editor.py
+│   └── friends_selector.py
+├── data/                          ← 运行时数据（模板文件等）
+├── doc/
+│   ├── v1_方案文档.md              ← v1 方案（归档）
+│   └── v2_方案文档.md              ← v2 方案
+├── MEMORY.md                      ← 开发状态与架构笔记（维护者 / AI 上下文）
+├── WORKFLOW_RULES.md              ← 工作流约定
+└── README.md                      ← 本文件
+```
+
+---
+
+## 版本历史
+
+| 版本 | 日期 | 说明 |
 |------|------|------|
-| Mod | `cd FreeLoadout` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
-| 外部工具 | `.\build_exe.bat` 或自行 `pyinstaller` 打包 `manage_players.py` | Python 3.8+、PyInstaller |
+| **v2** | 开发中 | Godot Mod（FreeLoadout 扩展）+ Python 外部工具 |
+| **v1** | 已归档 | 独立 exe 工具，Python + PyInstaller → 整合入 v2 |
 
-> 退出游戏后再运行外部工具修改存档。
+> v1 归档文档见 [MP_PlayerManager_v1/README.md](../MP_PlayerManager_v1/README.md)
 
 ---
 
-## English (short)
+## 致谢
 
-**MP_PlayerManager** bundles an in-game **FreeLoadout-based mod** (templates, loadout UI) and an **out-of-game Python tool** for multiplayer save editing (possess / add / remove players).
+- [FreeLoadout](https://github.com/boninall/FreeLoadout)（[@BravoBon](https://space.bilibili.com/370335371)）：本 Mod 基于其框架开发
+- [Lib.Harmony](https://github.com/pardeike/Harmony)：运行时 IL Hook
+- STS2 Mod 开发社区
 
-- **Mod docs:** [FreeLoadout/README.md](FreeLoadout/README.md)  
-- **Releases:** [STS2_mod Releases](https://github.com/Jianbao233/STS2_mod/releases)
+---
+
+## License
+
+MIT
