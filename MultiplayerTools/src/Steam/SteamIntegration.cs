@@ -16,6 +16,7 @@ namespace MultiplayerTools.Steam
         private static string? _steamPath;
         private static readonly Dictionary<string, string> PersonaNameCache = new();
         private static readonly Dictionary<string, SteamContact> ContactCache = new();
+        private static readonly Dictionary<string, List<SteamContact>> FriendsCache = new();
 
         /// <summary>Get the Steam installation path from registry.</summary>
         internal static string? GetSteamInstallPath()
@@ -108,6 +109,115 @@ namespace MultiplayerTools.Steam
                 GD.PrintErr("[MultiplayerTools] GetLocalContacts failed: " + ex.Message);
                 return new List<SteamContact>();
             }
+        }
+
+        /// <summary>
+        /// Get Steam friends for the current local Steam user (best-effort, offline).
+        /// Reads <c>userdata/&lt;steamId&gt;/config/localconfig.vdf</c> and extracts SteamIDs under the Friends section.
+        /// </summary>
+        internal static List<SteamContact> GetLocalFriends()
+        {
+            try
+            {
+                var me = GetCurrentSteamId();
+                if (string.IsNullOrEmpty(me)) return new List<SteamContact>();
+                if (FriendsCache.TryGetValue(me, out var cached)) return cached;
+
+                var steamPath = GetSteamInstallPath();
+                if (string.IsNullOrEmpty(steamPath)) return new List<SteamContact>();
+
+                var localCfg = Path.Combine(steamPath, "userdata", me, "config", "localconfig.vdf");
+                if (!File.Exists(localCfg))
+                {
+                    FriendsCache[me] = new List<SteamContact>();
+                    return FriendsCache[me];
+                }
+
+                var content = File.ReadAllText(localCfg);
+                var friendIds = ExtractFriendSteamIdsFromLocalConfig(content);
+                var list = new List<SteamContact>();
+
+                foreach (var id in friendIds)
+                {
+                    var name = GetPersonaName(id);
+                    if (!ContactCache.ContainsKey(id))
+                        ContactCache[id] = new SteamContact { SteamId = id, PersonaName = name };
+                    else if (string.IsNullOrEmpty(ContactCache[id].PersonaName))
+                        ContactCache[id].PersonaName = name;
+
+                    list.Add(ContactCache[id]);
+                }
+
+                // Fallback: if file format changes or friends section missing, return local contacts as a reasonable UX default.
+                if (list.Count == 0)
+                    list = GetLocalContacts();
+
+                // Sort: persona first, then id
+                list = list
+                    .OrderBy(c => string.IsNullOrEmpty(c.PersonaName) ? 1 : 0)
+                    .ThenBy(c => c.PersonaName)
+                    .ThenBy(c => c.SteamId)
+                    .ToList();
+
+                FriendsCache[me] = list;
+                return list;
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] GetLocalFriends failed: " + ex.Message);
+                return new List<SteamContact>();
+            }
+        }
+
+        private static HashSet<string> ExtractFriendSteamIdsFromLocalConfig(string content)
+        {
+            var ids = new HashSet<string>();
+            if (string.IsNullOrEmpty(content)) return ids;
+
+            // Best-effort: locate a "Friends" section and extract all 15+ digit keys within its brace block.
+            int idx = IndexOfToken(content, "\"Friends\"");
+            if (idx < 0) idx = IndexOfToken(content, "\"friends\"");
+            if (idx < 0) return ids;
+
+            int open = content.IndexOf('{', idx);
+            if (open < 0) return ids;
+
+            int close = FindMatchingBrace(content, open);
+            if (close <= open) return ids;
+
+            string block = content.Substring(open, close - open + 1);
+            foreach (Match m in Regex.Matches(block, "\"(\\d{15,})\""))
+                ids.Add(m.Groups[1].Value);
+
+            return ids;
+        }
+
+        private static int IndexOfToken(string s, string token)
+        {
+            return s.IndexOf(token, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static int FindMatchingBrace(string s, int openBraceIndex)
+        {
+            int depth = 0;
+            bool inString = false;
+            bool escape = false;
+            for (int i = openBraceIndex; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (escape) { escape = false; continue; }
+                if (c == '\\') { escape = true; continue; }
+                if (c == '"') { inString = !inString; continue; }
+                if (inString) continue;
+
+                if (c == '{') depth++;
+                else if (c == '}')
+                {
+                    depth--;
+                    if (depth == 0) return i;
+                }
+            }
+            return -1;
         }
     }
 

@@ -85,7 +85,7 @@ if (Test-Path "assets") {
 
 # ── 写入 last_build.txt ────────────────────────────────────────────────────
 $buildStamp = Get-Date -Format "yyyy-MM-dd HH:mm"
-Set-Content -Path (Join-Path $BuildDir "last_build.txt") -Value "v0.1.0 $buildStamp" -Encoding UTF8
+Set-Content -Path (Join-Path $BuildDir "last_build.txt") -Value "v0.2.0 $buildStamp" -Encoding UTF8
 
 # ── 同步到游戏 mods/ ────────────────────────────────────────────────────────
 New-Item -ItemType Directory -Path $ModsOutput -Force | Out-Null
@@ -97,7 +97,7 @@ if (Test-Path "mod_manifest.json") {
 # 清理旧版误部署的 loose 文件（游戏会扫描 mods 下所有 .json）
 Remove-Item (Join-Path $ModsOutput "localization") -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item (Join-Path $ModsOutput "config.json") -Force -ErrorAction SilentlyContinue
-Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v0.1.0 $buildStamp" -Encoding UTF8
+Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v0.2.0 $buildStamp" -Encoding UTF8
 Write-Host "[sync] → $ModsOutput"
 
 # ── 快照到 torelease/ ──────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ Copy-Item $PckDest -Destination (Join-Path $ToReleaseDir $PckName) -Force
 if (Test-Path "mod_manifest.json") {
     Copy-Item "mod_manifest.json" -Destination $ToReleaseDir -Force
 }
-Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v0.1.0 $buildStamp" -Encoding UTF8
+Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v0.2.0 $buildStamp" -Encoding UTF8
 
 Write-Host ""
 Write-Host "=========================================="

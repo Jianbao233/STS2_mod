@@ -65,6 +65,9 @@ namespace MP_PlayerManager
                 Loc.Reload();
                 new Harmony("bon.mp_playermanager").PatchAll(Assembly.GetExecutingAssembly());
 
+                // 初始化 Steam 集成
+                SteamIntegration.Initialize();
+
                 var tree2 = Engine.GetMainLoop() as SceneTree;
                 tree2?.Root?.AddChild(new F1InputNode());
 

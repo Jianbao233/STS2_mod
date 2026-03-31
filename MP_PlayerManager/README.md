@@ -1,23 +1,39 @@
 # MP_PlayerManager | 多人存档玩家管理
 
-**当前版本**：v2（开发中）  
+**当前版本**：v0.2.0（开发中）  
 **多人联机存档玩家管理**：游戏内角色模板 Mod（FreeLoadout 扩展）+ 游戏外存档工具（Python）。
 
 ---
 
 ## 功能一览
 
-### 游戏内（Mod — FreeLoadout 扩展）
+### 游戏内（Mod — FreeLoadout 扩展，v0.2.0 ✅）
 
-| 功能 | 说明 |
-|------|------|
-| **F1 呼出面板** | 继承 FreeLoadout 全部原有功能 |
-| **Templates Tab** | 创建 / 复制 / 删除 / 重命名角色模板 |
-| **角色选择** | Ironclad / Silent / Defect / Necrobinder / Regent + Mod 角色 |
-| **基础属性编辑** | MaxHp / CurHp / Energy / Gold |
-| **卡牌列表** | 右键移除，Shift+点击批量添加 |
-| **模板导入 / 导出** | FileDialog 选择路径，JSON 文件格式 |
-| **本地化** | 中文（zho）/ 英文（eng），跟随游戏语言 |
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| **F1 呼出面板** | 继承 FreeLoadout 全部原有功能 | ✅ |
+| **Templates Tab** | 创建 / 复制 / 删除 / 重命名角色模板 | ✅ |
+| **角色选择** | Ironclad / Silent / Defect / Necrobinder / Regent + Mod 角色（动态从 ModelDb 读取） | ✅ |
+| **基础属性编辑** | MaxHp / CurHp / Energy / Gold（滑块 + 输入框） | ✅ |
+| **卡牌列表** | 右键移除，Shift+点击批量添加 | ✅ |
+| **模板导入 / 导出** | FileDialog 选择路径，JSON 文件格式 | ✅ |
+| **模板应用到游戏** | Apply 按钮 → HP/Gold/Energy/卡组/遗物 实时生效 | ✅ |
+| **Shift+点击卡牌库** | 从游戏卡牌库追加单张卡牌到当前模板 | ✅ |
+| **Shift+右键卡牌库** | 从当前模板移除单张卡牌 | ✅ |
+| **Shift+点击遗物库** | 从游戏遗物库追加遗物到当前模板 | ✅ |
+| **Shift+右键遗物库** | 从当前模板移除遗物 | ✅ |
+| **Character Tab** | HP 滑块 / Gold / Energy / Stars / 快捷操作（满血/+100金币/+3能量） | ✅ |
+| **Relics Tab** | 遗物获取/移除 UI，搜索 + 弹窗选择 | ✅ |
+| **Potions Tab** | 药水浏览 UI（PotionCmd API 待验证） | ✅ |
+| **Powers Tab** | Power 获取/移除，预设快捷按钮（Strength/Dex/Thorns/Regen） | ✅ |
+| **Events Tab** | 事件重入/跳过 UI，地图快捷打开 | ✅ |
+| **Encounters Tab** | 遭遇重置/假战斗 UI，当前房间信息显示 | ✅ |
+| **PlayerOpsService** | 夺舍/添加/移除玩家核心逻辑骨架（游戏 API 验证中） | ⚠️ |
+| **SaveManagerHelper** | 存档读写（CRLF JSON）/ 扫描 / 备份 / 恢复 / 删除 | ✅ |
+| **SteamIntegration** | Steam ID / 昵称读取（localconfig.vdf / loginusers.vdf） | ✅ |
+| **Save Tab** | 存档列表 / 保存 / 恢复 / 删除 | ✅ |
+| **Backup Tab** | 全局备份列表 / 创建 / 恢复 / 清理旧备份 | ✅ |
+| **本地化** | 中文（zho）/ 英文（eng）完整覆盖，随游戏语言切换 | ✅ |
 
 ### 游戏外（外部工具 — Python）
 
@@ -110,7 +126,8 @@ MP_PlayerManager/
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| **v2** | 开发中 | Godot Mod（FreeLoadout 扩展）+ Python 外部工具 |
+| **v0.2.0** | 2026-03-28 | 核心闭环完成：TemplateApplier / Shift+点击追加-移除卡牌-遗物 / 全部 Tab（Character/Relics/Powers/Potions/Events/Encounters） / PlayerOpsService 骨架 / SaveManagerHelper / SteamIntegration / SaveTab / BackupTab / 中英双语完整覆盖 |
+| **v0.1.0** | 2026-03-26 | FreeLoadout 框架继承、TemplatesTab 基础 UI、模板导入导出 |
 | **v1** | 已归档 | 独立 exe 工具，Python + PyInstaller → 整合入 v2 |
 
 > v1 归档文档见 [MP_PlayerManager_v1/README.md](../MP_PlayerManager_v1/README.md)

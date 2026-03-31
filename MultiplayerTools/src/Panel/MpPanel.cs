@@ -6,32 +6,57 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
 using MultiplayerTools.Tabs;
 
+// Type alias — Godot's main loop cast to SceneTree for adding UI nodes
+using NGame = Godot.SceneTree;
+
 namespace MultiplayerTools
 {
     /// <summary>
-    /// Main panel UI. CanvasLayer=100, KaylaMod-style dark theme.
-    /// 5 tabs: Templates / Save / Backup / Players / Character.
+    /// Main panel UI. CanvasLayer=100. Layout matches MP_PlayerManager v2:
+    /// top bar (title + status bar + close) + left nav + content area.
+    ///
+    /// Page routing via string keys:
+    ///   save_select | takeover | add_player | remove_player | backup | settings
+    ///
+    /// Legacy tab indices (0-4) are mapped to page keys for backward compat.
     /// </summary>
     internal static class MpPanel
     {
-        // 5 tabs: Templates=0, Save=1, Backup=2, Players=3, Character=4
-        private const int TAB_TEMPLATES = 0;
-        private const int TAB_SAVE      = 1;
-        private const int TAB_BACKUP    = 2;
-        private const int TAB_PLAYERS   = 3;
-        private const int TAB_CHARACTER = 4;
+        // ── Page keys (v2 layout) ─────────────────────────────────────────────────
+        public const string PAGE_SAVE_SELECT    = "save_select";
+        public const string PAGE_TAKEOVER       = "takeover";
+        public const string PAGE_ADD_PLAYER     = "add_player";
+        public const string PAGE_REMOVE_PLAYER  = "remove_player";
+        public const string PAGE_BACKUP         = "backup";
+        public const string PAGE_SETTINGS       = "settings";
+        // Legacy mapping
+        private const string PAGE_TEMPLATES     = "templates";
+        private const string PAGE_PLAYERS_LEGACY= "players";
+
+        private const int NavWidth = 200;
 
         private static CanvasLayer? _layer;
         private static CanvasLayer? _hoverTipLayer;
         private static VBoxContainer? _contentContainer;
-        private static HBoxContainer? _contextBar;
         private static VBoxContainer? _mainVBox;
         private static PanelContainer? _panel;
         private static StyleBoxFlat? _panelStyleNormal;
-        private static ColorRect? _divider;
-        private static Button[]? _tabButtons;
+        private static Label? _statusBar;
         private static Label? _headerTitleLabel;
-        private static int _activeTab;
+        private static Label? _headerSubtitleLabel;
+        private static Button[]? _navButtons;
+        private static string _currentPage = PAGE_SAVE_SELECT;
+
+        // Nav key → button index map
+        private static readonly (string key, string locKey, string fallback)[] NavItems = new[]
+        {
+            (PAGE_SAVE_SELECT,   "nav.save_select",    "Save Select"),
+            (PAGE_TAKEOVER,     "nav.takeover",       "Takeover"),
+            (PAGE_ADD_PLAYER,   "nav.add_player",     "Add Player"),
+            (PAGE_REMOVE_PLAYER,"nav.remove_player",  "Remove Player"),
+            (PAGE_BACKUP,       "nav.backup",         "Backup"),
+            (PAGE_SETTINGS,     "nav.settings",       "Settings"),
+        };
 
         internal static bool IsOpen => _layer != null && GodotObject.IsInstanceValid(_layer) && _layer.Visible;
 
@@ -43,8 +68,8 @@ namespace MultiplayerTools
             {
                 Loc.Reload();
                 RefreshChromeTexts();
-                RefreshContextBar();
-                RefreshCurrentTab();
+                RefreshStatusBar();
+                RefreshCurrentPage();
             }
         }
 
@@ -54,8 +79,8 @@ namespace MultiplayerTools
             Loc.Reload();
             RefreshChromeTexts();
             _layer.Visible = true;
-            RefreshContextBar();
-            RefreshCurrentTab();
+            RefreshStatusBar();
+            RefreshCurrentPage();
         }
 
         internal static void Hide()
@@ -72,13 +97,6 @@ namespace MultiplayerTools
             }
         }
 
-        internal static Button CreateTabButton(string text)
-        {
-            var btn = new Button { Text = text };
-            Panel.Styles.ApplyTabButton(btn);
-            return btn;
-        }
-
         internal static Button CreateActionButton(string text, Color? fontColor = null)
         {
             var btn = new Button { Text = text };
@@ -93,13 +111,93 @@ namespace MultiplayerTools
             return btn;
         }
 
+        /// <summary>Switch to a page by key string (v2 routing).</summary>
+        internal static void SwitchPage(string pageKey)
+        {
+            if (string.IsNullOrEmpty(pageKey)) return;
+            _currentPage = pageKey;
+            UpdateNavHighlights();
+            RefreshCurrentPage();
+        }
+
+        /// <summary>Switch to a tab by legacy index (0-4). Maps to page key.</summary>
+        internal static void SwitchToTab(int idx)
+        {
+            string? key = idx switch
+            {
+                0 => PAGE_SAVE_SELECT,   // Save → Save Select
+                1 => PAGE_SAVE_SELECT,   // Templates → Save Select
+                2 => PAGE_BACKUP,        // Backup
+                3 => PAGE_PLAYERS_LEGACY,// Players (legacy warning)
+                4 => PAGE_TAKEOVER,      // Character → Takeover
+                _ => null
+            };
+            if (key != null) SwitchPage(key);
+        }
+
+        // Legacy tab indices (kept for backward compat with old tabs)
+        public const int TAB_TEMPLATES = 0;
+        public const int TAB_SAVE      = 1;
+        public const int TAB_BACKUP    = 2;
+        public const int TAB_PLAYERS   = 3;
+        public const int TAB_CHARACTER = 4;
+
+        /// <summary>Legacy alias for RefreshCurrentPage.</summary>
+        internal static void RefreshCurrentTab() => RefreshCurrentPage();
+
+        /// <summary>Legacy alias for RefreshStatusBar.</summary>
+        internal static void RefreshContextBar() { } // no-op, context bar removed in v2 layout
+
+        /// <summary>Force a full re-render of the current page.</summary>
+        internal static void RefreshCurrentPage()
+        {
+            if (_contentContainer == null || _mainVBox == null) return;
+            ClearChildren(_contentContainer);
+
+            switch (_currentPage)
+            {
+                case PAGE_SAVE_SELECT:
+                    SaveSelectPage.Build(_contentContainer);
+                    break;
+                case PAGE_TAKEOVER:
+                    TakeoverPage.Build(_contentContainer);
+                    break;
+                case PAGE_ADD_PLAYER:
+                    AddPlayerPage.Build(_contentContainer);
+                    break;
+                case PAGE_REMOVE_PLAYER:
+                    RemovePlayerPage.Build(_contentContainer);
+                    break;
+                case PAGE_BACKUP:
+                    BackupPage.Build(_contentContainer);
+                    break;
+                case PAGE_SETTINGS:
+                    SettingsPage.Build(_contentContainer);
+                    break;
+                case PAGE_TEMPLATES:
+                case PAGE_PLAYERS_LEGACY:
+                    SaveSelectPage.Build(_contentContainer);
+                    break;
+            }
+        }
+
+        /// <summary>Show a temporary status message overlay. Used by other tabs.</summary>
+        internal static void ShowStatusMessage(string text, Color color)
+        {
+            if (_mainVBox == null) return;
+            var msg = new Label { Text = text };
+            msg.AddThemeFontSizeOverride("font_size", 14);
+            msg.AddThemeColorOverride("font_color", color);
+            _mainVBox.AddChild(msg, false, Node.InternalMode.Disabled);
+        }
+
         internal static Label CreateSectionHeader(string text)
         {
             var label = new Label { Text = text };
             label.AddThemeFontSizeOverride("font_size", 18);
-            label.AddThemeColorOverride("font_color", Panel.Styles.Gold);
+            label.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
             label.AddThemeColorOverride("font_outline_color", Panel.Styles.OutlineColor);
-            label.AddThemeConstantOverride("outline_size", 4);
+            label.AddThemeConstantOverride("outline_size", 2);
             return label;
         }
 
@@ -109,20 +207,44 @@ namespace MultiplayerTools
             return rm?.DebugOnlyGetState() is { } state ? LocalContext.GetMe(state) : null;
         }
 
+        // ── Status bar (mirrors v2 App._status_bar) ─────────────────────────────
+
+        internal static void RefreshStatusBar()
+        {
+            if (_statusBar == null || !GodotObject.IsInstanceValid(_statusBar)) return;
+            _statusBar.Text = MpSessionState.GetStatusText();
+        }
+
         private static void RefreshChromeTexts()
         {
             if (_headerTitleLabel != null && GodotObject.IsInstanceValid(_headerTitleLabel))
                 _headerTitleLabel.Text = Loc.Get("panel.title", "MultiplayerTools");
-            if (_tabButtons == null) return;
-            string[] keys = { "tab.templates", "tab.save", "tab.backup", "tab.players", "tab.character" };
-            string[] fb = { "Templates", "Save", "Backup", "Players", "Character" };
-            for (int i = 0; i < _tabButtons.Length && i < keys.Length; i++)
-                _tabButtons[i].Text = Loc.Get(keys[i], fb[i]);
+            if (_headerSubtitleLabel != null && GodotObject.IsInstanceValid(_headerSubtitleLabel))
+                _headerSubtitleLabel.Text = Loc.Get("panel.subtitle", "Saves · Templates · Backups") + $" · v{ModInfo.Version}";
+
+            // Refresh nav button labels
+            if (_navButtons == null) return;
+            for (int i = 0; i < NavItems.Length && i < _navButtons.Length; i++)
+            {
+                _navButtons[i].Text = Loc.Get(NavItems[i].locKey, NavItems[i].fallback);
+            }
+        }
+
+        private static void UpdateNavHighlights()
+        {
+            if (_navButtons == null) return;
+            for (int i = 0; i < NavItems.Length && i < _navButtons.Length; i++)
+                Panel.Styles.ApplyNavTabButton(_navButtons[i], NavItems[i].key == _currentPage);
         }
 
         private static void Build()
         {
             Loc.Reload();
+
+            // Subscribe to session events
+            MpSessionState.SaveContextChanged += OnSessionSaveChanged;
+            MpSessionState.ProfilesChanged += OnSessionProfilesChanged;
+
             _layer = new CanvasLayer { Layer = 100, Name = "MpPanel" };
 
             // Backdrop
@@ -153,137 +275,192 @@ namespace MultiplayerTools
             };
             _panelStyleNormal = new StyleBoxFlat
             {
-                BgColor = Panel.Styles.PanelBg,
+                BgColor = Panel.Styles.MpContentBg,
                 ShadowSize = 0, ShadowColor = Colors.Transparent
             };
             _panelStyleNormal.SetBorderWidthAll(0);
-            _panelStyleNormal.SetCornerRadiusAll(8);
-            _panelStyleNormal.SetContentMarginAll(12);
+            _panelStyleNormal.SetCornerRadiusAll(10);
+            _panelStyleNormal.SetContentMarginAll(0);
             _layer.AddChild(_panel, false, Node.InternalMode.Disabled);
             _panel.AddThemeStyleboxOverride("panel", _panelStyleNormal);
 
             _mainVBox = new VBoxContainer { AnchorRight = 1, AnchorBottom = 1 };
-            _mainVBox.AddThemeConstantOverride("separation", 8);
+            _mainVBox.AddThemeConstantOverride("separation", 0);
             _panel.AddChild(_mainVBox, false, Node.InternalMode.Disabled);
 
-            // Header: title + tabs + close
+            // ── Top bar (MP v2: #1A2A3A) ─────────────────────────────────────
+            var topBar = new PanelContainer { CustomMinimumSize = new Vector2(0, 52) };
+            var topBarStyle = new StyleBoxFlat { BgColor = Panel.Styles.MpTopBar, ShadowSize = 0, ShadowColor = Colors.Transparent };
+            topBarStyle.SetBorderWidthAll(0);
+            topBarStyle.SetCornerRadiusAll(0);
+            topBar.AddThemeStyleboxOverride("panel", topBarStyle);
+            _mainVBox.AddChild(topBar, false, Node.InternalMode.Disabled);
+
+            var topMargin = new MarginContainer();
+            topMargin.AddThemeConstantOverride("margin_left", 16);
+            topMargin.AddThemeConstantOverride("margin_right", 12);
+            topMargin.AddThemeConstantOverride("margin_top", 6);
+            topMargin.AddThemeConstantOverride("margin_bottom", 6);
+            topBar.AddChild(topMargin, false, Node.InternalMode.Disabled);
+
             var header = new HBoxContainer();
-            header.AddThemeConstantOverride("separation", 4);
-            _mainVBox.AddChild(header, false, Node.InternalMode.Disabled);
+            header.AddThemeConstantOverride("separation", 12);
+            header.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+            topMargin.AddChild(header, false, Node.InternalMode.Disabled);
+
+            var titleCol = new VBoxContainer();
+            titleCol.AddThemeConstantOverride("separation", 2);
+            header.AddChild(titleCol, false, Node.InternalMode.Disabled);
 
             _headerTitleLabel = new Label { Text = Loc.Get("panel.title", "MultiplayerTools") };
-            _headerTitleLabel.AddThemeFontSizeOverride("font_size", 20);
-            _headerTitleLabel.AddThemeColorOverride("font_color", Panel.Styles.Gold);
+            _headerTitleLabel.AddThemeFontSizeOverride("font_size", 19);
+            _headerTitleLabel.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
             _headerTitleLabel.AddThemeColorOverride("font_outline_color", Panel.Styles.OutlineColor);
-            _headerTitleLabel.AddThemeConstantOverride("outline_size", 4);
-            _headerTitleLabel.CustomMinimumSize = new Vector2(200, 0);
-            header.AddChild(_headerTitleLabel, false, Node.InternalMode.Disabled);
+            _headerTitleLabel.AddThemeConstantOverride("outline_size", 2);
+            titleCol.AddChild(_headerTitleLabel, false, Node.InternalMode.Disabled);
 
-            var sep = new VSeparator { CustomMinimumSize = new Vector2(2, 0) };
-            sep.AddThemeColorOverride("color", Panel.Styles.Divider);
-            header.AddChild(sep, false, Node.InternalMode.Disabled);
-
-            // Tab buttons
-            string[] tabNames = new[]
+            _headerSubtitleLabel = new Label
             {
-                Loc.Get("tab.templates", "Templates"),
-                Loc.Get("tab.save",      "Save"),
-                Loc.Get("tab.backup",    "Backup"),
-                Loc.Get("tab.players",   "Players"),
-                Loc.Get("tab.character",  "Character"),
+                Text = Loc.Get("panel.subtitle", "Saves · Templates · Backups") + $" · v{ModInfo.Version}"
             };
-            _tabButtons = new Button[tabNames.Length];
-            for (int i = 0; i < tabNames.Length; i++)
-            {
-                int idx = i;
-                var btn = CreateTabButton(tabNames[i]);
-                btn.Pressed += () => SwitchTab(idx);
-                header.AddChild(btn, false, Node.InternalMode.Disabled);
-                _tabButtons[i] = btn;
-            }
+            _headerSubtitleLabel.AddThemeFontSizeOverride("font_size", 17);
+            _headerSubtitleLabel.AddThemeColorOverride("font_color", Panel.Styles.MpBlueAccent);
+            titleCol.AddChild(_headerSubtitleLabel, false, Node.InternalMode.Disabled);
 
             header.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
 
-            _contextBar = new HBoxContainer();
-            _contextBar.AddThemeConstantOverride("separation", 4);
-            header.AddChild(_contextBar, false, Node.InternalMode.Disabled);
+            // Status bar (mirrors v2 _status_bar)
+            _statusBar = new Label { Text = Loc.Get("status.scanning", "Scanning saves...") };
+            _statusBar.AddThemeFontSizeOverride("font_size", 17);
+            _statusBar.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
+            header.AddChild(_statusBar, false, Node.InternalMode.Disabled);
 
-            var closeBtn = CreateTabButton("X");
-            closeBtn.CustomMinimumSize = new Vector2(40, 36);
+            header.AddChild(new Control { CustomMinimumSize = new Vector2(8, 0) }, false, Node.InternalMode.Disabled);
+
+            var closeBtn = new Button { Text = "×" };
+            Panel.Styles.ApplyCloseButton(closeBtn);
             closeBtn.Pressed += Hide;
             header.AddChild(closeBtn, false, Node.InternalMode.Disabled);
 
-            // Divider
-            _divider = new ColorRect { CustomMinimumSize = new Vector2(0, 2), Color = Panel.Styles.Divider, MouseFilter = Control.MouseFilterEnum.Ignore };
-            _mainVBox.AddChild(_divider, false, Node.InternalMode.Disabled);
+            // ── Body: left nav (#111827) + content ──────────────────────────
+            var body = new HBoxContainer
+            {
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            };
+            body.AddThemeConstantOverride("separation", 0);
+            _mainVBox.AddChild(body, false, Node.InternalMode.Disabled);
 
-            // Scroll container
-            var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-            _mainVBox.AddChild(scroll, false, Node.InternalMode.Disabled);
-            _contentContainer = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            var navPanel = new PanelContainer
+            {
+                CustomMinimumSize = new Vector2(NavWidth, 0),
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            };
+            var navPanelStyle = new StyleBoxFlat { BgColor = Panel.Styles.MpNavBg, ShadowSize = 0, ShadowColor = Colors.Transparent };
+            navPanelStyle.SetBorderWidthAll(0);
+            navPanelStyle.SetCornerRadiusAll(0);
+            navPanel.AddThemeStyleboxOverride("panel", navPanelStyle);
+            body.AddChild(navPanel, false, Node.InternalMode.Disabled);
+
+            var navMargin = new MarginContainer();
+            navMargin.AddThemeConstantOverride("margin_left", 10);
+            navMargin.AddThemeConstantOverride("margin_right", 10);
+            navMargin.AddThemeConstantOverride("margin_top", 14);
+            navMargin.AddThemeConstantOverride("margin_bottom", 14);
+            navPanel.AddChild(navMargin, false, Node.InternalMode.Disabled);
+
+            var navVBox = new VBoxContainer
+            {
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            };
+            navVBox.AddThemeConstantOverride("separation", 4);
+            navMargin.AddChild(navVBox, false, Node.InternalMode.Disabled);
+
+            // Nav label "MENU"
+            var navLabel = new Label { Text = Loc.Get("nav.menu", "MENU") };
+            navLabel.AddThemeFontSizeOverride("font_size", 16);
+            navLabel.AddThemeColorOverride("font_color", Panel.Styles.MpGray);
+            navVBox.AddChild(navLabel, false, Node.InternalMode.Disabled);
+
+            // Build nav buttons (v2 keys)
+            _navButtons = new Button[NavItems.Length];
+            for (int i = 0; i < NavItems.Length; i++)
+            {
+                int idx = i;
+                var (key, locKey, fallback) = NavItems[i];
+                var btn = new Button { Text = Loc.Get(locKey, fallback) };
+                Panel.Styles.ApplyNavTabButton(btn, key == _currentPage);
+                btn.Pressed += () => SwitchPage(key);
+                navVBox.AddChild(btn, false, Node.InternalMode.Disabled);
+                _navButtons[i] = btn;
+            }
+
+            navVBox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
+
+            // Separator
+            var vSep = new ColorRect
+            {
+                CustomMinimumSize = new Vector2(2, 0),
+                Color = Panel.Styles.MpSeparator,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            };
+            body.AddChild(vSep, false, Node.InternalMode.Disabled);
+
+            var rightPanel = new PanelContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            };
+            var rightStyle = new StyleBoxFlat { BgColor = Panel.Styles.MpContentBg, ShadowSize = 0, ShadowColor = Colors.Transparent };
+            rightStyle.SetBorderWidthAll(0);
+            rightStyle.SetCornerRadiusAll(0);
+            rightStyle.SetContentMarginAll(10);
+            rightPanel.AddThemeStyleboxOverride("panel", rightStyle);
+            body.AddChild(rightPanel, false, Node.InternalMode.Disabled);
+
+            var scroll = new ScrollContainer
+            {
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+            };
+            rightPanel.AddChild(scroll, false, Node.InternalMode.Disabled);
+
+            _contentContainer = new VBoxContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            };
             _contentContainer.AddThemeConstantOverride("separation", 8);
             scroll.AddChild(_contentContainer, false, Node.InternalMode.Disabled);
 
             // HoverTip layer
             _hoverTipLayer = new CanvasLayer { Layer = 101, Name = "MpHoverTips" };
-            NGame.Instance?.AddChild(_layer, false, Node.InternalMode.Disabled);
-            NGame.Instance?.AddChild(_hoverTipLayer, false, Node.InternalMode.Disabled);
+            var st = Engine.GetMainLoop() as SceneTree;
+            st?.Root.AddChild(_layer, false, Node.InternalMode.Disabled);
+            st?.Root.AddChild(_hoverTipLayer, false, Node.InternalMode.Disabled);
 
-            _activeTab = 0;
-            UpdateTabHighlights();
+            // Initial data load
+            MpSessionState.RefreshProfiles();
             RefreshChromeTexts();
-            RefreshCurrentTab();
+            RefreshStatusBar();
+            UpdateNavHighlights();
+            RefreshCurrentPage();
         }
 
-        private static void SwitchTab(int idx)
+        private static void OnSessionSaveChanged()
         {
-            _activeTab = idx;
-            UpdateTabHighlights();
-            RefreshContextBar();
-            RefreshCurrentTab();
+            RefreshStatusBar();
+            RefreshCurrentPage();
         }
 
-        private static void RefreshCurrentTab()
+        private static void OnSessionProfilesChanged()
         {
-            if (_contentContainer == null || _mainVBox == null) return;
-            ClearChildren(_contentContainer);
-
-            switch (_activeTab)
-            {
-                case TAB_TEMPLATES:
-                    TemplatesTab.Build(_contentContainer);
-                    break;
-                case TAB_SAVE:
-                    SaveTab.Build(_contentContainer);
-                    break;
-                case TAB_BACKUP:
-                    BackupTab.Build(_contentContainer);
-                    break;
-                case TAB_PLAYERS:
-                    PlayerTab.Build(_contentContainer);
-                    break;
-                case TAB_CHARACTER:
-                    CharacterTab.Build(_contentContainer);
-                    break;
-            }
-        }
-
-        private static void RefreshContextBar()
-        {
-            if (_contextBar == null) return;
-            ClearChildren(_contextBar);
-            // Context bar is per-tab if needed
-        }
-
-        private static void UpdateTabHighlights()
-        {
-            if (_tabButtons == null) return;
-            for (int i = 0; i < _tabButtons.Length; i++)
-            {
-                var btn = _tabButtons[i];
-                btn.AddThemeColorOverride("font_color", i == _activeTab ? Panel.Styles.Gold : Panel.Styles.Cream);
-                btn.AddThemeColorOverride("font_hover_color", Panel.Styles.Gold);
-            }
+            RefreshStatusBar();
+            if (_currentPage == PAGE_SAVE_SELECT)
+                RefreshCurrentPage();
         }
     }
 }

@@ -8,6 +8,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
@@ -228,11 +229,7 @@ namespace MP_PlayerManager
                 return;
             _lastNewTemplateClickTicks = now;
 
-            var t = new TemplateData
-            {
-                Name = Loc.Get("tmpl.new_template", "New Template"),
-                CharacterId = "CHARACTER.IRONCLAD"
-            };
+            var t = TemplateData.CreateDefault();
             _templates.Insert(0, t);
             SaveTemplates();
             RebuildTemplateList();
@@ -383,6 +380,68 @@ namespace MP_PlayerManager
             });
         }
 
+        /// <summary>
+        /// Shift+右键从游戏卡牌库移除：从当前模板 CardIds 中移除指定卡牌。
+        /// </summary>
+        internal static void RemoveCardFromTemplate(string cardId)
+        {
+            if (_selected == null || string.IsNullOrEmpty(cardId)) return;
+            var tmpl = _selected;
+            if (tmpl.CardIds.Remove(cardId))
+            {
+                SaveTemplates();
+                GD.Print($"[MP_PlayerManager] Removed card '{cardId}' from template '{tmpl.Name}'");
+            }
+        }
+
+        /// <summary>追加单张卡牌到当前模板（Shift+左键卡牌库触发）。</summary>
+        internal static void AppendCardToTemplate(CardModel card)
+        {
+            if (_selected == null || card?.Id?.Entry == null) return;
+            var tmpl = _selected;
+            var cardId = card.Id.Entry;
+            if (!tmpl.CardIds.Contains(cardId))
+            {
+                tmpl.CardIds.Add(cardId);
+                SaveTemplates();
+                GD.Print($"[MP_PlayerManager] Added card '{cardId}' to template '{tmpl.Name}'");
+            }
+        }
+
+        /// <summary>追加遗物到当前模板（Shift+左键遗物库触发）。</summary>
+        internal static void AppendRelicToTemplate(RelicModel relic)
+        {
+            AppendRelicToTemplate(relic?.Id?.Entry ?? "");
+        }
+
+        /// <summary>追加遗物到当前模板（按 ID 字符串）。</summary>
+        internal static void AppendRelicToTemplate(string relicId)
+        {
+            if (_selected == null || string.IsNullOrEmpty(relicId)) return;
+            var tmpl = _selected;
+            if (!tmpl.RelicIds.Contains(relicId))
+            {
+                tmpl.RelicIds.Add(relicId);
+                SaveTemplates();
+                GD.Print($"[MP_PlayerManager] Added relic '{relicId}' to template '{tmpl.Name}'");
+            }
+        }
+
+        /// <summary>从当前模板移除遗物（Shift+右键遗物库触发）。</summary>
+        internal static void RemoveRelicFromTemplate(string relicId)
+        {
+            if (_selected == null || string.IsNullOrEmpty(relicId)) return;
+            var tmpl = _selected;
+            if (tmpl.RelicIds.Remove(relicId))
+            {
+                SaveTemplates();
+                GD.Print($"[MP_PlayerManager] Removed relic '{relicId}' from template '{tmpl.Name}'");
+            }
+        }
+
+        /// <summary>获取当前选中的模板（供其他 Tab 调用）。</summary>
+        internal static TemplateData? GetSelectedTemplate() => _selected;
+
         // ── 编辑器 ────────────────────────────────────────────────────────────
 
         private static void ShowEditorHint()
@@ -530,6 +589,33 @@ namespace MP_PlayerManager
                 });
             };
             addCardRow.AddChild(addBtn, false, Node.InternalMode.Disabled);
+
+            // 应用模板按钮
+            var applyBtn = LoadoutPanel.CreateActionButton(
+                Loc.Get("tmpl.apply", "Apply Template"), new Color(0.2f, 0.5f, 0.2f));
+            applyBtn.CustomMinimumSize = new Vector2(130, 32);
+            applyBtn.Pressed += async delegate
+            {
+                if (tmpl != null)
+                {
+                    await TemplateApplier.ApplyToLocalPlayerAsync(tmpl);
+                    GD.Print($"[MP_PlayerManager] Template '{tmpl.Name}' applied to local player.");
+                }
+            };
+            addCardRow.AddChild(applyBtn, false, Node.InternalMode.Disabled);
+
+            // Shift 操作提示（仅在 Cards Tab 激活时显示）
+            var hintRow = new HBoxContainer();
+            hintRow.AddThemeConstantOverride("separation", 8);
+            _editorVBox.AddChild(hintRow, false, Node.InternalMode.Disabled);
+            var hintLbl = new Label
+            {
+                Text = Loc.Get("tmpl.shift_add_hint", "Shift+Click in card library to add cards"),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            };
+            hintLbl.AddThemeFontSizeOverride("font_size", 11);
+            hintLbl.AddThemeColorOverride("font_color", SC.Gray);
+            hintRow.AddChild(hintLbl, false, Node.InternalMode.Disabled);
         }
 
         private static void RebuildCardList(VBoxContainer parent, TemplateData t)

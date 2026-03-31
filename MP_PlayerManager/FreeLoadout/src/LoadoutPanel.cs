@@ -290,7 +290,9 @@ namespace MP_PlayerManager
                 Loc.Get("tab.events", "Events"),
                 Loc.Get("tab.encounters", "Encounters"),
                 Loc.Get("tab.character", "Character"),
-                Loc.Get("tab.templates", "Templates")
+                Loc.Get("tab.templates", "Templates"),
+                Loc.Get("save.title", "Save"),
+                Loc.Get("backup.title", "Backup")
             };
             _tabButtons = new Button[tabNames.Length];
             for (int i = 0; i < tabNames.Length; i++)
@@ -368,13 +370,23 @@ namespace MP_PlayerManager
                 case 2: // Potions
                     ShowEmbeddedPotionScreen();
                     return;
-                default: // Powers / Events / Encounters / Character / Templates
+                default: // Powers / Events / Encounters / Character / Templates / Save / Backup
                     HideEmbeddedScreens();
                     ClearChildren(_contentContainer);
-                    // 角色模板仅依赖 ModelDb + 本地 JSON，主菜单即可编辑，不要求局内 Player
+                    // 角色模板、存档、备份不要求局内 Player
                     if (_activeTab == 7)
                     {
                         TemplatesTab.Build(_contentContainer, null);
+                        return;
+                    }
+                    if (_activeTab == 8)
+                    {
+                        SaveTab.Build(_contentContainer);
+                        return;
+                    }
+                    if (_activeTab == 9)
+                    {
+                        BackupTab.Build(_contentContainer);
                         return;
                     }
                     var p = GetPlayer();
@@ -392,6 +404,9 @@ namespace MP_PlayerManager
                         case 4: EventsTab.Build(_contentContainer, p); break;
                         case 5: EncountersTab.Build(_contentContainer, p); break;
                         case 6: CharacterTab.Build(_contentContainer, p); break;
+                        case 7: TemplatesTab.Build(_contentContainer, null); break;
+                        case 8: SaveTab.Build(_contentContainer); break;
+                        case 9: BackupTab.Build(_contentContainer); break;
                     }
                     return;
             }
@@ -600,22 +615,25 @@ namespace MP_PlayerManager
 
             _cardScreenShiftGuard.GuiInput += ev =>
             {
-                if (ev is not InputEventMouseButton mb || !mb.Pressed || mb.ButtonIndex != MouseButton.Left)
-                    return;
-                if (!Input.IsKeyPressed(Key.Shift))
-                    return;
-
-                // Shift+点击：拦截，向下找 NCard 节点
-                var cardScreen = _cardScreen;
-                if (cardScreen == null || !GodotObject.IsInstanceValid(cardScreen)) return;
-
-                var allCards = MegaCrit.Sts2.Core.Models.ModelDb.AllCards
-                    .OrderBy(c => c.Id?.Entry ?? "")
-                    .ToList();
-                if (allCards.Count == 0) return;
-
-                // 弹出卡牌选择浏览器（Shift 模式下批量追加）
-                global::MP_PlayerManager.TemplatesTab.OpenCardBrowserForShiftAdd(allCards);
+                if (ev is InputEventMouseButton mb)
+                {
+                    // Shift+Left：批量追加卡牌到模板
+                    if (mb.Pressed && mb.ButtonIndex == MouseButton.Left && Input.IsKeyPressed(Key.Shift))
+                    {
+                        var allCards = MegaCrit.Sts2.Core.Models.ModelDb.AllCards
+                            .OrderBy(c => c.Id?.Entry ?? "")
+                            .ToList();
+                        if (allCards.Count == 0) return;
+                        global::MP_PlayerManager.TemplatesTab.OpenCardBrowserForShiftAdd(allCards);
+                        return;
+                    }
+                    // Shift+Right：从模板移除卡牌（需先确定当前点击的卡牌）
+                    if (mb.Pressed && mb.ButtonIndex == MouseButton.Right && Input.IsKeyPressed(Key.Shift))
+                    {
+                        // 由 NCardLibrary 的 OnCardPressed 补丁处理具体卡牌
+                        return;
+                    }
+                }
             };
 
             _mainVBox!.AddChild(_cardScreenShiftGuard, false, Node.InternalMode.Disabled);

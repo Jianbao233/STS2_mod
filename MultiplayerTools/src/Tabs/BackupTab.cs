@@ -77,7 +77,7 @@ namespace MultiplayerTools.Tabs
                 Text = Loc.Get("backup.no_backups", "No backups found"),
                 SizeFlagsVertical = Control.SizeFlags.ExpandFill
             };
-            hintLbl.AddThemeFontSizeOverride("font_size", 16);
+            hintLbl.AddThemeFontSizeOverride("font_size", 21);
             hintLbl.AddThemeColorOverride("font_color", Panel.Styles.Gray);
             _detailVBox.AddChild(hintLbl, false, Node.InternalMode.Disabled);
 
@@ -90,8 +90,8 @@ namespace MultiplayerTools.Tabs
             _backups.Clear();
             try
             {
-                var root = OS.GetUserDataDir();
-                var backupRoot = Path.Combine(root, "backups");
+                // Scan %APPDATA%\SlayTheSpire2\backups\ (matches SaveManagerHelper.GetBackupRoot / Python v2)
+                var backupRoot = SaveManagerHelper.GetBackupRoot();
                 if (!Directory.Exists(backupRoot)) return;
 
                 foreach (var dir in Directory.GetDirectories(backupRoot).OrderByDescending(d => Directory.GetCreationTime(d)))
@@ -123,7 +123,7 @@ namespace MultiplayerTools.Tabs
             if (_backups.Count == 0)
             {
                 var lbl = new Label { Text = Loc.Get("backup.no_backups", "No backups") };
-                lbl.AddThemeFontSizeOverride("font_size", 14);
+                lbl.AddThemeFontSizeOverride("font_size", 19);
                 lbl.AddThemeColorOverride("font_color", Panel.Styles.Gray);
                 _listVBox.AddChild(lbl, false, Node.InternalMode.Disabled);
                 return;
@@ -137,10 +137,10 @@ namespace MultiplayerTools.Tabs
                     CustomMinimumSize = new Vector2(0, 34),
                     SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
                 };
-                btn.AddThemeFontSizeOverride("font_size", 13);
+                btn.AddThemeFontSizeOverride("font_size", 18);
                 btn.AddThemeColorOverride("font_color", _selected == b ? Panel.Styles.Gold : Panel.Styles.Cream);
                 btn.AddThemeColorOverride("font_hover_color", Panel.Styles.Gold);
-                Panel.Styles.ApplyFlatButton(btn);
+                Panel.Styles.ApplyListRowButton(btn);
                 BackupInfo captured = b;
                 btn.Pressed += () => { _selected = captured; RebuildList(_listVBox!); ShowDetail(b); };
                 _listVBox.AddChild(btn, false, Node.InternalMode.Disabled);
@@ -182,11 +182,11 @@ namespace MultiplayerTools.Tabs
             var row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 8);
             var lbl = new Label { Text = label + ":", CustomMinimumSize = new Vector2(100, 0), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-            lbl.AddThemeFontSizeOverride("font_size", 13);
+            lbl.AddThemeFontSizeOverride("font_size", 18);
             lbl.AddThemeColorOverride("font_color", Panel.Styles.Cream);
             row.AddChild(lbl, false, Node.InternalMode.Disabled);
             var val = new Label { Text = value };
-            val.AddThemeFontSizeOverride("font_size", 13);
+            val.AddThemeFontSizeOverride("font_size", 18);
             val.AddThemeColorOverride("font_color", Panel.Styles.Gold);
             row.AddChild(val, false, Node.InternalMode.Disabled);
             parent.AddChild(row, false, Node.InternalMode.Disabled);

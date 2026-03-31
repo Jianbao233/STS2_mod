@@ -9,6 +9,8 @@ namespace MultiplayerTools.Tabs
 {
     /// <summary>
     /// Save management tab. Browse all Steam profiles and their save files.
+    /// Fires SaveContextChanged when a save is selected so PlayerTab/CharacterTab
+    /// can switch to save-driven mode (game-external use).
     /// </summary>
     internal static class SaveTab
     {
@@ -17,6 +19,12 @@ namespace MultiplayerTools.Tabs
         private static SaveInfo? _selectedSave;
         private static VBoxContainer? _listVBox;
         private static VBoxContainer? _detailVBox;
+
+        /// <summary>Currently selected save path, or null if nothing selected.</summary>
+        internal static string? SelectedSavePath => _selectedSave?.Path;
+
+        /// <summary>Fired whenever the selected save changes (null = no save selected).</summary>
+        internal static event Action<string?>? SaveContextChanged;
 
         internal static void Build(VBoxContainer container)
         {
@@ -121,7 +129,7 @@ namespace MultiplayerTools.Tabs
                     saveBtn.AddThemeFontSizeOverride("font_size", 12);
                     saveBtn.AddThemeColorOverride("font_color", _selectedSave == save ? Panel.Styles.Gold : Panel.Styles.Cream);
                     saveBtn.AddThemeColorOverride("font_hover_color", Panel.Styles.Gold);
-                    Panel.Styles.ApplyFlatButton(saveBtn);
+                    Panel.Styles.ApplyListRowButton(saveBtn);
                     SaveInfo captured = save;
                     SaveProfile capProfile = profile;
                     saveBtn.Pressed += () => SelectSave(capProfile, captured);
@@ -136,6 +144,8 @@ namespace MultiplayerTools.Tabs
             _selectedSave = save;
             RebuildList(_listVBox!);
             ShowSaveDetail(profile, save);
+            SaveContextChanged?.Invoke(save.Path);
+            MpPanel.RefreshContextBar();
         }
 
         private static void ShowSaveDetail(SaveProfile profile, SaveInfo save)

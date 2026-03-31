@@ -263,7 +263,7 @@ namespace MultiplayerTools.Tabs
                 btn.AddThemeFontSizeOverride("font_size", 14);
                 btn.AddThemeColorOverride("font_color", _selected == t ? Panel.Styles.Gold : Panel.Styles.Cream);
                 btn.AddThemeColorOverride("font_hover_color", Panel.Styles.Gold);
-                Panel.Styles.ApplyFlatButton(btn);
+                Panel.Styles.ApplyListRowButton(btn);
                 TemplateData captured = t;
                 btn.Pressed += () => SelectTemplate(captured);
                 _templateListVBox.AddChild(btn, false, Node.InternalMode.Disabled);
