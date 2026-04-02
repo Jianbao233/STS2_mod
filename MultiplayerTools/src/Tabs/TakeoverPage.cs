@@ -22,10 +22,12 @@ namespace MultiplayerTools.Tabs
     internal static class TakeoverPage
     {
         private static int _selectedPlayerIndex = -1;
+        private static readonly List<CheckBox> _playerRadios = new();
 
         internal static void Build(VBoxContainer container)
         {
             _selectedPlayerIndex = -1;
+            _playerRadios.Clear();
 
             container.AddChild(MpPanel.CreateSectionHeader(Loc.Get("takeover.title", "Take Over Player")), false, Node.InternalMode.Disabled);
             var subtitle = new Label { Text = Loc.Get("takeover.subtitle", "Replace another player's slot with your Steam ID") };
@@ -126,6 +128,7 @@ namespace MultiplayerTools.Tabs
         private static void RenderPlayerCard(VBoxContainer parent, Dictionary<string, object> pl, int index, bool isHost)
         {
             string netId = GetStr(pl, "net_id");
+            string netIdShort = MpSessionState.ShortenSteamId(netId);
             string charId = GetStr(pl, "character_id");
             int hp = GetInt(pl, "current_hp");
             int maxHp = GetInt(pl, "max_hp");
@@ -172,11 +175,22 @@ namespace MultiplayerTools.Tabs
                     CustomMinimumSize = new Vector2(24, 0),
                     ButtonPressed = _selectedPlayerIndex == index
                 };
+                int idx = index;
                 radio.Toggled += pressed =>
                 {
-                    if (pressed) _selectedPlayerIndex = index;
-                    else if (_selectedPlayerIndex == index) _selectedPlayerIndex = -1;
+                    if (pressed)
+                    {
+                        _selectedPlayerIndex = idx;
+                        // Deselect all other radios
+                        foreach (var other in _playerRadios)
+                            if (other != radio) other.SetPressedNoSignal(false);
+                    }
+                    else if (_selectedPlayerIndex == idx)
+                    {
+                        _selectedPlayerIndex = -1;
+                    }
                 };
+                _playerRadios.Add(radio);
                 inner.AddChild(radio, false, Node.InternalMode.Disabled);
             }
 
@@ -194,8 +208,12 @@ namespace MultiplayerTools.Tabs
             if (isHost) headLbl.AddThemeFontSizeOverride("font_size", 18);
             textCol.AddChild(headLbl, false, Node.InternalMode.Disabled);
 
-            // Detail line
-            string detail = $"{netId}  HP {hp}/{maxHp}  Gold {gold}  {deckN} cards  {relicsN} relics";
+            // Detail line: show netId + persona (if available) + stats
+            string persona = GetPlayerDisplayName(netId, charId);
+            string detailNetId = persona != netId
+                ? $"{netIdShort}  ·  {persona}"
+                : netId;
+            string detail = $"{detailNetId}  HP {hp}/{maxHp}  Gold {gold}  {deckN} cards  {relicsN} relics";
             var detailLbl = new Label { Text = detail, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             detailLbl.AddThemeFontSizeOverride("font_size", 16);
             detailLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
@@ -229,17 +247,10 @@ namespace MultiplayerTools.Tabs
             var result = PlayerOpsService.TakeOverPlayer(_selectedPlayerIndex, steamId, MpSessionState.CurrentSavePath!);
             if (result.Success)
             {
-                bool ok = MpSessionState.FlushSave();
-                if (ok)
-                {
-                    MpSessionState.ReloadSave();
-                    ShowMsg(Loc.Get("takeover.success", "Player taken over successfully!"), Panel.Styles.Green);
-                    MpPanel.SwitchPage(MpPanel.PAGE_TAKEOVER);
-                }
-                else
-                {
-                    ShowMsg(Loc.Get("takeover.save_failed", "Takeover succeeded but save failed."), Panel.Styles.Red);
-                }
+                // TakeOverPlayer already wrote the file; do NOT FlushSave — in-memory SaveData is stale and would corrupt the save.
+                MpSessionState.ReloadSave();
+                ShowMsg(Loc.Get("takeover.success", "Player taken over successfully!"), Panel.Styles.Green);
+                MpPanel.SwitchPage(MpPanel.PAGE_TAKEOVER);
             }
             else
             {
@@ -274,7 +285,7 @@ namespace MultiplayerTools.Tabs
 
                 string charId = GetStr(pl, "character_id");
                 string display = GetPlayerDisplayName(netId, charId);
-                string sub = $"[{i + 1}] {Loc.Get("friend.player", "Player")} · {CharacterDisplayNames.Resolve(charId)}";
+                string sub = $"[{i + 1}] {Loc.Get("friend.player", "Player")} · {CharacterDisplayNames.Resolve(charId)}  ·  {MpSessionState.ShortenSteamId(netId)}";
                 opts.Add(new SteamIdPickerPopup.SteamIdOption(netId, display, sub));
             }
             return opts;

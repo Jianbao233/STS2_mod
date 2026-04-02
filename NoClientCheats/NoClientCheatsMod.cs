@@ -1,9 +1,11 @@
-using Godot;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
+using Godot;
+using HarmonyLib;
 using static NoClientCheats.Localization;
 
 namespace NoClientCheats;
@@ -36,6 +38,16 @@ public static class NoClientCheatsMod
 
     private static readonly List<CheatRecord> _historyRecords = new();
     private static readonly object _historyLock = new();
+
+    // ── 当前正在处理的远程玩家 NetId（通过 AsyncLocal 在 HandleRequestEnqueueActionMessage → ChooseOption 间传递）────
+    // 此值在一次 GameAction 的执行上下文中有效，本地玩家动作为 0
+    private static readonly AsyncLocal<ulong> _currentRemotePlayerNetId = new();
+
+    // ── 卡组快照（用于检测休息点/事件作弊）──────────────────────────────────
+    // Key: 玩家 NetId，Value: SerializablePlayer（预期卡组状态）+ 时间戳
+    private static readonly Dictionary<ulong, (object snapshot, long timestampMs)> _expectedDeckSnapshots = new();
+    private static readonly Dictionary<ulong, (object snapshot, long timestampMs)> _preDeckSnapshots = new();
+    private static readonly object _snapshotLock = new();
 
     // ── 公开入口 ─────────────────────────────────────────────────────────
     /// <summary>切换历史面板显示状态（由 InputHandlerNode 每帧轮询调用）。</summary>
@@ -201,6 +213,197 @@ public static class NoClientCheatsMod
             Key.F9 => "F9", Key.F10 => "F10", Key.F11 => "F11", Key.F12 => "F12",
             _ => HistoryToggleKey.ToString()
         };
+    }
+
+    // ── 卡组快照管理（供 DeckSyncPatches 调用）──────────────────────────────
+
+    /// <summary>
+    /// 记录客机在休息点/事件后的预期卡组快照。
+    /// 由 RestSiteSynchronizer.ChooseOption Postfix 调用。
+    /// </summary>
+    internal static void SetExpectedDeckSnapshot(ulong netId, object serializablePlayer)
+    {
+        lock (_snapshotLock)
+        {
+            _expectedDeckSnapshots[netId] = (serializablePlayer, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        }
+    }
+
+    /// <summary>
+    /// 获取并清除指定玩家的预期卡组快照。
+    /// 由 CombatStateSynchronizer.OnSyncPlayerMessageReceived Prefix 调用。
+    /// 返回快照，不存在则返回 null。
+    /// </summary>
+    internal static object GetAndClearExpectedDeckSnapshot(ulong netId)
+    {
+        lock (_snapshotLock)
+        {
+            if (_expectedDeckSnapshots.TryGetValue(netId, out var entry))
+            {
+                _expectedDeckSnapshots.Remove(netId);
+                return entry.snapshot;
+            }
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 清除所有卡组快照（在进入新地图节点前调用）。
+    /// </summary>
+    internal static void ClearAllDeckSnapshots()
+    {
+        lock (_snapshotLock)
+        {
+            _expectedDeckSnapshots.Clear();
+            _preDeckSnapshots.Clear();
+        }
+    }
+
+    // ── Pre-Deck 快照管理 ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// 存储客机在进入战斗前的卡组快照（用于 pre/post 即时对比）。
+    /// </summary>
+    internal static void SetPreDeckSnapshot(ulong netId, object snapshot)
+    {
+        lock (_snapshotLock)
+        {
+            _preDeckSnapshots[netId] = (snapshot, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        }
+    }
+
+    /// <summary>
+    /// 获取并原子性移除预存的前置卡组快照。
+    /// </summary>
+    internal static object ConsumePreDeckSnapshot(ulong netId)
+    {
+        lock (_snapshotLock)
+        {
+            if (_preDeckSnapshots.TryGetValue(netId, out var entry))
+            {
+                _preDeckSnapshots.Remove(netId);
+                return entry.snapshot;
+            }
+            return null;
+        }
+    }
+
+    // ── 远程玩家上下文（通过 AsyncLocal 在 HandleRequestEnqueueActionMessage → ChooseOption 间传递）────
+
+    /// <summary>
+    /// 在处理远程玩家 action 时设置当前远程 NetId，结束时清除。
+    /// 供 ClientCheatBlockPatch 在每次处理远程消息时调用。
+    /// </summary>
+    internal static void SetCurrentRemotePlayer(ulong netId)
+    {
+        _currentRemotePlayerNetId.Value = netId;
+    }
+
+    /// <summary>
+    /// 获取当前正在处理的远程玩家 NetId。本地动作为 0。
+    /// </summary>
+    internal static ulong GetCurrentRemotePlayer()
+    {
+        return _currentRemotePlayerNetId.Value;
+    }
+
+    /// <summary>
+    /// 清除当前远程玩家上下文。
+    /// </summary>
+    internal static void ClearCurrentRemotePlayer()
+    {
+        _currentRemotePlayerNetId.Value = 0;
+    }
+
+    // ── 快照过期清理 ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 清理所有超过指定秒数的过期快照。
+    /// </summary>
+    internal static void CleanupExpiredSnapshots(int timeoutSeconds = 600)
+    {
+        lock (_snapshotLock)
+        {
+            long cutoff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (timeoutSeconds * 1000L);
+
+            var expiredPre = _preDeckSnapshots
+                .Where(kv => kv.Value.timestampMs < cutoff)
+                .Select(kv => kv.Key)
+                .ToList();
+            foreach (var k in expiredPre)
+                _preDeckSnapshots.Remove(k);
+
+            var expiredExpected = _expectedDeckSnapshots
+                .Where(kv => kv.Value.timestampMs < cutoff)
+                .Select(kv => kv.Key)
+                .ToList();
+            foreach (var k in expiredExpected)
+                _expectedDeckSnapshots.Remove(k);
+        }
+    }
+
+    /// <summary>
+    /// 检测当前是否为联机主机。
+    /// 通过 INetGameService.Type == NetGameType.Host 判断。
+    /// </summary>
+    internal static bool IsMultiplayerHost()
+    {
+        // #region NCC_DIAG_HOSTCHECK
+        var diag = new System.Text.StringBuilder();
+        diag.Append("[IsMultiplayerHost] ");
+        try
+        {
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                var netServiceType = asm.GetType("MegaCrit.Sts2.Core.Multiplayer.INetGameService")
+                    ?? asm.GetType("INetGameService");
+                if (netServiceType == null) continue;
+
+                var netGameType = asm.GetType("MegaCrit.Sts2.Core.Multiplayer.NetGameType")
+                    ?? asm.GetType("NetGameType");
+                if (netGameType == null) continue;
+
+                var hostField = netGameType.GetField("Host",
+                    BindingFlags.Public | BindingFlags.Static);
+                if (hostField == null) continue;
+                var hostValue = hostField.GetValue(null);
+                int hostInt = Convert.ToInt32(hostValue);
+                diag.Append($"hostInt={hostInt} ");
+
+                var runManagerType = asm.GetType("MegaCrit.Sts2.Core.Runs.RunManager")
+                    ?? asm.GetType("RunManager");
+                if (runManagerType == null) continue;
+
+                var instProp = runManagerType.GetProperty("Instance",
+                    BindingFlags.Public | BindingFlags.Static);
+                var rm = instProp?.GetValue(null);
+                if (rm == null) { diag.Append("RunManager.Instance=null "); continue; }
+                diag.Append("RunManager.Instance=found ");
+
+                var netServiceProp = rm.GetType().GetProperty("NetService",
+                    BindingFlags.Public | BindingFlags.Instance);
+                var netService = netServiceProp?.GetValue(rm);
+                if (netService == null) { diag.Append("NetService=null "); continue; }
+                diag.Append($"NetService.type={netService.GetType().Name} ");
+
+                var typeProp = netService.GetType().GetProperty("Type",
+                    BindingFlags.Public | BindingFlags.Instance);
+                var netType = typeProp?.GetValue(netService);
+                if (netType == null) { diag.Append("netType=null "); continue; }
+                int currentInt = Convert.ToInt32(netType);
+                diag.Append($"currentInt={currentInt} ");
+
+                bool result = currentInt == hostInt;
+                diag.Append($"result={result} ");
+                GD.Print($"[NCC|DIAG] {diag}");
+                return result;
+            }
+            diag.Append("no matching assembly ");
+        }
+        catch (Exception ex) { diag.Append($"EXCEPTION:{ex.Message} "); }
+        GD.Print($"[NCC|DIAG] {diag}");
+        return false;
+        // #endregion
     }
 }
 

@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Nodes;
+using NGame = Godot.SceneTree;
 using MultiplayerTools.Core;
 
 namespace MultiplayerTools.Tabs
@@ -194,7 +195,7 @@ namespace MultiplayerTools.Tabs
                 }
                 catch (Exception ex) { GD.PrintErr("[MultiplayerTools] Export failed: " + ex.Message); }
             };
-            NGame.Instance?.AddChild(dialog, false, Node.InternalMode.Disabled);
+            (Engine.GetMainLoop() as SceneTree)?.Root?.AddChild(dialog, false, Node.InternalMode.Disabled);
             dialog.PopupCentered(new Vector2I(700, 500));
         }
 
@@ -223,7 +224,7 @@ namespace MultiplayerTools.Tabs
                 }
                 catch (Exception ex) { GD.PrintErr("[MultiplayerTools] Import failed: " + ex.Message); }
             };
-            NGame.Instance?.AddChild(dialog, false, Node.InternalMode.Disabled);
+            (Engine.GetMainLoop() as SceneTree)?.Root?.AddChild(dialog, false, Node.InternalMode.Disabled);
             dialog.PopupCentered(new Vector2I(700, 500));
         }
 

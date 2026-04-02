@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Godot;
 using MultiplayerTools.Core;
 
@@ -149,45 +151,168 @@ namespace MultiplayerTools.Tabs
             _allBackups.Clear();
             try
             {
+                // Scan Python v2 .backup.* format (single files in saves directories)
+                ScanLegacyBackupFiles();
+
+                // Scan C# folder-based backups
+                ScanFolderBasedBackups();
+
+                // Sort newest first
+                _allBackups.Sort((a, b) => string.Compare(b.Timestamp, a.Timestamp, StringComparison.Ordinal));
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] ScanAllBackups failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Scan Python v2 legacy .backup.* format:
+        ///   saves/current_run_mp.save.backup.YYYYMMDD_HHMMSS
+        ///   saves/current_run.save.backup.YYYYMMDD_HHMMSS
+        /// (mirrors Python v2 save_io.scan_all_backups)
+        /// </summary>
+        private static void ScanLegacyBackupFiles()
+        {
+            try
+            {
+                var roots = SaveManagerHelper.EnumerateSaveRoots();
+                var steamRoots = new List<string>();
+                foreach (var root in roots)
+                {
+                    var steamDir = Path.Combine(root, "steam");
+                    if (Directory.Exists(steamDir))
+                        steamRoots.Add(steamDir);
+                }
+                if (steamRoots.Count == 0) return;
+
+                var processedSavesDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var steamDir in steamRoots)
+                {
+                    foreach (var steamFolder in Directory.GetDirectories(steamDir))
+                    {
+                        string steamId = Path.GetFileName(steamFolder);
+                        string[] subPaths = new[]
+                        {
+                            Path.Combine(steamFolder, "modded"),
+                            steamFolder
+                        };
+
+                        foreach (var subPath in subPaths)
+                        {
+                            if (!Directory.Exists(subPath)) continue;
+
+                            foreach (var profileDir in Directory.GetDirectories(subPath))
+                            {
+                                var savesDir = Path.Combine(profileDir, "saves");
+                                if (!Directory.Exists(savesDir)) continue;
+
+                                string resolvedDir;
+                                try { resolvedDir = Path.GetFullPath(savesDir); }
+                                catch { resolvedDir = savesDir; }
+                                if (!processedSavesDirs.Add(resolvedDir)) continue;
+
+                                string profileKey = Path.GetFileName(profileDir);
+                                if (subPath.EndsWith("modded", StringComparison.OrdinalIgnoreCase))
+                                    profileKey = "modded/" + profileKey;
+
+                                // Scan .backup.* files in this saves dir
+                                foreach (var file in Directory.GetFiles(savesDir))
+                                {
+                                    string fname = Path.GetFileName(file);
+                                    string? ts = null;
+
+                                    if (fname.StartsWith("current_run_mp.save.backup."))
+                                        ts = fname.Substring("current_run_mp.save.backup.".Length);
+                                    else if (fname.StartsWith("current_run.save.backup."))
+                                        ts = fname.Substring("current_run.save.backup.".Length);
+
+                                    if (string.IsNullOrEmpty(ts) || ts.Length < 12) continue;
+
+                                    // Determine main save path for restore
+                                    var mainSave = Path.Combine(savesDir, "current_run_mp.save");
+                                    if (!File.Exists(mainSave))
+                                        mainSave = Path.Combine(savesDir, "current_run.save");
+
+                                    var fi = new FileInfo(file);
+                                    long size = fi.Length;
+
+                                    // Parse save time from backup file
+                                    string saveTimeStr = "";
+                                    try
+                                    {
+                                        var data = SaveManagerHelper.ParseSaveFile(file);
+                                        if (data != null)
+                                        {
+                                            if (data.TryGetValue("save_time", out var stVal) && stVal is long stUnix && stUnix > 0)
+                                            {
+                                                var dt = DateTimeOffset.FromUnixTimeSeconds(stUnix).LocalDateTime;
+                                                saveTimeStr = dt.ToString("MM-dd HH:mm");
+                                            }
+                                        }
+                                    }
+                                    catch { }
+
+                                    _allBackups.Add(new GlobalBackupEntry
+                                    {
+                                        Path = file,       // single file
+                                        SteamId = steamId,
+                                        ProfileKey = $"{steamId}/{profileKey}",
+                                        Timestamp = ts,
+                                        SaveTimeStr = string.IsNullOrEmpty(saveTimeStr) ? fi.LastWriteTime.ToString("MM-dd HH:mm") : saveTimeStr,
+                                        PlayerCount = 0,
+                                        SizeBytes = size,
+                                        FileCount = 1,
+                                        IsLegacy = true,
+                                        RestoreTarget = mainSave
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] ScanLegacyBackupFiles failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Scan C# folder-based backups in %APPDATA%\SlayTheSpire2\backups\.
+        /// New names: <c>{steamId}_{profileWith+ForSlashes}_{yyyyMMddHHmmss}</c>.
+        /// Legacy: <c>modded_profile2_yyyyMMdd_HHmmss</c> etc. (no Steam ID in folder name → group "?").
+        /// </summary>
+        private static void ScanFolderBasedBackups()
+        {
+            try
+            {
                 var backupRoot = SaveManagerHelper.GetBackupRoot();
                 if (!Directory.Exists(backupRoot)) return;
 
-                // Walk all subfolders: each is named "{profileName}_{timestamp}"
                 foreach (var dir in Directory.GetDirectories(backupRoot))
                 {
                     var di = new DirectoryInfo(dir);
                     var name = di.Name;
-                    // Try to parse: profileName_timestamp
-                    string profileKey = name;
-                    string timestamp = "";
-                    int usIdx = name.LastIndexOf('_');
-                    if (usIdx > 0)
+                    TryParseFolderBackupDirName(name, out string steamId, out string profileKey, out string timestamp);
+
+                    if (TryReadBackupMetaJson(dir, out var metaSid, out var metaProfile))
                     {
-                        profileKey = name[..usIdx];
-                        timestamp = name[(usIdx + 1)..];
+                        if (!string.IsNullOrEmpty(metaSid)) steamId = metaSid;
+                        if (!string.IsNullOrEmpty(metaProfile)) profileKey = metaProfile.Replace('\\', '/');
                     }
 
-                    // Determine steamId from parent path
-                    string steamId = "";
-                    try
-                    {
-                        var parts = dir.Replace('\\', '/').Split('/');
-                        int idx = Array.IndexOf(parts, "backups");
-                        if (idx > 0 && idx + 2 < parts.Length)
-                            steamId = parts[idx - 1]; // backups is inside SlayTheSpire2/{steamId}/backups
-                    }
-                    catch { }
+                    if (string.IsNullOrEmpty(steamId))
+                        steamId = ResolveSteamIdForBackupProfile(profileKey);
 
                     // Scan for save files in this backup
                     var saveFiles = Directory.GetFiles(dir, "*.save").Concat(
                         Directory.GetFiles(dir, "*.run")).ToList();
 
-                    int playerCount = 0;
                     string saveTime = "";
                     if (saveFiles.Count > 0)
                     {
-                        // Lightweight: just get first few bytes to check player count
-                        // For now, just store file count
                         var fi = new FileInfo(saveFiles[0]);
                         saveTime = fi.LastWriteTime.ToString("MM-dd HH:mm");
                     }
@@ -203,19 +328,142 @@ namespace MultiplayerTools.Tabs
                         ProfileKey = profileKey,
                         Timestamp = timestamp,
                         SaveTimeStr = saveTime,
-                        PlayerCount = playerCount,
+                        PlayerCount = 0,
                         SizeBytes = size,
-                        FileCount = saveFiles.Count
+                        FileCount = saveFiles.Count,
+                        IsLegacy = false
                     });
                 }
-
-                // Sort newest first
-                _allBackups.Sort((a, b) => string.Compare(b.Timestamp, a.Timestamp, StringComparison.Ordinal));
             }
             catch (Exception ex)
             {
-                GD.PrintErr("[MultiplayerTools] ScanAllBackups failed: " + ex.Message);
+                GD.PrintErr("[MultiplayerTools] ScanFolderBasedBackups failed: " + ex.Message);
             }
+        }
+
+        private static bool TryReadBackupMetaJson(string backupDir, out string steamId, out string profileKey)
+        {
+            steamId = "";
+            profileKey = "";
+            try
+            {
+                var path = Path.Combine(backupDir, SaveManagerHelper.BackupMetaFileName);
+                if (!File.Exists(path)) return false;
+                using var doc = JsonDocument.Parse(File.ReadAllText(path));
+                var root = doc.RootElement;
+                if (root.TryGetProperty("steam_id", out var sidEl))
+                    steamId = sidEl.GetString() ?? "";
+                if (root.TryGetProperty("profile_key", out var pkEl))
+                    profileKey = pkEl.GetString() ?? "";
+                return !string.IsNullOrEmpty(steamId) || !string.IsNullOrEmpty(profileKey);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Legacy folder names lack Steam ID; infer from scanned save profiles (unique match only).</summary>
+        private static string ResolveSteamIdForBackupProfile(string profileKeyRaw)
+        {
+            string norm = NormalizeUnderscoreProfileKey(profileKeyRaw).Replace('\\', '/').Trim('/');
+            if (string.IsNullOrEmpty(norm)) return "";
+
+            var matches = SaveManagerHelper.GetAllProfiles()
+                .Where(p => ProfileSpecMatchesBackup(p, norm))
+                .Select(p => p.SteamId)
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (matches.Count == 1) return matches[0];
+            if (matches.Count > 1 && !string.IsNullOrEmpty(MpSessionState.CurrentSteamId) &&
+                matches.Contains(MpSessionState.CurrentSteamId, StringComparer.OrdinalIgnoreCase))
+                return MpSessionState.CurrentSteamId;
+            return "";
+        }
+
+        private static bool ProfileSpecMatchesBackup(SaveProfile p, string norm)
+        {
+            string spec = p.IsModded ? "modded/" + p.ProfileName : p.ProfileName;
+            spec = spec.Replace('\\', '/');
+            return string.Equals(spec, norm, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Parse backup folder name; Steam ID is only present in the new filename scheme.</summary>
+        private static void TryParseFolderBackupDirName(string name, out string steamId, out string profileKey, out string timestamp)
+        {
+            steamId = "";
+            profileKey = name;
+            timestamp = "";
+
+            // New: 76561198679823594_modded+profile2_20260402200046
+            int lastUs = name.LastIndexOf('_');
+            if (lastUs > 0 && lastUs < name.Length - 1)
+            {
+                string ts = name[(lastUs + 1)..];
+                if (ts.Length == 14 && ts.All(char.IsDigit))
+                {
+                    string head = name[..lastUs];
+                    int firstUs = head.IndexOf('_');
+                    if (firstUs > 0 && firstUs < head.Length - 1)
+                    {
+                        string sid = head[..firstUs];
+                        if (sid.Length >= 15 && sid.All(char.IsDigit))
+                        {
+                            steamId = sid;
+                            profileKey = head[(firstUs + 1)..].Replace('+', '/');
+                            timestamp = ts;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Legacy: *_yyyyMMdd_HHmmss at end
+            var m = Regex.Match(name, @"_(20\d{6})_(\d{6})$");
+            if (m.Success)
+            {
+                profileKey = NormalizeUnderscoreProfileKey(name[..m.Index]);
+                timestamp = m.Groups[1].Value + m.Groups[2].Value;
+                return;
+            }
+
+            // Legacy: trailing _yyyyMMddHHmmss (14 digits)
+            var m2 = Regex.Match(name, @"_(\d{14})$");
+            if (m2.Success)
+            {
+                profileKey = NormalizeUnderscoreProfileKey(name[..m2.Index]);
+                timestamp = m2.Groups[1].Value;
+                return;
+            }
+
+            int u = name.LastIndexOf('_');
+            if (u > 0)
+            {
+                profileKey = NormalizeUnderscoreProfileKey(name[..u]);
+                timestamp = name[(u + 1)..];
+            }
+        }
+
+        /// <summary>Turn modded_profile2 into modded/profile2 for <see cref="SaveManagerHelper.FindCurrentSave"/>.</summary>
+        private static string NormalizeUnderscoreProfileKey(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return raw;
+            if (raw.Contains('/') || raw.Contains('\\')) return raw.Replace('\\', '/');
+            if (raw.StartsWith("modded_", StringComparison.OrdinalIgnoreCase) && raw.Length > 7)
+                return "modded/" + raw[7..];
+            return raw;
+        }
+
+        private static string FormatBackupFolderTimestamp(string? ts)
+        {
+            if (string.IsNullOrEmpty(ts)) return "?";
+            if (ts.Length == 14 && ts.All(char.IsDigit))
+                return $"{ts[..4]}-{ts[4..6]}-{ts[6..8]} {ts[8..10]}:{ts[10..12]}:{ts[12..14]}";
+            if (ts.Length >= 15 && ts[8] == '_')
+                return $"{ts[..4]}-{ts[4..6]}-{ts[6..8]} {ts[9..11]}:{ts[11..13]}";
+            return ts;
         }
 
         private static void RenderBackupGroups(VBoxContainer container)
@@ -341,13 +589,7 @@ namespace MultiplayerTools.Tabs
 
         private static void RenderBackupCard(VBoxContainer parent, GlobalBackupEntry entry)
         {
-            // Parse timestamp
-            string timeStr = "?";
-            if (!string.IsNullOrEmpty(entry.Timestamp) && entry.Timestamp.Length >= 15)
-            {
-                try { timeStr = $"{entry.Timestamp[..4]}-{entry.Timestamp[4..6]}-{entry.Timestamp[6..8]} {entry.Timestamp[9..11]}:{entry.Timestamp[11..13]}"; }
-                catch { timeStr = entry.Timestamp; }
-            }
+            string timeStr = FormatBackupFolderTimestamp(entry.Timestamp);
 
             var card = new PanelContainer
             {
@@ -380,12 +622,22 @@ namespace MultiplayerTools.Tabs
             cH.AddThemeConstantOverride("separation", 8);
             cMargin.AddChild(cH, false, Node.InternalMode.Disabled);
 
-            // Time
+            // Time + legacy badge
+            var timeRow = new HBoxContainer();
+            timeRow.AddThemeConstantOverride("separation", 6);
             var timeLbl = new Label { Text = timeStr };
             timeLbl.AddThemeFontSizeOverride("font_size", 18);
             timeLbl.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
             timeLbl.CustomMinimumSize = new Vector2(140, 0);
-            cH.AddChild(timeLbl, false, Node.InternalMode.Disabled);
+            timeRow.AddChild(timeLbl, false, Node.InternalMode.Disabled);
+            if (entry.IsLegacy)
+            {
+                var badge = new Label { Text = Loc.Get("backup.legacy", "v2") };
+                badge.AddThemeFontSizeOverride("font_size", 14);
+                badge.AddThemeColorOverride("font_color", Panel.Styles.MpGray);
+                timeRow.AddChild(badge, false, Node.InternalMode.Disabled);
+            }
+            cH.AddChild(timeRow, false, Node.InternalMode.Disabled);
 
             // Profile
             var profLbl = new Label { Text = entry.ProfileKey };
@@ -442,10 +694,37 @@ namespace MultiplayerTools.Tabs
 
         private static void RestoreBackup(GlobalBackupEntry entry)
         {
-            // Find the corresponding current save path
-            string? currentSave = SaveManagerHelper.FindCurrentSave(entry.SteamId, entry.ProfileKey.Split('/').Last());
-            if (string.IsNullOrEmpty(currentSave))
-                currentSave = MpSessionState.CurrentSavePath;
+            string? currentSave;
+            string destPath;
+
+            if (entry.IsLegacy)
+            {
+                // Legacy: single file → restore directly to its paired main save path
+                currentSave = entry.RestoreTarget;
+                if (string.IsNullOrEmpty(currentSave))
+                {
+                    MpPanel.ShowStatusMessage(Loc.Get("backup.restore_no_target", "Cannot determine target save path"), Panel.Styles.Red);
+                    return;
+                }
+                destPath = entry.Path; // the backup file itself
+            }
+            else
+            {
+                // C# folder: copy all *.save files from backup dir to target
+                string profileSpec = NormalizeUnderscoreProfileKey(entry.ProfileKey.Replace('\\', '/'));
+                currentSave = SaveManagerHelper.FindCurrentSave(entry.SteamId, profileSpec);
+                if (string.IsNullOrEmpty(currentSave))
+                    currentSave = SaveManagerHelper.FindCurrentSave(entry.SteamId, profileSpec.Split('/').Last());
+                if (string.IsNullOrEmpty(currentSave))
+                    currentSave = MpSessionState.CurrentSavePath;
+
+                if (string.IsNullOrEmpty(currentSave))
+                {
+                    MpPanel.ShowStatusMessage(Loc.Get("backup.restore_no_target", "Cannot determine target save path"), Panel.Styles.Red);
+                    return;
+                }
+                destPath = entry.Path; // the backup directory
+            }
 
             if (string.IsNullOrEmpty(currentSave))
             {
@@ -455,14 +734,23 @@ namespace MultiplayerTools.Tabs
 
             try
             {
-                // Copy all save files from backup to target
-                var backupFiles = Directory.GetFiles(entry.Path, "*.save");
-                foreach (var f in backupFiles)
+                if (entry.IsLegacy)
                 {
-                    string destName = Path.GetFileName(f);
-                    string dest = Path.Combine(Path.GetDirectoryName(currentSave) ?? "", destName);
-                    File.Copy(f, dest, true);
+                    // Single file copy
+                    File.Copy(entry.Path, currentSave, true);
                 }
+                else
+                {
+                    // Copy all save files from backup folder to target
+                    var backupFiles = Directory.GetFiles(entry.Path, "*.save");
+                    foreach (var f in backupFiles)
+                    {
+                        string destName = Path.GetFileName(f);
+                        string dest = Path.Combine(Path.GetDirectoryName(currentSave) ?? "", destName);
+                        File.Copy(f, dest, true);
+                    }
+                }
+
                 ScanAllBackups();
                 MpSessionState.ReloadSave();
                 MpPanel.RefreshStatusBar();
@@ -479,8 +767,18 @@ namespace MultiplayerTools.Tabs
         {
             try
             {
-                if (Directory.Exists(entry.Path))
-                    Directory.Delete(entry.Path, true);
+                if (entry.IsLegacy)
+                {
+                    // Single backup file
+                    if (File.Exists(entry.Path))
+                        File.Delete(entry.Path);
+                }
+                else
+                {
+                    // Folder-based backup
+                    if (Directory.Exists(entry.Path))
+                        Directory.Delete(entry.Path, true);
+                }
                 ScanAllBackups();
                 MpPanel.ShowStatusMessage(Loc.Get("backup.deleted", "Backup deleted"), Panel.Styles.Green);
                 MpPanel.SwitchPage(MpPanel.PAGE_BACKUP);
@@ -513,6 +811,10 @@ namespace MultiplayerTools.Tabs
             internal int PlayerCount;
             internal long SizeBytes;
             internal int FileCount;
+            /// <summary>True = Python v2 .backup.* single file; False = C# folder-based backup.</summary>
+            internal bool IsLegacy;
+            /// <summary>For legacy backups: the main save file path to restore to.</summary>
+            internal string RestoreTarget = "";
         }
     }
 }

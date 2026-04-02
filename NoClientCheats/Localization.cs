@@ -45,6 +45,23 @@ internal static class Localization
             ["lobby_logged"] = ("[CHEAT LOGGED]", "[作弊记录]"),
             ["tried_use"] = ("tried", "尝试使用"),
             ["executed"] = ("executed", "执行了"),
+
+            // ── DeckSync ────────────────────────────────────────────────────
+            ["deck_exploit"] = ("Deck Exploit", "卡组作弊"),
+            ["deck_rollback"] = ("Deck Rollback", "卡组回滚"),
+            ["deck_upgrade_excess"] = ("Excess upgrade", "超额升级"),
+            ["deck_remove_excess"] = ("Excess removal", "超额删除"),
+            ["deck_transform_excess"] = ("Excess transform", "超额转化"),
+            ["deck_unknown"] = ("Unknown deck mismatch", "未知卡组异常"),
+
+            // ── UI 即时对比检测 ─────────────────────────────────────────────
+            ["ui_exploit"] = ("UI Exploit", "UI 操作作弊"),
+            ["immediate_rollback"] = ("Immediate Rollback", "立即回滚"),
+            ["remove_excess"] = ("Removed {0} extra card(s)", "超额删除了 {0} 张卡"),
+            ["upgrade_excess"] = ("Upgraded {0} extra card(s)", "超额升级了 {0} 张卡"),
+            ["add_excess"] = ("Added {0} extra card(s)", "超额添加了 {0} 张卡"),
+            ["card_mismatch"] = ("Card identity mismatch", "卡牌身份不匹配"),
+            ["no_pre_snapshot"] = ("No pre-snapshot (skipped)", "无预快照（已跳过）"),
         };
     }
 

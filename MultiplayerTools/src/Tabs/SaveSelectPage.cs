@@ -150,6 +150,22 @@ namespace MultiplayerTools.Tabs
             return "";
         }
 
+        private static (string steamId, string persona) GetCurrentUserInfo()
+        {
+            try
+            {
+                var me = Steam.SteamIntegration.GetCurrentSteamId();
+                if (!string.IsNullOrEmpty(me))
+                {
+                    var name = Steam.SteamIntegration.GetPersonaName(me);
+                    if (string.IsNullOrEmpty(name) || name == me) name = "";
+                    return (me, name);
+                }
+            }
+            catch { }
+            return ("", "");
+        }
+
         // ── Group rendering ──────────────────────────────────────────────────────
 
         private static void RenderSteamUserGroup(VBoxContainer parent, SteamUserGroupData group)
@@ -192,20 +208,28 @@ namespace MultiplayerTools.Tabs
             arrowLbl.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
             headerH.AddChild(arrowLbl, false, Node.InternalMode.Disabled);
 
-            // Steam ID short (gray)
-            var idLbl = new Label { Text = group.SteamIdShort };
-            idLbl.AddThemeFontSizeOverride("font_size", 18);
-            idLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
-            headerH.AddChild(idLbl, false, Node.InternalMode.Disabled);
-
-            // Persona name (gold, if available)
+            // Steam ID short + persona merged: "76561...3594 · 昵称" or just "76561...3594"
+            // If this is the current user's group, add "（我）" suffix
+            var (myId, myPersona) = GetCurrentUserInfo();
+            bool isMe = !string.IsNullOrEmpty(myId) && myId == group.SteamId;
+            string headerIdText;
+            Color idColor;
             if (!string.IsNullOrEmpty(group.Persona))
             {
-                var personaLbl = new Label { Text = group.Persona };
-                personaLbl.AddThemeFontSizeOverride("font_size", 18);
-                personaLbl.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
-                headerH.AddChild(personaLbl, false, Node.InternalMode.Disabled);
+                string meSuffix = isMe ? $"  {Loc.Get("saveselect.me", "（我）")}" : "";
+                headerIdText = $"{group.SteamIdShort}  ·  {group.Persona}{meSuffix}";
+                idColor = Panel.Styles.MpTextNav;
             }
+            else
+            {
+                string meSuffix = isMe ? $"  {Loc.Get("saveselect.me", "（我）")}" : "";
+                headerIdText = group.SteamIdShort + meSuffix;
+                idColor = Panel.Styles.MpTextMuted;
+            }
+            var idLbl = new Label { Text = headerIdText };
+            idLbl.AddThemeFontSizeOverride("font_size", 18);
+            idLbl.AddThemeColorOverride("font_color", idColor);
+            headerH.AddChild(idLbl, false, Node.InternalMode.Disabled);
 
             headerH.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
 
@@ -303,9 +327,12 @@ namespace MultiplayerTools.Tabs
                 ? Loc.Get("card.status_in_progress", "In Progress")
                 : Loc.Get("card.status_not_started", "Not Started");
 
-            // Profile key display (Python v2: "{mode_label} · {profile_key}")
+            // Profile key display: "[Mod/Standard] steamId · 昵称 · profileKey"
             string modeLabel = isModded ? Loc.Get("card.mod", "Mod") : Loc.Get("card.standard", "Standard");
-            string profileKeyDisplay = $"[{modeLabel}] {profile.ProfileKey}";
+            string persona = TryGetSteamPersona(profile.SteamId);
+            string profileKeyDisplay = string.IsNullOrEmpty(persona)
+                ? $"[{modeLabel}] {profile.ProfileKey}"
+                : $"[{modeLabel}] {MpSessionState.ShortenSteamId(profile.SteamId)}  ·  {persona}  ·  {profile.ProfileKey}";
 
             // Uniform card style (no active/in-progress highlight — status text still shows 进行中/未开始)
             var baseColor = new Godot.Color("1F3460");

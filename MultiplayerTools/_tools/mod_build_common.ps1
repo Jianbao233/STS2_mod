@@ -32,10 +32,18 @@ function Invoke-DotnetBuild {
         [string]$Config = "Release"
     )
     $exe = (Get-Command dotnet -ErrorAction SilentlyContinue).Source
-    if (-not $exe) { throw "dotnet not found" }
+    if (-not $exe) {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show("dotnet not found. Please install .NET SDK.", "Build Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+        throw "dotnet not found"
+    }
     Write-Host "[build] dotnet build $ProjectPath -c $Config"
-    & $exe build "$ProjectPath" -c $Config --nologo
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build failed" }
+    & $exe build "$ProjectPath" -c $Config --nologo 2>&1 | Tee-Object -Variable buildOutput | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show("dotnet build failed (exit $LASTEXITCODE)`n`n$buildOutput", "Build Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+        throw "dotnet build failed"
+    }
 }
 
 function Copy-ModsFiles {
@@ -58,8 +66,12 @@ function Build-ModPck {
     )
     $arg = "--headless", "--path", ".", "--export-release", $ExportPreset
     Write-Host "[build] Godot export: $arg"
-    & $GodotExe $arg
-    if ($LASTEXITCODE -ne 0) { throw "Godot export failed" }
+    & $GodotExe $arg 2>&1 | Tee-Object -Variable exportOutput | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show("Godot export failed (exit $LASTEXITCODE)`n`n$exportOutput", "Build Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+        throw "Godot export failed"
+    }
     Write-Host "[build] PCK created"
 }
 

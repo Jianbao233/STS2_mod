@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
 using MultiplayerTools.Tabs;
+using MultiplayerTools.Panel;
 
 // Type alias — Godot's main loop cast to SceneTree for adding UI nodes
 using NGame = Godot.SceneTree;
@@ -181,12 +182,24 @@ namespace MultiplayerTools
             }
         }
 
+        /// <summary>
+        /// Full refresh: applies the current font step to chrome elements (header, nav, status bar)
+        /// then rebuilds the current page content. Use after runtime changes like font step.
+        /// </summary>
+        internal static void FullRefresh()
+        {
+            if (_mainVBox == null) return;
+            RefreshChromeTexts();
+            RefreshStatusBar();
+            RefreshCurrentPage();
+        }
+
         /// <summary>Show a temporary status message overlay. Used by other tabs.</summary>
         internal static void ShowStatusMessage(string text, Color color)
         {
             if (_mainVBox == null) return;
             var msg = new Label { Text = text };
-            msg.AddThemeFontSizeOverride("font_size", 14);
+            UiFont.ApplyTo(msg, 14);
             msg.AddThemeColorOverride("font_color", color);
             _mainVBox.AddChild(msg, false, Node.InternalMode.Disabled);
         }
@@ -194,7 +207,7 @@ namespace MultiplayerTools
         internal static Label CreateSectionHeader(string text)
         {
             var label = new Label { Text = text };
-            label.AddThemeFontSizeOverride("font_size", 18);
+            UiFont.ApplyTo(label, 18);
             label.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
             label.AddThemeColorOverride("font_outline_color", Panel.Styles.OutlineColor);
             label.AddThemeConstantOverride("outline_size", 2);
@@ -220,13 +233,28 @@ namespace MultiplayerTools
             if (_headerTitleLabel != null && GodotObject.IsInstanceValid(_headerTitleLabel))
                 _headerTitleLabel.Text = Loc.Get("panel.title", "MultiplayerTools");
             if (_headerSubtitleLabel != null && GodotObject.IsInstanceValid(_headerSubtitleLabel))
-                _headerSubtitleLabel.Text = Loc.Get("panel.subtitle", "Saves · Templates · Backups") + $" · v{ModInfo.Version}";
+                _headerSubtitleLabel.Text = Loc.Get("panel.subtitle", "Saves · Templates · Backups");
+
+            // Refresh chrome font sizes with current UiFontStep (AddThemeFontSizeOverride replaces previous override)
+            if (_headerTitleLabel != null && GodotObject.IsInstanceValid(_headerTitleLabel))
+            {
+                _headerTitleLabel.AddThemeFontSizeOverride("font_size", UiFont.Scaled(19));
+            }
+            if (_headerSubtitleLabel != null && GodotObject.IsInstanceValid(_headerSubtitleLabel))
+            {
+                _headerSubtitleLabel.AddThemeFontSizeOverride("font_size", UiFont.Scaled(17));
+            }
+            if (_statusBar != null && GodotObject.IsInstanceValid(_statusBar))
+            {
+                _statusBar.AddThemeFontSizeOverride("font_size", UiFont.Scaled(17));
+            }
 
             // Refresh nav button labels
             if (_navButtons == null) return;
             for (int i = 0; i < NavItems.Length && i < _navButtons.Length; i++)
             {
                 _navButtons[i].Text = Loc.Get(NavItems[i].locKey, NavItems[i].fallback);
+                _navButtons[i].AddThemeFontSizeOverride("font_size", UiFont.Scaled(17));
             }
         }
 
@@ -245,30 +273,43 @@ namespace MultiplayerTools
             MpSessionState.SaveContextChanged += OnSessionSaveChanged;
             MpSessionState.ProfilesChanged += OnSessionProfilesChanged;
 
-            _layer = new CanvasLayer { Layer = 100, Name = "MpPanel" };
+            _layer = new CanvasLayer { Layer = 200, Name = "MpPanel" };
+            // CanvasLayer must be in the scene tree to render
+            (Engine.GetMainLoop() as SceneTree)?.Root?.AddChild(_layer, false, Node.InternalMode.Disabled);
 
-            // Backdrop
+            // Backdrop — must use MouseFilter = Ignore so clicks on the panel area
+            // reach the panel's children (buttons etc.). Empty-area close is handled via
+            // the panel's GuiInput below, which checks if the click was inside or outside.
             var backdrop = new ColorRect
             {
+                AnchorLeft = 0, AnchorRight = 1, AnchorTop = 0, AnchorBottom = 1,
+                OffsetRight = 0, OffsetBottom = 0,
                 Color = Panel.Styles.Backdrop,
-                AnchorRight = 1, AnchorBottom = 1,
-                MouseFilter = Control.MouseFilterEnum.Stop
+                MouseFilter = Control.MouseFilterEnum.Ignore
             };
             backdrop.GuiInput += ev =>
             {
                 if (ev is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
                 {
-                    Hide();
-                    backdrop.GetViewport()?.SetInputAsHandled();
+                    // Close only when clicking the true empty area (outside the panel).
+                    if (_panel == null || !GodotObject.IsInstanceValid(_panel)) return;
+                    var panelRect = _panel.GetGlobalRect();
+                    var clickPos = mb.GlobalPosition;
+                    if (!panelRect.HasPoint(clickPos))
+                    {
+                        Hide();
+                        backdrop.GetViewport()?.SetInputAsHandled();
+                    }
                 }
             };
             _layer.AddChild(backdrop, false, Node.InternalMode.Disabled);
 
-            // Main panel
+            // Main panel — anchored at 8..92% of screen (centered)
             _panel = new PanelContainer
             {
                 AnchorLeft = 0.08f, AnchorRight = 0.92f,
                 AnchorTop = 0.05f, AnchorBottom = 0.95f,
+                OffsetRight = 0, OffsetBottom = 0,
                 GrowHorizontal = Control.GrowDirection.Both,
                 GrowVertical = Control.GrowDirection.Both,
                 MouseFilter = Control.MouseFilterEnum.Stop
@@ -284,7 +325,11 @@ namespace MultiplayerTools
             _layer.AddChild(_panel, false, Node.InternalMode.Disabled);
             _panel.AddThemeStyleboxOverride("panel", _panelStyleNormal);
 
-            _mainVBox = new VBoxContainer { AnchorRight = 1, AnchorBottom = 1 };
+            _mainVBox = new VBoxContainer
+            {
+                AnchorLeft = 0, AnchorRight = 1, AnchorTop = 0, AnchorBottom = 1,
+                OffsetRight = 0, OffsetBottom = 0
+            };
             _mainVBox.AddThemeConstantOverride("separation", 0);
             _panel.AddChild(_mainVBox, false, Node.InternalMode.Disabled);
 
@@ -321,13 +366,45 @@ namespace MultiplayerTools
 
             _headerSubtitleLabel = new Label
             {
-                Text = Loc.Get("panel.subtitle", "Saves · Templates · Backups") + $" · v{ModInfo.Version}"
+                Text = Loc.Get("panel.subtitle", "Saves · Templates · Backups")
             };
             _headerSubtitleLabel.AddThemeFontSizeOverride("font_size", 17);
             _headerSubtitleLabel.AddThemeColorOverride("font_color", Panel.Styles.MpBlueAccent);
             titleCol.AddChild(_headerSubtitleLabel, false, Node.InternalMode.Disabled);
 
+            // Version + author link row
+            var verRow = new HBoxContainer();
+            verRow.AddThemeConstantOverride("separation", 6);
+            verRow.AddThemeConstantOverride("custom_minimum_size_y", 24);
+            titleCol.AddChild(verRow, false, Node.InternalMode.Disabled);
+
+            var verLbl = new Label { Text = $"v{ModInfo.Version}" };
+            verLbl.AddThemeFontSizeOverride("font_size", 17);
+            verLbl.AddThemeColorOverride("font_color", Panel.Styles.MpBlueAccent);
+            verRow.AddChild(verLbl, false, Node.InternalMode.Disabled);
+
+            var authorLink = new LinkButton
+            {
+                Text = "@ 我叫煎包",
+                Uri = "https://space.bilibili.com/234054413",
+                Underline = LinkButton.UnderlineMode.Always
+            };
+            authorLink.AddThemeFontSizeOverride("font_size", 17);
+            authorLink.AddThemeColorOverride("font_color", Panel.Styles.MpBlueAccent);
+            verRow.AddChild(authorLink, false, Node.InternalMode.Disabled);
+
             header.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
+
+            // GitHub repo link button
+            var repoLink = new LinkButton
+            {
+                Text = "GitHub",
+                Uri = "https://github.com/Jianbao233/STS2_mod",
+                Underline = LinkButton.UnderlineMode.Never
+            };
+            repoLink.AddThemeFontSizeOverride("font_size", 16);
+            repoLink.AddThemeColorOverride("font_color", Panel.Styles.MpBlueAccent);
+            header.AddChild(repoLink, false, Node.InternalMode.Disabled);
 
             // Status bar (mirrors v2 _status_bar)
             _statusBar = new Label { Text = Loc.Get("status.scanning", "Scanning saves...") };
@@ -437,10 +514,8 @@ namespace MultiplayerTools
             scroll.AddChild(_contentContainer, false, Node.InternalMode.Disabled);
 
             // HoverTip layer
-            _hoverTipLayer = new CanvasLayer { Layer = 101, Name = "MpHoverTips" };
-            var st = Engine.GetMainLoop() as SceneTree;
-            st?.Root.AddChild(_layer, false, Node.InternalMode.Disabled);
-            st?.Root.AddChild(_hoverTipLayer, false, Node.InternalMode.Disabled);
+            _hoverTipLayer = new CanvasLayer { Layer = 201, Name = "MpHoverTips" };
+            (Engine.GetMainLoop() as SceneTree)?.Root?.AddChild(_hoverTipLayer, false, Node.InternalMode.Disabled);
 
             // Initial data load
             MpSessionState.RefreshProfiles();
@@ -448,6 +523,12 @@ namespace MultiplayerTools
             RefreshStatusBar();
             UpdateNavHighlights();
             RefreshCurrentPage();
+        }
+
+        private static void _DebugLogPanelSize()
+        {
+            if (_panel != null)
+                GD.Print($"[MultiplayerTools] DEBUG _panel.Size={_panel.Size} _panel.GlobalRect={_panel.GetGlobalRect()} _panel.Visible={_panel.Visible}");
         }
 
         private static void OnSessionSaveChanged()

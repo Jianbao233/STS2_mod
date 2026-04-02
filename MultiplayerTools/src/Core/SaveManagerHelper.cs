@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Godot;
@@ -19,6 +21,9 @@ namespace MultiplayerTools.Core
     /// </summary>
     internal static class SaveManagerHelper
     {
+        /// <summary>Written next to copied saves so backups without Steam ID in the folder name still group correctly.</summary>
+        internal const string BackupMetaFileName = "mp_backup_meta.json";
+
         private static string GetRoamingSts2Dir()
         {
             try
@@ -47,7 +52,7 @@ namespace MultiplayerTools.Core
             }
         }
 
-        private static IEnumerable<string> EnumerateSaveRoots()
+        internal static IEnumerable<string> EnumerateSaveRoots()
         {
             // Optional override (same as Python v2 save_io.py SLAY_THE_SPIRE2_APPDATA)
             string? envOverride = TryGetEnvSaveRoot();
@@ -173,8 +178,6 @@ namespace MultiplayerTools.Core
                 return 0;
             });
 
-            var roots = string.Join(" | ", EnumerateSaveRoots());
-            GD.Print($"[MultiplayerTools] GetAllProfiles: {results.Count} profile(s), roots=[{roots}]");
             return results;
         }
 
@@ -268,20 +271,38 @@ namespace MultiplayerTools.Core
         /// Find the current_run_mp.save (or current_run.save) for a given profile.
         /// Returns the full path, or null if not found.
         /// </summary>
-        internal static string? FindCurrentSave(string steamId, string profileName)
+        /// <param name="profileSpecifier">
+        /// Profile folder path under <c>steam/{steamId}/</c>, e.g. <c>profile2</c> or <c>modded/profile2</c>.
+        /// If there is no slash, tries <c>modded/profile</c> first then vanilla <c>profile</c>.
+        /// </param>
+        internal static string? FindCurrentSave(string steamId, string profileSpecifier)
         {
+            profileSpecifier = profileSpecifier?.Replace('\\', '/').Trim('/') ?? "";
+            if (string.IsNullOrEmpty(profileSpecifier)) return null;
+
             foreach (var root in EnumerateSaveRoots())
             {
-                // Try modded first, then non-modded
-                string[] candidates = new[]
+                string baseDir = Path.Combine(root, "steam", steamId);
+                IEnumerable<string> savesDirs;
+                if (profileSpecifier.Contains('/'))
+                    savesDirs = new[] { Path.Combine(baseDir, profileSpecifier, "saves") };
+                else
                 {
-                    Path.Combine(root, "steam", steamId, "modded", profileName, "saves", "current_run_mp.save"),
-                    Path.Combine(root, "steam", steamId, profileName, "saves", "current_run_mp.save"),
-                    Path.Combine(root, "steam", steamId, "modded", profileName, "saves", "current_run.save"),
-                    Path.Combine(root, "steam", steamId, profileName, "saves", "current_run.save"),
-                };
-                foreach (var p in candidates)
-                    if (File.Exists(p)) return p;
+                    savesDirs = new[]
+                    {
+                        Path.Combine(baseDir, "modded", profileSpecifier, "saves"),
+                        Path.Combine(baseDir, profileSpecifier, "saves"),
+                    };
+                }
+
+                foreach (var savesDir in savesDirs)
+                {
+                    foreach (var name in new[] { "current_run_mp.save", "current_run.save" })
+                    {
+                        var p = Path.Combine(savesDir, name);
+                        if (File.Exists(p)) return p;
+                    }
+                }
             }
             return null;
         }
@@ -332,20 +353,53 @@ namespace MultiplayerTools.Core
             }
         }
 
-        /// <summary>Write a save file with CRLF line endings (no gzip).</summary>
-        internal static bool WriteSaveFile(string path, Dictionary<string, object> data)
+        /// <summary>
+        /// Write a save file as plain UTF-8 JSON with CRLF (same as Python v2 <c>save_io.write_save</c>).
+        /// <para>
+        /// We always write <b>uncompressed</b> JSON even if the file on disk was gzip: v2 does the same
+        /// ("游戏原始存档格式为明文 JSON…写入时不压缩") and the game accepts it; re-gzipping from the mod
+        /// has been linked to <c>JsonParseError</c> / corrupt-save dialogs.
+        /// </para>
+        /// </summary>
+        internal static bool WriteSaveFile(string path, Dictionary<string, object> data, bool makeBackup = false)
         {
             try
             {
-                var opts = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(data, opts);
-                json = json.Replace("\n", "\r\n");
-                File.WriteAllText(path, json);
+                if (makeBackup && File.Exists(path))
+                {
+                    var dir = Path.GetDirectoryName(path) ?? ".";
+                    var name = Path.GetFileName(path);
+                    var backupPath = Path.Combine(dir, name + ".backup." + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+                    File.Copy(path, backupPath, true);
+                }
+
+                var opts = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                };
+                string json = JsonSerializer.Serialize(data, opts).Replace("\n", "\r\n");
+
+                using (JsonDocument.Parse(json)) { }
+
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
+
+                // Write via temp + replace (matches Python v2; avoids half-written files if the game reads mid-write).
+                string tmpPath = path + ".mpwrite.tmp";
+                File.WriteAllBytes(tmpPath, bytes);
+                File.Move(tmpPath, path, overwrite: true);
                 return true;
             }
             catch (Exception ex)
             {
                 GD.PrintErr($"[MultiplayerTools] WriteSaveFile({path}) failed: " + ex.Message);
+                try
+                {
+                    string tmpPath = path + ".mpwrite.tmp";
+                    if (File.Exists(tmpPath)) File.Delete(tmpPath);
+                }
+                catch { /* ignore */ }
                 return false;
             }
         }
@@ -361,15 +415,33 @@ namespace MultiplayerTools.Core
                 var savesDir = Path.GetDirectoryName(FindCurrentSave(steamId, profileName));
                 if (savesDir == null || !Directory.Exists(savesDir)) return null;
 
-                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                // Write to %APPDATA%\SlayTheSpire2\backups\ (matches Python v2 backup_dir)
-                var backupDir = Path.Combine(GetRoamingSts2Dir(), "backups", $"{profileName}_{timestamp}");
+                // Folder name: steamId + encoded profile + compact time so BackupPage can group by Steam ID.
+                // Use '+' instead of '/' in profile (e.g. modded/profile2 → modded+profile2); no '_' inside timestamp.
+                string tsCompact = DateTime.Now.ToString("yyyyMMddHHmmss");
+                string safeProfile = profileName.Replace('\\', '+').Replace('/', '+');
+                if (string.IsNullOrEmpty(steamId)) steamId = "unknown";
+                var backupDir = Path.Combine(GetRoamingSts2Dir(), "backups", $"{steamId}_{safeProfile}_{tsCompact}");
                 Directory.CreateDirectory(backupDir);
 
                 foreach (var f in Directory.GetFiles(savesDir))
                 {
                     File.Copy(f, Path.Combine(backupDir, Path.GetFileName(f)), true);
                 }
+
+                try
+                {
+                    string profileJsonKey = profileName.Replace('\\', '/');
+                    string metaJson = JsonSerializer.Serialize(
+                        new Dictionary<string, string>
+                        {
+                            ["steam_id"] = steamId,
+                            ["profile_key"] = profileJsonKey,
+                        },
+                        new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(Path.Combine(backupDir, BackupMetaFileName), metaJson.Replace("\n", "\r\n"));
+                }
+                catch { /* meta is optional */ }
+
                 return backupDir;
             }
             catch (Exception ex)
@@ -393,6 +465,8 @@ namespace MultiplayerTools.Core
             return $"{bytes / (1024.0 * 1024.0):F1} MB";
         }
 
+#nullable disable
+        // Nullable disabled: JSON null must round-trip as C# null in Dictionary&lt;string, object&gt; values.
         private static Dictionary<string, object> JsonElementToDict(JsonElement el)
         {
             var dict = new Dictionary<string, object>();
@@ -410,15 +484,31 @@ namespace MultiplayerTools.Core
         {
             switch (el.ValueKind)
             {
+                // Critical: previously `default` turned null into "" and broke Godot's save schema.
+                case JsonValueKind.Null:
+                case JsonValueKind.Undefined:
+                    return null;
                 case JsonValueKind.String: return el.GetString() ?? "";
-                case JsonValueKind.Number: return el.TryGetInt64(out var l) ? l : el.GetDouble();
+                // Prefer exact integer parsing from raw text so Steam IDs / large ints are not rounded via double.
+                case JsonValueKind.Number:
+                    if (el.TryGetInt64(out var i64)) return i64;
+                    if (el.TryGetUInt64(out var u64) && u64 <= long.MaxValue) return (long)u64;
+                    {
+                        var raw = el.GetRawText();
+                        if (long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lp))
+                            return lp;
+                        if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var dbl))
+                            return dbl;
+                        return 0L;
+                    }
                 case JsonValueKind.True: return true;
                 case JsonValueKind.False: return false;
                 case JsonValueKind.Array: return el.EnumerateArray().Select(JsonValueToObject).ToList();
                 case JsonValueKind.Object: return JsonElementToDict(el);
-                default: return "";
+                default: return null;
             }
         }
+#nullable enable
     }
 
     /// <summary>

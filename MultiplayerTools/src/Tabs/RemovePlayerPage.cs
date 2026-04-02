@@ -18,10 +18,12 @@ namespace MultiplayerTools.Tabs
     internal static class RemovePlayerPage
     {
         private static int _selectedIndex = -1;
+        private static readonly List<CheckBox> _playerRadios = new();
 
         internal static void Build(VBoxContainer container)
         {
             _selectedIndex = -1;
+            _playerRadios.Clear();
 
             container.AddChild(MpPanel.CreateSectionHeader(Loc.Get("remove.title", "Remove Player")), false, Node.InternalMode.Disabled);
             var subtitle = new Label { Text = Loc.Get("remove.subtitle", "Remove a player from the save") };
@@ -129,9 +131,18 @@ namespace MultiplayerTools.Tabs
                 int idx = index;
                 radio.Toggled += pressed =>
                 {
-                    if (!pressed) { if (_selectedIndex == idx) _selectedIndex = -1; }
-                    else _selectedIndex = idx;
+                    if (pressed)
+                    {
+                        _selectedIndex = idx;
+                        foreach (var other in _playerRadios)
+                            if (other != radio) other.SetPressedNoSignal(false);
+                    }
+                    else if (_selectedIndex == idx)
+                    {
+                        _selectedIndex = -1;
+                    }
                 };
+                _playerRadios.Add(radio);
                 inner.AddChild(radio, false, Node.InternalMode.Disabled);
             }
             else
@@ -180,11 +191,18 @@ namespace MultiplayerTools.Tabs
             ShowConfirmDialog(() =>
             {
                 var result = PlayerOpsService.RemovePlayerFull(_selectedIndex, MpSessionState.CurrentSavePath!);
+
                 if (result.Success)
                 {
-                    MpSessionState.ReloadSave();
+                    var reloadOk = MpSessionState.ReloadSave();
+
+                    if (!reloadOk)
+                    {
+                        ShowMsg(Loc.Get("error.load_save_failed", "Failed to load save"), Panel.Styles.Red);
+                        return;
+                    }
                     ShowMsg(Loc.Get("remove.success", "Player removed successfully!"), Panel.Styles.Green);
-                    MpPanel.SwitchPage(MpPanel.PAGE_TAKEOVER);
+                    MpPanel.RefreshCurrentPage();
                 }
                 else
                 {
@@ -195,49 +213,77 @@ namespace MultiplayerTools.Tabs
 
         private static void ShowConfirmDialog(Action onConfirm)
         {
-            var dlg = new Popup
+            // Compact fixed size (v2 uses 360×160); avoid FullRect + ExpandFill which stretches to full screen height
+            const int popupW = 420;
+            const int popupH = 168;
+
+            var dlg = new PopupPanel
             {
+                Exclusive = true,
                 Title = Loc.Get("remove.confirm_title", "Confirm Remove"),
-                Exclusive = true
+                Unresizable = true,
+                MinSize = new Vector2I(popupW, popupH),
+                MaxSize = new Vector2I(popupW, popupH),
+                Size = new Vector2I(popupW, popupH)
             };
-            dlg.SetPosition(new Vector2I(200, 200));
-            dlg.SetSize(new Vector2I(360, 160));
-            (Engine.GetMainLoop() as SceneTree)?.Root.AddChild(dlg);
-            dlg.PopupCentered(new Vector2I(360, 160));
+            var bgStyle = Panel.Styles.CreateFlat(Panel.Styles.PanelBg, Panel.Styles.PanelBorder, 8, 2);
+            dlg.AddThemeStyleboxOverride("panel", bgStyle);
 
-            var content = new VBoxContainer();
-            content.AddThemeConstantOverride("separation", 12);
-            dlg.AddChild(content);
+            var root = new VBoxContainer();
+            root.AddThemeConstantOverride("separation", 12);
+            dlg.AddChild(root, false, Node.InternalMode.Disabled);
 
-            var margin = new MarginContainer();
-            margin.AddThemeConstantOverride("margin_left", 20);
-            margin.AddThemeConstantOverride("margin_right", 20);
-            margin.AddThemeConstantOverride("margin_top", 16);
-            margin.AddThemeConstantOverride("margin_bottom", 16);
-            content.AddChild(margin);
+            var outerMargin = new MarginContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+            };
+            outerMargin.AddThemeConstantOverride("margin_left", 14);
+            outerMargin.AddThemeConstantOverride("margin_right", 14);
+            outerMargin.AddThemeConstantOverride("margin_top", 8);
+            outerMargin.AddThemeConstantOverride("margin_bottom", 10);
+            root.AddChild(outerMargin, false, Node.InternalMode.Disabled);
+
+            var column = new VBoxContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+            };
+            column.AddThemeConstantOverride("separation", 16);
+            outerMargin.AddChild(column, false, Node.InternalMode.Disabled);
 
             var msg = new Label
             {
                 Text = Loc.Get("remove.confirm_msg", "Are you sure you want to remove this player? This cannot be undone."),
-                SizeFlagsVertical = Control.SizeFlags.ExpandFill
+                CustomMinimumSize = new Vector2(360, 0),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
             };
             msg.AddThemeFontSizeOverride("font_size", 17);
             msg.AddThemeColorOverride("font_color", Panel.Styles.MpTextNav);
-            margin.AddChild(msg, false, Node.InternalMode.Disabled);
+            column.AddChild(msg, false, Node.InternalMode.Disabled);
 
             var btnRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            btnRow.AddThemeConstantOverride("separation", 10);
-            margin.AddChild(btnRow, false, Node.InternalMode.Disabled);
+            btnRow.AddThemeConstantOverride("separation", 12);
+            btnRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
 
             var okBtn = MpPanel.CreateActionButton(Loc.Get("confirm", "Confirm"), Panel.Styles.Red);
-            okBtn.CustomMinimumSize = new Vector2(100, 34);
+            okBtn.CustomMinimumSize = new Vector2(110, 36);
             okBtn.Pressed += () => { dlg.Hide(); dlg.QueueFree(); onConfirm(); };
             btnRow.AddChild(okBtn, false, Node.InternalMode.Disabled);
 
-            var cancelBtn = MpPanel.CreateActionButton(Loc.Get("cancel", "Cancel"), Panel.Styles.MpPrimaryBtn);
-            cancelBtn.CustomMinimumSize = new Vector2(100, 34);
+            // Light text on blue button — do NOT pass MpPrimaryBtn as font color (same as background)
+            var cancelBtn = MpPanel.CreateActionButton(Loc.Get("cancel", "Cancel"), Panel.Styles.MpTextNav);
+            cancelBtn.CustomMinimumSize = new Vector2(110, 36);
             cancelBtn.Pressed += () => { dlg.Hide(); dlg.QueueFree(); };
             btnRow.AddChild(cancelBtn, false, Node.InternalMode.Disabled);
+
+            column.AddChild(btnRow, false, Node.InternalMode.Disabled);
+
+            dlg.CloseRequested += () => { dlg.Hide(); dlg.QueueFree(); };
+
+            (Engine.GetMainLoop() as SceneTree)?.Root.AddChild(dlg, false, Node.InternalMode.Disabled);
+            dlg.PopupCentered(new Vector2I(popupW, popupH));
         }
 
         private static void AddWarning(VBoxContainer container, string text)

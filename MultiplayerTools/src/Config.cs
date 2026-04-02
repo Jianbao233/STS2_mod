@@ -13,7 +13,9 @@ namespace MultiplayerTools
     {
         public static string ToggleHotkey { get; private set; } = "F1";
         /// <summary>UI language override: game | eng | zho</summary>
-        public static string ModUiLanguage { get; private set; } = "game";
+        public static string ModUiLanguage { get; internal set; } = "game";
+        /// <summary>Font size step: 0 = default (smallest), 1-6 = progressively larger.</summary>
+        public static int UiFontStep { get; internal set; } = 0;
         public static bool DebugMode { get; private set; } = false;
 
         private static readonly string ConfigPath;
@@ -49,6 +51,9 @@ namespace MultiplayerTools
                             : l.Equals("eng", StringComparison.OrdinalIgnoreCase) ? "eng" : "game";
                     }
 
+                    if (root.TryGetProperty("ui_font_step", out var fs))
+                        UiFontStep = Math.Clamp(fs.GetInt32(), 0, 6);
+
                     if (root.TryGetProperty("debug", out var dbg))
                         DebugMode = dbg.GetBoolean();
                 }
@@ -61,7 +66,30 @@ namespace MultiplayerTools
             {
                 GD.PrintErr("[MultiplayerTools] Config.Load failed: " + ex.Message);
             }
-            GD.Print($"[MultiplayerTools] Config loaded. Hotkey={ToggleHotkey}, mod_ui_language={ModUiLanguage}");
+            GD.Print($"[MultiplayerTools] Config loaded. Hotkey={ToggleHotkey}, mod_ui_language={ModUiLanguage}, ui_font_step={UiFontStep}");
+        }
+
+        /// <summary>Persist a field into config.json without disturbing other fields.</summary>
+        internal static void SaveField(string key, object value)
+        {
+            try
+            {
+                var dict = new Dictionary<string, object>();
+                if (File.Exists(ConfigPath))
+                {
+                    var json = File.ReadAllText(ConfigPath);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    foreach (var prop in doc.RootElement.EnumerateObject())
+                        dict[prop.Name] = prop.Value.ToString() ?? "";
+                }
+                dict[key] = value;
+                var opts = new JsonSerializerOptions { WriteIndented = true };
+                File.WriteAllText(ConfigPath, JsonSerializer.Serialize(dict, opts));
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"[MultiplayerTools] Config.SaveField({key}) failed: " + ex.Message);
+            }
         }
 
         private static void SaveDefault()
@@ -76,6 +104,7 @@ namespace MultiplayerTools
                 {
                     toggle_hotkey = "F1",
                     mod_ui_language = "game",
+                    ui_font_step = 0,
                     debug = false,
                     _readme = "mod_ui_language: game (follow game) | eng | zho"
                 };

@@ -1,3 +1,19 @@
+## v1.3.0（2026-04-01）
+
+### 新增：卡组状态回滚检测
+
+- **被动式作弊检测**：主机在休息点/事件执行后记录卡组快照，收到客机同步时对比，不一致则强制回滚
+- **覆盖场景**：篝火升级/烹饪、所有涉及卡牌选择的遗物获得事件、活动事件（Trial、ZenWeaver 等）
+- **不覆盖**：战斗中的卡牌操作（EntropyPower、TriBoomerang 等遗物效果）
+- 回滚机制：向作弊客机定向发送 `SyncPlayerDataMessage`（正确卡组状态），游戏自动重建
+
+### 技术细节
+
+- 新增 `DeckSyncPatches.cs`：含 3 个 Harmony Patch（`ChooseOption` Postfix / `OnSyncPlayerMessageReceived` Prefix / `GoToMapNode` Prefix）
+- 新增 `NoClientCheatsMod` 辅助方法：`SetExpectedDeckSnapshot` / `GetAndClearExpectedDeckSnapshot` / `ClearAllDeckSnapshots` / `IsMultiplayerHost`
+
+---
+
 ## v1.2.0（2026-03-26）
 
 ### 新增：大厅聊天广播
@@ -20,6 +36,6 @@
 
 ### 安装说明
 
-1. 解压 `NoClientCheats-v1.2.0.zip` 到游戏 `mods/` 目录
+1. 解压 `NoClientCheats-v1.3.0.zip` 到游戏 `mods/` 目录
 2. 解压后目录结构：`mods/NoClientCheats/NoClientCheats.dll` + `mods/NoClientCheats/mod_manifest.json`
 3. 仅房主需安装；客机无需安装

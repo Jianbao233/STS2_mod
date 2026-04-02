@@ -70,7 +70,6 @@ namespace MultiplayerTools
                 // Derive Steam ID + profile key from path
                 DeriveProfileKeys(path);
 
-                GD.Print($"[MultiplayerTools] MpSessionState: loaded {path}");
                 SaveContextChanged?.Invoke();
                 return true;
             }
@@ -81,11 +80,19 @@ namespace MultiplayerTools
             }
         }
 
-        /// <summary>Reload the current save from disk.</summary>
-        internal static void ReloadSave()
+        /// <summary>Reload the current save from disk. Returns false if path is empty or parse fails.
+        /// Fires SaveContextChanged, then ProfilesChanged to keep the save-list in sync.</summary>
+        internal static bool ReloadSave()
         {
-            if (string.IsNullOrEmpty(CurrentSavePath)) return;
-            LoadSave(CurrentSavePath);
+            if (string.IsNullOrEmpty(CurrentSavePath)) return false;
+            var result = LoadSave(CurrentSavePath);
+            if (result)
+            {
+                // Re-scan AllProfiles so SaveSelect re-reads player counts from disk
+                // (AllProfiles[i].PlayerCount is used by IsMultiplayerRunProfile filter)
+                RefreshProfiles();
+            }
+            return result;
         }
 
         /// <summary>Clear the save context. Fires SaveContextChanged.</summary>
@@ -102,7 +109,8 @@ namespace MultiplayerTools
         internal static bool FlushSave()
         {
             if (string.IsNullOrEmpty(CurrentSavePath)) return false;
-            return Core.SaveManagerHelper.WriteSaveFile(CurrentSavePath, SaveData);
+            // No automatic sidecar backup on every flush (avoid spam); PlayerOpsService uses backup on structured ops
+            return Core.SaveManagerHelper.WriteSaveFile(CurrentSavePath, SaveData, makeBackup: false);
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────────
@@ -112,14 +120,20 @@ namespace MultiplayerTools
             try
             {
                 // Path format: .../steam/{steamId}/[modded/]profileN/saves/current_run_mp.save
+                // CurrentProfileKey must be only the profile folder segment(s), e.g. "modded/profile2"
+                // or "profile2" — NOT "saves" or the save filename (BackupCurrent / FindCurrentSave depend on this).
                 var parts = path.Replace('\\', '/').Split('/');
                 int steamIdx = Array.IndexOf(parts, "steam");
                 if (steamIdx >= 0 && steamIdx + 1 < parts.Length)
                 {
                     CurrentSteamId = parts[steamIdx + 1];
-                    // Profile key is everything after steam/{steamId}/
-                    var profileParts = parts.Skip(steamIdx + 2).Take(parts.Length - steamIdx - 2);
-                    CurrentProfileKey = string.Join("/", profileParts);
+                    var afterSteam = parts.Skip(steamIdx + 2).ToArray();
+                    int savesIdx = Array.FindIndex(afterSteam, p =>
+                        string.Equals(p, "saves", StringComparison.OrdinalIgnoreCase));
+                    if (savesIdx >= 0)
+                        CurrentProfileKey = string.Join("/", afterSteam.Take(savesIdx));
+                    else
+                        CurrentProfileKey = string.Join("/", afterSteam);
                 }
                 else
                 {

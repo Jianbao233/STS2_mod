@@ -68,7 +68,7 @@ namespace MultiplayerTools.Panel
         {
             btn.CustomMinimumSize = new Vector2(0, 40);
             btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            btn.AddThemeFontSizeOverride("font_size", 15);
+            UiFont.ApplyTo(btn, 15);
             btn.AddThemeColorOverride("font_outline_color", OutlineColor);
             btn.AddThemeConstantOverride("outline_size", 2);
 
@@ -97,7 +97,7 @@ namespace MultiplayerTools.Panel
         internal static void ApplyCloseButton(Button btn)
         {
             btn.CustomMinimumSize = new Vector2(40, 36);
-            btn.AddThemeFontSizeOverride("font_size", 18);
+            UiFont.ApplyTo(btn, 18);
             btn.AddThemeStyleboxOverride("normal", NavItemBox(Transparent));
             btn.AddThemeStyleboxOverride("hover", NavItemBox(MpNavHover));
             btn.AddThemeStyleboxOverride("pressed", NavItemBox(MpNavSelected));
@@ -110,7 +110,7 @@ namespace MultiplayerTools.Panel
         /// <summary>List row button (save file rows) — v2 card #1F3460, hover #2A5090.</summary>
         internal static void ApplyListRowButton(Button btn)
         {
-            btn.AddThemeFontSizeOverride("font_size", 13);
+            UiFont.ApplyTo(btn, 13);
             btn.AddThemeStyleboxOverride("normal", NavItemBox(MpNavSelected));
             btn.AddThemeStyleboxOverride("hover", NavItemBox(MpNavHover));
             btn.AddThemeStyleboxOverride("pressed", NavItemBox(MpNavSelected));
@@ -131,7 +131,7 @@ namespace MultiplayerTools.Panel
         internal static void ApplyTabButton(Button btn)
         {
             btn.CustomMinimumSize = new Vector2(90, 36);
-            btn.AddThemeFontSizeOverride("font_size", 16);
+            UiFont.ApplyTo(btn, 16);
             btn.AddThemeColorOverride("font_color", MpTextNav);
             btn.AddThemeColorOverride("font_hover_color", MpGold);
             btn.AddThemeColorOverride("font_pressed_color", MpGray);
@@ -143,7 +143,7 @@ namespace MultiplayerTools.Panel
         internal static void ApplyActionButton(Button btn, Color? fontColor = null)
         {
             btn.CustomMinimumSize = new Vector2(72, 32);
-            btn.AddThemeFontSizeOverride("font_size", 13);
+            UiFont.ApplyTo(btn, 13);
             btn.AddThemeColorOverride("font_color", fontColor ?? MpTextNav);
             btn.AddThemeColorOverride("font_hover_color", MpGold);
             btn.AddThemeColorOverride("font_pressed_color", MpGray);
@@ -160,7 +160,7 @@ namespace MultiplayerTools.Panel
         internal static void ApplyToggleButton(Button btn, bool active)
         {
             btn.CustomMinimumSize = new Vector2(90, 36);
-            btn.AddThemeFontSizeOverride("font_size", 14);
+            UiFont.ApplyTo(btn, 14);
             btn.AddThemeColorOverride("font_color", active ? MpGold : MpTextNav);
             btn.AddThemeColorOverride("font_hover_color", MpGold);
             btn.AddThemeColorOverride("font_pressed_color", MpGray);

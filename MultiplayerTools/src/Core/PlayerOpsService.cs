@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Godot;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -42,29 +45,25 @@ namespace MultiplayerTools.Core
                 if (players[playerIndex] is not Dictionary<string, object> player)
                     return OperationResult.Fail("Invalid player data");
 
-                string oldSteamId = "";
-                if (player.TryGetValue("net_id", out var nid) && nid is string old)
-                    oldSteamId = old;
+                string oldSteamId = player.TryGetValue("net_id", out var nidOld) ? nidOld?.ToString() ?? "" : "";
 
-                player["net_id"] = newSteamId;
+                player["net_id"] = NetIdToSaveValue(newSteamId);
 
                 // Clear map history stats for this player
                 if (data.TryGetValue("map_point_history", out var mph) && mph is List<object> history)
                 {
-                    foreach (var point in history)
+                    foreach (var node in EnumerateMapHistoryNodes(history))
                     {
-                        if (point is Dictionary<string, object> mp && mp.TryGetValue("player_stats", out var ps) && ps is List<object> stats)
-                        {
-                            if (playerIndex < stats.Count)
-                                stats[playerIndex] = MakeDefaultPlayerStats();
-                        }
+                        if (!node.TryGetValue("player_stats", out var psObj) || psObj is not List<object> stats)
+                            continue;
+                        if (playerIndex < stats.Count)
+                            stats[playerIndex] = MakeDefaultPlayerStats();
                     }
                 }
 
                 if (!SaveSave(savePath, data))
                     return OperationResult.Fail("Failed to write save file");
 
-                GD.Print($"[MultiplayerTools] TakeOver: player {playerIndex} (old={oldSteamId}) → {newSteamId}");
                 return OperationResult.Ok($"Player {playerIndex} taken over (ID: {oldSteamId} → {newSteamId})");
             }
             catch (Exception ex)
@@ -131,55 +130,12 @@ namespace MultiplayerTools.Core
 
         // ─── Private helpers ───────────────────────────────────────────────────
 
-        private static Dictionary<string, object>? LoadSave(string path)
-        {
-            if (!File.Exists(path)) return null;
-            string json = File.ReadAllText(path);
-            var doc = System.Text.Json.JsonDocument.Parse(json);
-            return JsonElementToDict(doc.RootElement);
-        }
+        /// <summary>Load save JSON; gzip + UTF-8 same as <see cref="SaveManagerHelper.ParseSaveFile"/> (matches Python v2 <c>_load_raw</c>).</summary>
+        private static Dictionary<string, object>? LoadSave(string path) =>
+            SaveManagerHelper.ParseSaveFile(path);
 
-        private static bool SaveSave(string path, Dictionary<string, object> data)
-        {
-            try
-            {
-                var opts = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
-                string json = System.Text.Json.JsonSerializer.Serialize(data, opts);
-                json = json.Replace("\n", "\r\n");
-                File.WriteAllText(path, json);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                GD.PrintErr($"[MultiplayerTools] SaveSave({path}) failed: " + ex.Message);
-                return false;
-            }
-        }
-
-        private static Dictionary<string, object> JsonElementToDict(System.Text.Json.JsonElement el)
-        {
-            var dict = new Dictionary<string, object>();
-            if (el.ValueKind == System.Text.Json.JsonValueKind.Object)
-            {
-                foreach (var prop in el.EnumerateObject())
-                    dict[prop.Name] = JsonValueToObject(prop.Value);
-            }
-            return dict;
-        }
-
-        private static object JsonValueToObject(System.Text.Json.JsonElement el)
-        {
-            switch (el.ValueKind)
-            {
-                case System.Text.Json.JsonValueKind.String: return el.GetString() ?? "";
-                case System.Text.Json.JsonValueKind.Number: return el.TryGetInt64(out var l) ? l : el.GetDouble();
-                case System.Text.Json.JsonValueKind.True: return true;
-                case System.Text.Json.JsonValueKind.False: return false;
-                case System.Text.Json.JsonValueKind.Array: return el.EnumerateArray().Select(JsonValueToObject).ToList();
-                case System.Text.Json.JsonValueKind.Object: return JsonElementToDict(el);
-                default: return "";
-            }
-        }
+        private static bool SaveSave(string path, Dictionary<string, object> data) =>
+            SaveManagerHelper.WriteSaveFile(path, data);
 
         private static Dictionary<string, object> MakeDefaultPlayerStats()
         {
@@ -209,9 +165,9 @@ namespace MultiplayerTools.Core
                 if (sourcePlayerIndex >= players.Count)
                     return OperationResult.Fail($"Source player index {sourcePlayerIndex} out of range (total: {players.Count})");
 
-                // Check ID conflict
+                // Check ID conflict (net_id may be stored as JSON number or string — compare as digits)
                 foreach (var p in players)
-                    if (p is Dictionary<string, object> pd && pd.TryGetValue("net_id", out var nid) && nid?.ToString() == newSteamId)
+                    if (p is Dictionary<string, object> pd && pd.TryGetValue("net_id", out var nid) && SteamIdsMatchDigits(nid, newSteamId))
                         return OperationResult.Fail($"Steam ID {newSteamId} already exists in this save");
 
                 if (players[sourcePlayerIndex] is not Dictionary<string, object> source)
@@ -219,7 +175,7 @@ namespace MultiplayerTools.Core
 
                 // Deep copy the source player
                 var newPlayer = DeepCopyDict(source);
-                newPlayer["net_id"] = newSteamId;
+                newPlayer["net_id"] = NetIdToSaveValue(newSteamId);
                 newPlayer["current_hp"] = newPlayer.TryGetValue("max_hp", out var mh) ? mh : (newPlayer.TryGetValue("current_hp", out var ch) ? ch : 0);
                 newPlayer["potions"] = new List<object>();
 
@@ -234,7 +190,6 @@ namespace MultiplayerTools.Core
                 if (!SaveSave(savePath, data))
                     return OperationResult.Fail("Failed to write save file");
 
-                GD.Print($"[MultiplayerTools] AddPlayerCopy: source={sourcePlayerIndex}, new={newSteamId}, char={charId}");
                 return OperationResult.Ok($"Player added (copy): {newSteamId}, char={charId}");
             }
             catch (Exception ex)
@@ -263,7 +218,7 @@ namespace MultiplayerTools.Core
 
                 // Check ID conflict
                 foreach (var p in players)
-                    if (p is Dictionary<string, object> pd && pd.TryGetValue("net_id", out var nid) && nid?.ToString() == newSteamId)
+                    if (p is Dictionary<string, object> pd && pd.TryGetValue("net_id", out var nid) && SteamIdsMatchDigits(nid, newSteamId))
                         return OperationResult.Fail($"Steam ID {newSteamId} already exists in this save");
 
                 // Build starter deck
@@ -280,7 +235,7 @@ namespace MultiplayerTools.Core
 
                 var newPlayer = new Dictionary<string, object>
                 {
-                    ["net_id"] = newSteamId,
+                    ["net_id"] = NetIdToSaveValue(newSteamId),
                     ["character_id"] = characterId,
                     ["current_hp"] = maxHp,
                     ["max_hp"] = maxHp,
@@ -335,7 +290,6 @@ namespace MultiplayerTools.Core
                 if (!SaveSave(savePath, data))
                     return OperationResult.Fail("Failed to write save file");
 
-                GD.Print($"[MultiplayerTools] AddPlayerFresh: new={newSteamId}, char={characterId}");
                 return OperationResult.Ok($"Player added (fresh): {newSteamId}, char={characterId}");
             }
             catch (Exception ex)
@@ -402,22 +356,25 @@ namespace MultiplayerTools.Core
                 // 3. Clean map_point_history player_stats
                 if (data.TryGetValue("map_point_history", out var mph) && mph is List<object> history)
                 {
-                    foreach (var point in history)
+                    foreach (var node in EnumerateMapHistoryNodes(history))
                     {
-                        if (point is Dictionary<string, object> mp && mp.TryGetValue("player_stats", out var psObj) && psObj is List<object> stats)
-                        {
-                            mp["player_stats"] = stats.Where(s =>
-                                !(s is Dictionary<string, object> sd && sd.TryGetValue("player_id", out var sid) && sid?.ToString() == removedId)
-                            ).ToList();
-                        }
+                        if (!node.TryGetValue("player_stats", out var psObj) || psObj is not List<object> stats)
+                            continue;
+                        node["player_stats"] = stats.Where(s =>
+                            !(s is Dictionary<string, object> sd && sd.TryGetValue("player_id", out var sid) && SteamIdsMatchDigits(sid, removedId))
+                        ).ToList();
                     }
                 }
 
-                if (!SaveSave(savePath, data))
-                    return OperationResult.Fail("Failed to write save file");
+                // 4. map_drawings
+                object? removedNetRaw = removed is Dictionary<string, object> rdNet && rdNet.TryGetValue("net_id", out var rnr) ? rnr : null;
+                TryRemovePlayerFromMapDrawings(data, removedNetRaw);
 
-                GD.Print($"[MultiplayerTools] RemovePlayerFull: index {playerIndex} ({removedId}) removed");
-                return OperationResult.Ok($"Player {playerIndex} removed (ID: {removedId}, char: {removedChar})");
+                var writeOk = SaveSave(savePath, data);
+
+                return writeOk
+                    ? OperationResult.Ok($"Player {playerIndex} removed (ID: {removedId}, char: {removedChar})")
+                    : OperationResult.Fail("Failed to write save file");
             }
             catch (Exception ex)
             {
@@ -428,6 +385,95 @@ namespace MultiplayerTools.Core
 
         // ─── Internal helpers (mirrors Python core.py) ─────────────────────────
 
+        /// <summary>Store SteamID64 the same way the game JSON does: numeric when it fits in <see cref="long"/>.</summary>
+        private static object NetIdToSaveValue(string steamId64)
+        {
+            if (string.IsNullOrEmpty(steamId64)) return steamId64;
+            if (ulong.TryParse(steamId64, out var u) && u <= long.MaxValue)
+                return (long)u;
+            return steamId64;
+        }
+
+        private static bool SteamIdsMatchDigits(object? a, string b)
+        {
+            if (a == null || string.IsNullOrEmpty(b)) return false;
+            return string.Equals(a.ToString(), b, StringComparison.Ordinal);
+        }
+
+        /// <summary>v2 <c>core.remove_player</c> step 4: strip drawings for removed <c>player_id</c>.</summary>
+        private static void TryRemovePlayerFromMapDrawings(Dictionary<string, object> data, object? removedNetId)
+        {
+            if (removedNetId == null) return;
+            string removedStr = removedNetId.ToString() ?? "";
+            if (string.IsNullOrEmpty(removedStr)) return;
+            if (!data.TryGetValue("map_drawings", out var mdObj)) return;
+            var b64 = mdObj?.ToString();
+            if (string.IsNullOrEmpty(b64)) return;
+            try
+            {
+                byte[] raw = Convert.FromBase64String(b64.Trim());
+                if (raw.Length >= 2 && raw[0] == 0x1f && raw[1] == 0x8b)
+                {
+                    using var ms = new MemoryStream(raw);
+                    using var gz = new GZipStream(ms, CompressionMode.Decompress);
+                    using var outMs = new MemoryStream();
+                    gz.CopyTo(outMs);
+                    raw = outMs.ToArray();
+                }
+
+                string text = System.Text.Encoding.UTF8.GetString(raw);
+                var root = JsonNode.Parse(text);
+                if (root is not JsonObject jo) return;
+                if (jo["drawings"] is not JsonArray drawings) return;
+
+                var next = new JsonArray();
+                foreach (var item in drawings)
+                {
+                    if (item is JsonObject d && d["player_id"] is { } pid)
+                    {
+                        if (string.Equals(pid.ToString(), removedStr, StringComparison.Ordinal))
+                            continue;
+                    }
+                    next.Add(item);
+                }
+                jo["drawings"] = next;
+
+                var drawOpts = new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+                byte[] payload = System.Text.Encoding.UTF8.GetBytes(jo.ToJsonString(drawOpts));
+                using var outGz = new MemoryStream();
+                using (var gz = new GZipStream(outGz, CompressionLevel.SmallestSize, leaveOpen: true))
+                    gz.Write(payload, 0, payload.Length);
+                data["map_drawings"] = Convert.ToBase64String(outGz.ToArray());
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] TryRemovePlayerFromMapDrawings: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Yield every map node in <paramref name="history"/> whether stored as a flat list of dicts
+        /// or as a list of floors (each floor a list of node dicts).
+        /// </summary>
+        private static IEnumerable<Dictionary<string, object>> EnumerateMapHistoryNodes(List<object> history)
+        {
+            foreach (var item in history)
+            {
+                if (item is Dictionary<string, object> node)
+                {
+                    yield return node;
+                }
+                else if (item is List<object> floorEntries)
+                {
+                    foreach (var e in floorEntries)
+                    {
+                        if (e is Dictionary<string, object> n)
+                            yield return n;
+                    }
+                }
+            }
+        }
+
         private static void InjectPlayerIntoMapHistory(Dictionary<string, object> saveData, Dictionary<string, object> player)
         {
             string? newId = player.TryGetValue("net_id", out var nid) ? nid?.ToString() : null;
@@ -436,19 +482,14 @@ namespace MultiplayerTools.Core
             if (!saveData.TryGetValue("map_point_history", out var mphObj) || mphObj is not List<object> history)
                 return;
 
-            foreach (var floor in history)
+            foreach (var node in EnumerateMapHistoryNodes(history))
             {
-                if (floor is not List<object> entries) continue;
-                foreach (var entry in entries)
-                {
-                    if (entry is not Dictionary<string, object> node) continue;
-                    var stats = node.TryGetValue("player_stats", out var psObj) && psObj is List<object> s ? s : null;
-                    if (stats == null) continue;
-                    if (stats.Any(s => s is Dictionary<string, object> sd && sd.TryGetValue("player_id", out var pid) && pid?.ToString() == newId))
-                        continue;
-                    string mpt = node.TryGetValue("map_point_type", out var mptObj) ? mptObj?.ToString() ?? "" : "";
-                    stats.Add(BuildPlayerStatEntry(player, mpt));
-                }
+                var stats = node.TryGetValue("player_stats", out var psObj) && psObj is List<object> s ? s : null;
+                if (stats == null) continue;
+                if (stats.Any(s => s is Dictionary<string, object> sd && sd.TryGetValue("player_id", out var pid) && pid?.ToString() == newId))
+                    continue;
+                string mpt = node.TryGetValue("map_point_type", out var mptObj) ? mptObj?.ToString() ?? "" : "";
+                stats.Add(BuildPlayerStatEntry(player, mpt));
             }
         }
 
@@ -460,7 +501,7 @@ namespace MultiplayerTools.Core
             int healAmt = maxHp;
             var stat = new Dictionary<string, object>
             {
-                ["player_id"] = player.TryGetValue("net_id", out var nid) ? nid! : 0,
+                ["player_id"] = player.TryGetValue("net_id", out var nid) ? nid! : (object)0,
                 ["current_gold"] = gold,
                 ["current_hp"] = currentHp,
                 ["max_hp"] = maxHp,

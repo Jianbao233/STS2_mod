@@ -17,7 +17,7 @@ namespace MultiplayerTools.Tabs
         internal static void Open(List<CardModel> allCards, Action<CardModel?> onSelected)
         {
             var overlay = new CanvasLayer { Layer = 200 };
-            NGame.Instance?.AddChild(overlay, false, Node.InternalMode.Disabled);
+            (Engine.GetMainLoop() as SceneTree)?.Root?.AddChild(overlay, false, Node.InternalMode.Disabled);
 
             var backdrop = new ColorRect
             {

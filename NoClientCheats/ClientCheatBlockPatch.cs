@@ -1,6 +1,9 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 
 namespace NoClientCheats;
@@ -74,6 +77,43 @@ internal static class ClientCheatBlockPrefix
         }
 
         return true; // BlockDisabled，放行
+    }
+
+    /// <summary>
+    /// Transpiler：在 HandleRequestEnqueueActionMessage 入口处插入 SetCurrentRemotePlayer，
+    /// 并在所有返回指令前插入 ClearCurrentRemotePlayer。
+    /// 这样 ChooseOption 在同一调用链中可以通过 AsyncLocal 读到有效的远程玩家 NetId。
+    /// </summary>
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator gen)
+    {
+        var list = instructions.ToList();
+        var clearMethod = typeof(NoClientCheatsMod).GetMethod(
+            nameof(NoClientCheatsMod.ClearCurrentRemotePlayer),
+            BindingFlags.NonPublic | BindingFlags.Static);
+        var setMethod = typeof(NoClientCheatsMod).GetMethod(
+            nameof(NoClientCheatsMod.SetCurrentRemotePlayer),
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        // 1. 在方法最开头插入：SetCurrentRemotePlayer(senderId)
+        // senderId 是第 3 个参数（arg 0 = __instance, arg 1 = message, arg 2 = senderId）
+        var first = list[0];
+        var startLabel = gen.DefineLabel();
+        first.labels.Add(startLabel);
+        list.Insert(0, new CodeInstruction(OpCodes.Ldarg_2) { labels = { startLabel } }); // 加载 senderId
+        list.Insert(1, new CodeInstruction(OpCodes.Call, setMethod));                      // 调用 SetCurrentRemotePlayer
+
+        // 2. 在所有 ret 指令前插入 ClearCurrentRemotePlayer
+        var result = new List<CodeInstruction>();
+        foreach (var inst in list)
+        {
+            result.Add(inst);
+            if (inst.opcode == OpCodes.Ret)
+            {
+                // 在 ret 前插入清除调用
+                result.Add(new CodeInstruction(OpCodes.Call, clearMethod));
+            }
+        }
+        return result;
     }
 
     /// <summary>

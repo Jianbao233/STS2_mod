@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using MultiplayerTools;
+using MultiplayerTools.Panel;
 
 namespace MultiplayerTools.UI
 {
@@ -35,53 +37,93 @@ namespace MultiplayerTools.UI
 
             if (roomList.Count == 0 && friendList.Count == 0)
             {
-                MpPanel.ShowStatusMessage(Loc.Get("friend.no_contacts", "No Steam contacts found."), Panel.Styles.MpTextMuted);
+                MpPanel.ShowStatusMessage(Loc.Get("friend.no_contacts", "No Steam contacts found."), Styles.MpTextMuted);
                 return;
             }
 
-            var popup = new Popup { Exclusive = true, Title = Loc.Get("friend.title", "Select Steam ID") };
+            const int popupW = 640;
+            const int popupH = 500;
 
-            var root = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+            var popup = new PopupPanel
+            {
+                Exclusive = true,
+                Title = Loc.Get("friend.title", "Select Steam ID"),
+                MinSize = new Vector2I(popupW, popupH),
+                Size = new Vector2I(popupW, popupH)
+            };
+
+            // Apply dark background so popup is visible against the game backdrop
+            var bgStyle = Panel.Styles.CreateFlat(Panel.Styles.PanelBg, Panel.Styles.PanelBorder, 8, 2);
+            popup.AddThemeStyleboxOverride("panel", bgStyle);
+
+            // Use VBox as root with FullRect anchors so it fills the popup client area
+            var root = new VBoxContainer();
+            root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             root.AddThemeConstantOverride("separation", 8);
             popup.AddChild(root, false, Node.InternalMode.Disabled);
 
-            // Search row
-            var searchRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            searchRow.AddThemeConstantOverride("separation", 8);
-            root.AddChild(searchRow, false, Node.InternalMode.Disabled);
+            // Toolbar row inside a MarginContainer for padding
+            var toolbarMargin = new MarginContainer();
+            toolbarMargin.AddThemeConstantOverride("margin_left", 10);
+            toolbarMargin.AddThemeConstantOverride("margin_right", 10);
+            toolbarMargin.AddThemeConstantOverride("margin_top", 10);
+            toolbarMargin.AddThemeConstantOverride("margin_bottom", 6);
+            root.AddChild(toolbarMargin, false, Node.InternalMode.Disabled);
+
+            var toolbar = new HBoxContainer();
+            toolbar.AddThemeConstantOverride("separation", 8);
+            toolbarMargin.AddChild(toolbar, false, Node.InternalMode.Disabled);
 
             var searchEdit = new LineEdit
             {
                 PlaceholderText = Loc.Get("friend.search_placeholder", "Search name / SteamID..."),
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-                CustomMinimumSize = new Vector2(280, 32)
+                CustomMinimumSize = new Vector2(300, 36)
             };
             searchEdit.AddThemeFontSizeOverride("font_size", 18);
-            searchRow.AddChild(searchEdit, false, Node.InternalMode.Disabled);
+            toolbar.AddChild(searchEdit, false, Node.InternalMode.Disabled);
 
-            var closeBtn = MpPanel.CreateActionButton(Loc.Get("close", "Close"), Panel.Styles.MpPrimaryBtn);
-            closeBtn.CustomMinimumSize = new Vector2(90, 32);
+            var closeBtn = MpPanel.CreateActionButton(Loc.Get("close", "Close"), Styles.MpPrimaryBtn);
+            closeBtn.CustomMinimumSize = new Vector2(90, 36);
             closeBtn.Pressed += () => { popup.Hide(); popup.QueueFree(); };
-            searchRow.AddChild(closeBtn, false, Node.InternalMode.Disabled);
+            toolbar.AddChild(closeBtn, false, Node.InternalMode.Disabled);
 
-            // Scroll list
+            // Scroll list with padding
+            var scrollMargin = new MarginContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+                CustomMinimumSize = new Vector2(0, 320)
+            };
+            scrollMargin.AddThemeConstantOverride("margin_left", 10);
+            scrollMargin.AddThemeConstantOverride("margin_right", 10);
+            scrollMargin.AddThemeConstantOverride("margin_top", 4);
+            scrollMargin.AddThemeConstantOverride("margin_bottom", 10);
+            root.AddChild(scrollMargin, false, Node.InternalMode.Disabled);
+
             var scroll = new ScrollContainer
             {
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-                CustomMinimumSize = new Vector2(520, 420),
+                CustomMinimumSize = new Vector2(0, 300),
                 HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
             };
-            root.AddChild(scroll, false, Node.InternalMode.Disabled);
+            scrollMargin.AddChild(scroll, false, Node.InternalMode.Disabled);
 
-            var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            list.AddThemeConstantOverride("separation", 8);
+            var list = new VBoxContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            };
+            list.AddThemeConstantOverride("separation", 6);
             scroll.AddChild(list, false, Node.InternalMode.Disabled);
 
+            // ── Render helpers ────────────────────────────────────────────────────
             void Render(string query)
             {
                 MpPanel.ClearChildren(list);
                 string q = (query ?? "").Trim();
+
                 bool HasMatch(SteamIdOption o)
                 {
                     if (string.IsNullOrEmpty(q)) return true;
@@ -94,27 +136,38 @@ namespace MultiplayerTools.UI
                 var friendsFiltered = friendList.Where(HasMatch).ToList();
 
                 if (roomFiltered.Count > 0)
-                    RenderSection(list, Loc.Get("friend.room_members", "Players in Room"), roomFiltered, targetEdit, popup);
+                    RenderSection(list,
+                        Loc.Get("friend.room_members", "Room Players") + $" ({roomFiltered.Count}/{roomList.Count})",
+                        roomFiltered, targetEdit, popup);
+                else if (roomList.Count > 0)
+                    RenderEmptyHint(list, Loc.Get("friend.empty_room", "No other players in room"));
 
                 if (friendsFiltered.Count > 0)
-                    RenderSection(list, Loc.Get("friend.friends", "Steam Friends"), friendsFiltered, targetEdit, popup);
+                    RenderSection(list,
+                        Loc.Get("friend.friends", "Steam Friends") + $" ({friendsFiltered.Count}/{friendList.Count})",
+                        friendsFiltered, targetEdit, popup);
+                else if (friendList.Count > 0)
+                    RenderEmptyHint(list, Loc.Get("friend.empty_friends", "No Steam friends parsed from local config"));
 
                 if (roomFiltered.Count == 0 && friendsFiltered.Count == 0)
-                {
-                    var empty = new Label { Text = Loc.Get("friend.no_match", "No matches."), HorizontalAlignment = HorizontalAlignment.Center };
-                    empty.AddThemeFontSizeOverride("font_size", 16);
-                    empty.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
-                    list.AddChild(empty, false, Node.InternalMode.Disabled);
-                }
+                    RenderEmptyHint(list, Loc.Get("friend.no_match", "No matches"));
             }
 
             searchEdit.TextChanged += text => Render(text);
             Render("");
 
-            popup.Connect(Window.SignalName.CloseRequested, new Callable(closeBtn, Button.SignalName.Pressed));
+            popup.Connect(Popup.SignalName.CloseRequested, new Callable(closeBtn, Button.SignalName.Pressed));
             (Engine.GetMainLoop() as SceneTree)?.Root.AddChild(popup, false, Node.InternalMode.Disabled);
-            popup.PopupCentered();
+            popup.PopupCentered(new Vector2I(popupW, popupH));
             searchEdit.GrabFocus();
+        }
+
+        private static void RenderEmptyHint(VBoxContainer parent, string text)
+        {
+            var hint = new Label { Text = $"    {text}" };
+            hint.AddThemeFontSizeOverride("font_size", 16);
+            hint.AddThemeColorOverride("font_color", Styles.MpTextMuted);
+            parent.AddChild(hint, false, Node.InternalMode.Disabled);
         }
 
         private static void RenderSection(
@@ -126,7 +179,7 @@ namespace MultiplayerTools.UI
         {
             var header = new Label { Text = title };
             header.AddThemeFontSizeOverride("font_size", 16);
-            header.AddThemeColorOverride("font_color", Panel.Styles.MpGray);
+            header.AddThemeColorOverride("font_color", Styles.MpGray);
             parent.AddChild(header, false, Node.InternalMode.Disabled);
 
             foreach (var opt in items.Take(80))
@@ -139,25 +192,25 @@ namespace MultiplayerTools.UI
                 textCol.AddThemeConstantOverride("separation", 2);
                 row.AddChild(textCol, false, Node.InternalMode.Disabled);
 
-                var nameLbl = new Label { Text = opt.DisplayName, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+                // Display name — show persona if available, otherwise just show shortened ID
+                string displayText = !string.IsNullOrEmpty(opt.DisplayName) && opt.DisplayName != opt.SteamId
+                    ? opt.DisplayName
+                    : MpSessionState.ShortenSteamId(opt.SteamId);
+                var nameLbl = new Label { Text = displayText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
                 nameLbl.AddThemeFontSizeOverride("font_size", 18);
-                nameLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextNav);
+                nameLbl.AddThemeColorOverride("font_color", Styles.MpTextNav);
                 textCol.AddChild(nameLbl, false, Node.InternalMode.Disabled);
 
-                var sub = opt.SubText;
-                if (!string.IsNullOrEmpty(sub))
-                {
-                    var subLbl = new Label { Text = sub, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-                    subLbl.AddThemeFontSizeOverride("font_size", 15);
-                    subLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
-                    textCol.AddChild(subLbl, false, Node.InternalMode.Disabled);
-                }
+                // Sub text: always show the Steam ID (shortened) as context
+                string subDisplay = !string.IsNullOrEmpty(opt.SubText)
+                    ? opt.SubText
+                    : MpSessionState.ShortenSteamId(opt.SteamId);
+                var subLbl = new Label { Text = subDisplay, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+                subLbl.AddThemeFontSizeOverride("font_size", 15);
+                subLbl.AddThemeColorOverride("font_color", Styles.MpTextMuted);
+                textCol.AddChild(subLbl, false, Node.InternalMode.Disabled);
 
-                var idLbl = new Label { Text = opt.SteamId };
-                idLbl.AddThemeFontSizeOverride("font_size", 16);
-                idLbl.AddThemeColorOverride("font_color", Panel.Styles.MpGray);
-                row.AddChild(idLbl, false, Node.InternalMode.Disabled);
-
+                // Select button
                 var selBtn = new Button { Text = Loc.Get("friend.select", "Select") };
                 selBtn.CustomMinimumSize = new Vector2(70, 30);
                 string capId = opt.SteamId;
@@ -172,4 +225,3 @@ namespace MultiplayerTools.UI
         }
     }
 }
-

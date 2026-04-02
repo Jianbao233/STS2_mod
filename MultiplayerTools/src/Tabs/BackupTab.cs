@@ -196,13 +196,12 @@ namespace MultiplayerTools.Tabs
         {
             try
             {
-                var currentSteamId = Steam.SteamIntegration.GetCurrentSteamId() ?? "unknown";
-                var profiles = SaveManagerHelper.GetAllProfiles();
-                var firstProfile = profiles.Count > 0 ? profiles[0].ProfileName : "profile1";
-                var path = SaveManagerHelper.BackupCurrent(currentSteamId, firstProfile);
+                // Use the currently loaded save's identity (correct Steam ID + modded/profileN key).
+                var currentSteamId = !string.IsNullOrEmpty(MpSessionState.CurrentSteamId) ? MpSessionState.CurrentSteamId : Steam.SteamIntegration.GetCurrentSteamId() ?? "unknown";
+                var currentProfileKey = !string.IsNullOrEmpty(MpSessionState.CurrentProfileKey) ? MpSessionState.CurrentProfileKey : "profile1";
+                var path = SaveManagerHelper.BackupCurrent(currentSteamId, currentProfileKey);
                 if (path != null)
                 {
-                    GD.Print("[MultiplayerTools] Backup created: " + path);
                     LoadBackups();
                     RebuildList(_listVBox!);
                     ShowStatusMsg(Loc.Get("backup.created", "Backup created"), Panel.Styles.Green);
@@ -231,7 +230,6 @@ namespace MultiplayerTools.Tabs
                 // Restore the first matching save file found in the backup
                 var srcFile = backupFiles[0];
                 File.Copy(srcFile, currentSave, true);
-                GD.Print("[MultiplayerTools] Backup restored: " + srcFile + " → " + currentSave);
                 ShowStatusMsg(Loc.Get("backup.restored", "Backup restored"), Panel.Styles.Green);
             }
             catch (Exception ex)
@@ -245,12 +243,11 @@ namespace MultiplayerTools.Tabs
         {
             try
             {
-                if (Directory.Exists(b.Path)) Directory.Delete(b.Path, true);
+                if (Directory.Exists(b.Path))                 Directory.Delete(b.Path, true);
                 _backups.Remove(b);
                 _selected = null;
                 RebuildList(_listVBox!);
                 MpPanel.ClearChildren(_detailVBox!);
-                GD.Print("[MultiplayerTools] Backup deleted: " + b.Path);
             }
             catch (Exception ex)
             {

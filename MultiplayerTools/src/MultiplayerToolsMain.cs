@@ -2,6 +2,7 @@ using Godot;
 using HarmonyLib;
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace MultiplayerTools
 {
@@ -41,50 +42,74 @@ namespace MultiplayerTools
                 _initScheduled = true;
                 tree.ProcessFrame += OnFrame1;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] TryScheduleInit failed: " + ex.Message);
+            }
         }
 
         private static void OnFrame1()
         {
-            var tree = Engine.GetMainLoop() as SceneTree;
-            if (tree != null)
+            try
             {
-                tree.ProcessFrame -= OnFrame1;
-                tree.ProcessFrame += OnFrame2;
+                var tree = Engine.GetMainLoop() as SceneTree;
+                if (tree != null)
+                {
+                    tree.ProcessFrame -= OnFrame1;
+                    tree.ProcessFrame += OnFrame2;
+                }
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] OnFrame1 failed: " + ex.Message);
             }
         }
 
         private static void OnFrame2()
         {
-            var tree = Engine.GetMainLoop() as SceneTree;
-            if (tree != null)
+            try
             {
+                var tree = Engine.GetMainLoop() as SceneTree;
+                if (tree == null) return;
+
                 tree.ProcessFrame -= OnFrame2;
                 Config.Load();
                 Loc.Reload();
                 new Harmony("multiplayer.tools").PatchAll(Assembly.GetExecutingAssembly());
 
-                var tree2 = Engine.GetMainLoop() as SceneTree;
-                tree2?.Root?.AddChild(new F1InputNode());
+                // Preload persona names async so SaveSelectPage renders without blocking the main thread.
+                _ = MultiplayerTools.Steam.SteamIntegration.PreloadPersonaNamesAsync();
+
+                tree.Root?.AddChild(new F1InputNode());
 
                 MpPanel.Toggle();
                 MpPanel.Hide();
                 GD.Print("[MultiplayerTools] Initialized");
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] OnFrame2 failed: " + ex);
             }
         }
     }
 
     /// <summary>
     /// F1 hotkey input node. Added to the scene tree root.
+    /// In Godot 4 use _ShortcutInput (or _Input) with InputEventFromAction.
     /// </summary>
     internal partial class F1InputNode : Node
     {
-        public override void _Input(InputEvent @event)
+        public override void _EnterTree()
+        {
+        }
+
+        public override void _UnhandledInput(InputEvent @event)
         {
             if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.F1)
             {
                 MpPanel.Toggle();
             }
+            base._UnhandledInput(@event);
         }
     }
 }
