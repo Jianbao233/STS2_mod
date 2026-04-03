@@ -326,6 +326,9 @@ internal static class DeckSyncPatches
         private static readonly System.Collections.Generic.Dictionary<ulong, (int cardCount, int upgradedCount, string optionId, int allowedCardDelta, int allowedUpgradeDelta)>
             _lastSyncState = new();
 
+        // 缓存 CombatStateSynchronizer 单例（通过前缀方法获取一次，避免每次反射）
+        private static object _cachedSynchronizer = null;
+
         static MethodBase TargetMethod()
         {
             var t = AccessTools.TypeByName(
@@ -335,6 +338,41 @@ internal static class DeckSyncPatches
                 BindingFlags.NonPublic | BindingFlags.Instance);
             DIAG($"TargetMethod: type={t?.FullName ?? "null"} method={m?.Name ?? "null"}");
             return m;
+        }
+
+        // Prefix：在当前 Postfix 之前，把上次收到的 SerializablePlayer 快照保存下来。
+        // 这样 Postfix 作弊检测时可以拿到「作弊前」的完整快照用于回滚。
+        static void Prefix(object __instance)
+        {
+            if (__instance != null && _cachedSynchronizer == null)
+                _cachedSynchronizer = __instance;
+        }
+
+        // 供外部使用：获取已缓存的 CombatStateSynchronizer 实例
+        internal static object GetCachedSynchronizer() => _cachedSynchronizer;
+
+        /// <summary>发现实例时写入缓存（例如从 PlayerChoice 路径解析到）。</summary>
+        internal static void RememberSynchronizer(object instance)
+        {
+            if (instance != null) _cachedSynchronizer = instance;
+        }
+
+        /// <summary>
+        /// 立即回滚后：把「上一轮」Serializable、Sync 基线、lastDeckSize 与合法快照对齐，
+        /// 避免后续 SyncReceived 用错 prevCards，并保证 _syncData 与活 Player 一致。
+        /// </summary>
+        internal static void SetBaselineFromSerializable(ulong netId, object serializablePlayer)
+        {
+            if (serializablePlayer == null) return;
+            var deck = GetSerializableDeck(serializablePlayer);
+            int n = deck?.Count ?? 0;
+            int u = CountUpgraded(deck ?? Array.Empty<object>());
+            lock (_lastSerializablePlayer)
+                _lastSerializablePlayer[netId] = serializablePlayer;
+            lock (_lastSyncState)
+                _lastSyncState[netId] = (n, u, "", 0, 0);
+            lock (_lastSyncDeckSize)
+                _lastSyncDeckSize[netId] = n;
         }
 
         // 供外部调用：ChooseOptionPostfix 在此注册当前事件类型和允许的增量
@@ -353,6 +391,8 @@ internal static class DeckSyncPatches
         static void Postfix(object __instance, object syncMessage, ulong senderId)
         {
             if (syncMessage == null) return;
+            if (__instance != null)
+                _cachedSynchronizer = __instance;
             try
             {
                 var receivedPlayer = GetSyncMessagePlayer(syncMessage);
@@ -364,7 +404,15 @@ internal static class DeckSyncPatches
                 var receivedNetId = GetPlayerNetId(receivedPlayer);
                 var realName = GetPlayerDisplayName(receivedPlayer) ?? $"#{senderId % 10000}";
 
-                // 取出上一次 SyncReceived 的状态
+                // ── 必须在覆盖字典之前抓取「上一轮」快照（回滚用）────────────────────
+                object prevSerializableSnapshot = null;
+                lock (_lastSerializablePlayer)
+                    _lastSerializablePlayer.TryGetValue(senderId, out prevSerializableSnapshot);
+
+                bool hadSavedPrevSyncState = false;
+                (int cardCount, int upgradedCount, string optionId, int allowedCardDelta, int allowedUpgradeDelta) savedPrevSyncState = default;
+
+                // 取出上一次 SyncReceived 的状态，并写入当前状态
                 int prevCards = 0, prevUpgraded = 0;
                 string optionId = null;
                 bool hasPrev = false;
@@ -373,6 +421,8 @@ internal static class DeckSyncPatches
                 {
                     if (_lastSyncState.TryGetValue(senderId, out var prev))
                     {
+                        savedPrevSyncState = prev;
+                        hadSavedPrevSyncState = true;
                         prevCards = prev.cardCount;
                         prevUpgraded = prev.upgradedCount;
                         optionId = prev.optionId;
@@ -387,6 +437,9 @@ internal static class DeckSyncPatches
                 int cardDelta = receivedCards - prevCards;
                 int upgradeDelta = receivedUpgraded - prevUpgraded;
                 DIAG($"[FULLTRACE] Sync.Postfix senderId={senderId}(netId={receivedNetId}) {prevCards}C/{prevUpgraded}U -> {receivedCards}C/{receivedUpgraded}U delta={cardDelta}/{upgradeDelta} option={optionId ?? "?"} hasPrev={hasPrev} allowedD={allowedCardDelta}/{allowedUpgradeDelta}");
+
+                // 记录当前卡组大小，供 OnReceivePlayerChoice 使用（transform 前快照）
+                lock (_lastSyncDeckSize) { _lastSyncDeckSize[senderId] = receivedCards; }
 
                 // ── 检测作弊 ──
                 // 逻辑：
@@ -441,17 +494,180 @@ internal static class DeckSyncPatches
                     }
                 }
 
+                // ── Transform/Reward 作弊检测（基于 OnReceivePlayerChoice 快照）────────
+                // OnReceivePlayerChoice 时记录了 deckCards（transform 后的卡组快照）。
+                // 当 SyncReceived 到来时：
+                //   - 若 optionId 不为空：已被 allowedDeltas 覆盖，不重复检测
+                //   - 若 optionId 为空（选卡类事件）：用快照检测 transform/reward 是否超量
+                int preDeckSize = 0;
+                int choiceCallCount = 0;
+                lock (_pendingPreDeckSize)
+                {
+                    _pendingPreDeckSize.TryGetValue(senderId, out preDeckSize);
+                    _choiceCallCount.TryGetValue(senderId, out choiceCallCount);
+                    // 清理
+                    _pendingPreDeckSize.Remove(senderId);
+                    _choiceCallCount.Remove(senderId);
+                }
+
+                if (preDeckSize > 0 && string.IsNullOrEmpty(optionId))
+                {
+                    int deckSizeDelta = receivedCards - preDeckSize;
+                    DIAG($"[FULLTRACE] TransformCheck preDeck={preDeckSize} received={receivedCards} delta={deckSizeDelta} choiceCalls={choiceCallCount}");
+
+                    // 作弊判断：
+                    // - choiceCalls >= 2（副机选了 >= 2 张卡）
+                    //   - delta != 0 → 变换数量与选择数量不符
+                    //   - delta == 0 → 只变了 1 张，但选了 2+ 张（多选）
+                    //   - delta == 1 → 只奖励了 1 张，但选了 2+ 张（多选）
+                    //   - delta == -1 → 只删了 1 张，但选了 2+ 张（多选）
+                    // - choiceCalls == 1（副机选了 1 张卡）
+                    //   - delta > 1 → 多得了卡
+                    //   - delta < -1 → 多删了卡
+                    //   - delta in {-1, 0, 1} → 正常
+                    if (choiceCallCount >= 2 && deckSizeDelta == 0)
+                    {
+                        // 选了 2+ 张但卡数不变：只执行了 1 次 transform，多选作弊
+                        cheated = true;
+                        cheatType = $"transform_multi_select(calls={choiceCallCount} delta={deckSizeDelta})";
+                        DIAG($"CHEAT from {realName} (calls={choiceCallCount} preDeck={preDeckSize}→{receivedCards}): {cheatType}");
+                    }
+                    else if (choiceCallCount >= 2 && deckSizeDelta == 1)
+                    {
+                        // 选了 2+ 张但只增了 1 张
+                        cheated = true;
+                        cheatType = $"reward_multi_select(calls={choiceCallCount} delta={deckSizeDelta})";
+                        DIAG($"CHEAT from {realName} (calls={choiceCallCount} preDeck={preDeckSize}→{receivedCards}): {cheatType}");
+                    }
+                    else if (choiceCallCount >= 2 && deckSizeDelta == -1)
+                    {
+                        // 选了 2+ 张但只删了 1 张
+                        cheated = true;
+                        cheatType = $"remove_multi_select(calls={choiceCallCount} delta={deckSizeDelta})";
+                        DIAG($"CHEAT from {realName} (calls={choiceCallCount} preDeck={preDeckSize}→{receivedCards}): {cheatType}");
+                    }
+                    else if (choiceCallCount >= 2 && Math.Abs(deckSizeDelta) > 1)
+                    {
+                        // 选了 2+ 张但变化超出合理范围
+                        cheated = true;
+                        cheatType = $"multi_select_excess(calls={choiceCallCount} delta={deckSizeDelta})";
+                        DIAG($"CHEAT from {realName} (calls={choiceCallCount} preDeck={preDeckSize}→{receivedCards}): {cheatType}");
+                    }
+                    else if (choiceCallCount == 1 && deckSizeDelta > 1)
+                    {
+                        // 选了 1 张但多了 2+ 张
+                        cheated = true;
+                        cheatType = $"reward_excess(gained={deckSizeDelta})";
+                        DIAG($"CHEAT from {realName} (preDeck={preDeckSize}→{receivedCards}): {cheatType}");
+                    }
+                    else if (choiceCallCount == 1 && deckSizeDelta < -1)
+                    {
+                        // 选了 1 张但删了 2+ 张
+                        cheated = true;
+                        cheatType = $"remove_excess(deleted={-deckSizeDelta})";
+                        DIAG($"CHEAT from {realName} (preDeck={preDeckSize}→{receivedCards}): {cheatType}");
+                    }
+                    // choiceCallCount >= 2 且 delta == choiceCallCount - 1（正确执行了多次 transform/reward）：正常
+                    // choiceCallCount == 1 且 delta in {-1, 0, 1}：正常
+                }
+
                 if (!cheated)
                 {
                     DIAG($"Check passed for {realName}");
+                    // 仅合法同步才推进「上一轮」Serializable 快照
+                    lock (_lastSerializablePlayer) { _lastSerializablePlayer[senderId] = receivedPlayer; }
                     return;
                 }
 
-                // 作弊检测到！
-                NoClientCheatsMod.RecordCheat(senderId, realName, optionId, $"deck:{cheatType}", true);
+                // ── 作弊检测到！执行回滚 ──
+                // 1) 记录（若已在 OnReceivePlayerChoice 瞬间弹过窗，则不再重复弹）
+                bool skipNotify = false;
+                lock (_immediateCheatNotifyTicks)
+                {
+                    if (_immediateCheatNotifyTicks.TryGetValue(senderId, out var notifyT)
+                        && DateTime.Now.Ticks - notifyT <= TimeSpan.FromSeconds(10).Ticks)
+                    {
+                        skipNotify = true;
+                        _immediateCheatNotifyTicks.Remove(senderId);
+                    }
+                }
+                if (!skipNotify)
+                    NoClientCheatsMod.RecordCheat(senderId, realName, optionId, $"deck:{cheatType}", true);
+                else
+                    DIAG($"[FULLTRACE] Skip duplicate RecordCheat (already notified at choice)");
                 DIAG($"CHEAT from {realName}: {cheatType}");
+
+                // 2) 使用 Postfix 开头抓取的 prevSerializableSnapshot（作弊前的合法 SerializablePlayer）
+                if (prevSerializableSnapshot == null)
+                {
+                    DIAG($"[FULLTRACE] Rollback aborted: no prevSerializableSnapshot for {senderId} (first sync?)");
+                    return;
+                }
+
+                object syncDataCorrectSnapshot = TryCloneSerializableSnapshot(prevSerializableSnapshot)
+                    ?? prevSerializableSnapshot;
+
+                // 3) 回滚主机本地的 `_lastSyncState`：恢复到覆盖前保存的元组
+                if (hadSavedPrevSyncState)
+                {
+                    lock (_lastSyncState)
+                    {
+                        _lastSyncState[senderId] = savedPrevSyncState;
+                        DIAG($"[FULLTRACE] Rollback: _lastSyncState restored to ({savedPrevSyncState.cardCount}C/{savedPrevSyncState.upgradedCount}U)");
+                    }
+                }
+
+                // 3b) 主机上该玩家的「活」Player 实体也要 RestoreFromSerializable
+                object livePlayer = _TryResolveLivePlayerByNetId(senderId);
+                if (livePlayer == null)
+                {
+                    lock (_lastRemotePlayerByNetId)
+                        _lastRemotePlayerByNetId.TryGetValue(senderId, out livePlayer);
+                }
+                if (livePlayer != null)
+                {
+                    DIAG($"[FULLTRACE] Rollback: RestoreFromSerializable on live Player netId={senderId}");
+                    _RollbackPlayerDeck(livePlayer, syncDataCorrectSnapshot);
+                }
+                else
+                    DIAG($"[FULLTRACE] Rollback: live Player not found for netId={senderId} (sync-only rollback)");
+
+                // 4) 回滚 CombatStateSynchronizer._syncData：替换为作弊前的快照
+                //    效果：主机后续游戏逻辑（如战斗、遗物生效等）继续使用合法状态
+                var syncDataField = AccessTools.Field(__instance.GetType(), "_syncData");
+                var syncData = syncDataField?.GetValue(__instance) as IDictionary;
+                if (syncData != null)
+                {
+                    if (syncData.Contains(senderId))
+                        syncData[senderId] = syncDataCorrectSnapshot;
+                    else
+                        syncData.Add(senderId, syncDataCorrectSnapshot);
+                    DIAG($"[FULLTRACE] Rollback: _syncData[{senderId}] replaced");
+                }
+                else
+                {
+                    DIAG($"[FULLTRACE] Rollback: _syncData=null, skipping");
+                }
+
+                // 5) 向副机发送纠正消息：强制副机用合法快照覆盖自己的状态
+                //    副机收到后会更新本地数据并广播 SyncReceived，主机收到后进入合法分支
+                DIAG($"[FULLTRACE] Rollback: sending SyncPlayerDataMessage to {senderId}");
+                _SendRollback(__instance, senderId, syncDataCorrectSnapshot);
+
+                // 6) 重新记录合规快照：让后续 SyncReceived 的 ChooseOption 检测路径正常工作
+                NoClientCheatsMod.SetExpectedDeckSnapshot(senderId, syncDataCorrectSnapshot);
+                DIAG($"[FULLTRACE] Rollback: SetExpectedDeckSnapshot({senderId}) done");
+
+                // 7) 字典与 OnReceivePlayerChoice 用的卡组大小与「上一轮」一致
+                if (hadSavedPrevSyncState)
+                    lock (_lastSyncDeckSize) { _lastSyncDeckSize[senderId] = savedPrevSyncState.cardCount; }
+                lock (_lastSerializablePlayer) { _lastSerializablePlayer[senderId] = syncDataCorrectSnapshot; }
             }
-            catch (Exception ex) { DIAG($"Postfix error: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                DIAG($"Postfix error: {ex.Message}");
+                GD.PushError($"[NCC] SyncReceived Postfix error: {ex}");
+            }
         }
     }
 
@@ -530,6 +746,94 @@ internal static class DeckSyncPatches
     }
 
     /// <summary>
+    /// 填充同步消息中的玩家快照（不同版本字段名可能不同）。
+    /// </summary>
+    private static void _PopulateSyncPlayerDataMessage(object msg, object correctSnapshot)
+    {
+        if (msg == null || correctSnapshot == null) return;
+        foreach (var name in new[] { "player", "Player", "SerializablePlayer", "PlayerData", "Data" })
+            _SetMemberAny(msg, name, correctSnapshot);
+    }
+
+    private static void _SetMemberAny(object target, string memberName, object value)
+    {
+        if (target == null) return;
+        var t = target.GetType();
+        var prop = t.GetProperty(memberName,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (prop != null && prop.CanWrite)
+        {
+            try { prop.SetValue(target, value); return; } catch { /* try field */ }
+        }
+        var field = t.GetField(memberName,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        if (field != null)
+        {
+            try { field.SetValue(target, value); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// 调用 INetGameService 上能把「已构造消息」发给指定 peer 的方法。
+    /// </summary>
+    private static bool _TrySendMessageToPeer(object netService, object msg, ulong targetNetId)
+    {
+        if (netService == null || msg == null) return false;
+        var msgType = msg.GetType();
+        var nsType = netService.GetType();
+
+        foreach (var methodName in new[] { "SendMessage", "SendMessageReliable", "SendToPeer", "SendToClient", "QueueMessage" })
+        {
+            foreach (var m in nsType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                if (m.Name != methodName) continue;
+                if (m.IsGenericMethodDefinition) continue;
+                var ps = m.GetParameters();
+                if (ps.Length != 2) continue;
+                if (!ps[0].ParameterType.IsInstanceOfType(msg)) continue;
+
+                var p1 = ps[1].ParameterType;
+                try
+                {
+                    if (p1 == typeof(ulong))
+                    {
+                        m.Invoke(netService, new object[] { msg, targetNetId });
+                        return true;
+                    }
+                    if (p1 == typeof(long))
+                    {
+                        m.Invoke(netService, new object[] { msg, (long)targetNetId });
+                        return true;
+                    }
+                    if (p1 == typeof(int) && targetNetId <= int.MaxValue)
+                    {
+                        m.Invoke(netService, new object[] { msg, (int)targetNetId });
+                        return true;
+                    }
+                }
+                catch { /* try next */ }
+            }
+        }
+
+        foreach (var m in nsType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+        {
+            if (!m.IsGenericMethodDefinition || m.Name != "SendMessage") continue;
+            var ps = m.GetParameters();
+            if (ps.Length != 2 || ps[1].ParameterType != typeof(ulong)) continue;
+            if (m.GetGenericArguments().Length != 1) continue;
+            try
+            {
+                var concrete = m.MakeGenericMethod(msgType);
+                concrete.Invoke(netService, new object[] { msg, targetNetId });
+                return true;
+            }
+            catch { /* try next */ }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 向指定客机发送回滚消息。
     /// 通过 INetGameService.SendMessage&lt;SyncPlayerDataMessage&gt;(msg, peerId) 实现定向发送。
     /// </summary>
@@ -548,23 +852,15 @@ internal static class DeckSyncPatches
             if (msgType == null) { GD.PushError("[NCC] _SendRollback: msgType null"); return; }
 
             var msg = Activator.CreateInstance(msgType);
+            _PopulateSyncPlayerDataMessage(msg, correctSnapshot);
 
-            // 设置 msg.player = correctSnapshot（property 或 field 均可）
-            SetMemberValue(msg, "player", correctSnapshot);
-
-            // 找到 SendMessage<T>(T msg, ulong playerId) 方法
-            var sendMethod = netService.GetType().GetMethod("SendMessage",
-                new[] { msgType, typeof(ulong) });
-
-            if (sendMethod != null)
+            if (_TrySendMessageToPeer(netService, msg, targetNetId))
             {
-                sendMethod.Invoke(netService, new[] { msg, targetNetId });
-                GD.Print($"[NCC] Rollback sent to {targetNetId}");
+                GD.Print($"[NCC] Rollback sent to {targetNetId} (multi-path SendMessage ok)");
+                return;
             }
-            else
-            {
-                GD.PushError("[NCC] _SendRollback: SendMessage not found");
-            }
+
+            GD.PushError("[NCC] _SendRollback: no matching SendMessage/SendToPeer on net service");
         }
         catch (Exception ex) { GD.PushError($"[NCC] _SendRollback error: {ex}"); }
     }
@@ -636,6 +932,59 @@ internal static class DeckSyncPatches
     private static bool _IsRemotePlayer(object player)
     {
         return !_IsLocalPlayer(player);
+    }
+
+    /// <summary>本机所控制玩家的 NetId（Players 里 IsLocal==true 的那位）。</summary>
+    private static ulong TryGetLocalControllingNetId()
+    {
+        try
+        {
+            var rmType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager");
+            var inst = rmType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            if (inst == null) return 0;
+
+            object state = inst.GetType().GetProperty("State", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            state ??= inst.GetType().GetProperty("CurrentRun", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            state ??= inst.GetType().GetProperty("RunState", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            if (state == null) return 0;
+
+            object playersObj = state.GetType().GetProperty("Players", BindingFlags.Public | BindingFlags.Instance)?.GetValue(state);
+            playersObj ??= GetMemberValue(state, "_players");
+            if (playersObj is not IEnumerable players) return 0;
+
+            foreach (var p in players)
+            {
+                if (p == null) continue;
+                if (!_IsLocalPlayer(p)) continue;
+                ulong id = GetPlayerNetId(p);
+                if (id != 0) return id;
+            }
+        }
+        catch { }
+        return 0;
+    }
+
+    /// <summary>
+    /// 是否为他机玩家。STS2 主机上 <c>Player.IsLocal</c> 可能对所有人误为 true，必须用 NetId 与本地控制位对比。
+    /// </summary>
+    private static bool IsNetRemotePlayer(object player)
+    {
+        if (player == null) return false;
+        ulong pid = GetPlayerNetId(player);
+        ulong localId = TryGetLocalControllingNetId();
+        if (localId != 0 && pid != 0)
+            return pid != localId;
+        return _IsRemotePlayer(player);
+    }
+
+    private static bool IsNetLocalPlayer(object player)
+    {
+        if (player == null) return false;
+        ulong pid = GetPlayerNetId(player);
+        ulong localId = TryGetLocalControllingNetId();
+        if (localId != 0 && pid != 0)
+            return pid == localId;
+        return _IsLocalPlayer(player);
     }
 
     private static string GetPlayerDisplayName(object player)
@@ -716,48 +1065,273 @@ internal static class DeckSyncPatches
     private static void LogDiag(string source, string msg)
     {
         var ts = DateTime.Now.ToString("HH:mm:ss.fff");
-        GD.Print($"[NCC|DIAG|{ts}] [{source}] {msg}");
+        // TargetMethod/Prepare 在模组加载线程运行，GD.Print 会触发右下角「不可在加载线程运行」
+        NoClientCheatsMod.ThreadSafeLog($"[NCC|DIAG|{ts}] [{source}] {msg}");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // 立即回滚：将玩家卡组恢复到 preSnapshot 状态
     // ─────────────────────────────────────────────────────────────────────────
 
-    private static void _RollbackPlayerDeck(object player, object preSnapshot)
+    /// <summary>
+    /// 从 RunManager.State.Players 中按 NetId 查找「活」的 Player 实例（主机侧）。
+    /// </summary>
+    private static object _TryResolveLivePlayerByNetId(ulong netId)
     {
         try
         {
-            // 方案：通过 Player.RestoreFromSerializable 恢复状态
-            var restoreMethod = player.GetType().GetMethod("RestoreFromSerializable",
-                BindingFlags.Public | BindingFlags.Instance);
-            if (restoreMethod != null)
-            {
-                restoreMethod.Invoke(player, new[] { preSnapshot });
-                GD.Print($"[NCC] Rollback applied via RestoreFromSerializable");
-                return;
-            }
+            var rmType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager");
+            var inst = rmType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            if (inst == null) return null;
 
-            // 方案 2：直接写 Deck 字段
-            var deckProp = player.GetType().GetProperty("Deck",
-                BindingFlags.Public | BindingFlags.Instance);
-            if (deckProp != null)
+            object state = inst.GetType().GetProperty("State", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            state ??= inst.GetType().GetProperty("CurrentRun", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            state ??= inst.GetType().GetProperty("RunState", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            if (state == null) return null;
+
+            object playersObj = state.GetType().GetProperty("Players", BindingFlags.Public | BindingFlags.Instance)?.GetValue(state);
+            playersObj ??= GetMemberValue(state, "_players");
+            if (playersObj is not IEnumerable players) return null;
+
+            foreach (var p in players)
+            {
+                if (p == null) continue;
+                if (GetPlayerNetId(p) == netId) return p;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    /// <summary>当前 Run 是否处于联机（能拿到 NetService）。仅用于「客机本地」守卫，避免单机误拦。</summary>
+    private static bool IsInMultiplayerRun()
+    {
+        try
+        {
+            var rmType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager");
+            var inst = rmType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            if (inst == null) return false;
+            var t = inst.GetType();
+            var ns = t.GetProperty("NetService", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(inst);
+            if (ns != null) return true;
+            ns = AccessTools.Field(t, "_netService")?.GetValue(inst);
+            return ns != null;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// 简化版守卫：所有 OnReceivePlayerChoice 都走 Postfix，用日志诊断真实参数。
+    /// 不再依赖 IsLocal/IsRemote/IsMultiplayerRun 等可能失败的条件判断。
+    /// 拦截逻辑统一在 Postfix 内，通过 newCount >= 2 触发。
+    /// </summary>
+    private static bool ShouldApplyTransformMultiSelectGuard(object player) => true;
+
+    /// <summary>在 SyncReceived 尚未触发时，从 PlayerChoice 同步器或静态入口解析 CombatStateSynchronizer。</summary>
+    private static object ResolveCombatStateSynchronizer(object playerChoiceSyncInstance)
+    {
+        var cached = SyncReceivedPatch.GetCachedSynchronizer();
+        if (cached != null) return cached;
+
+        var t = AccessTools.TypeByName("MegaCrit.Sts2.Core.Multiplayer.CombatStateSynchronizer");
+        if (t == null) return null;
+
+        foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+        {
+            try
+            {
+                var v = p.GetValue(null);
+                if (v != null && t.IsInstanceOfType(v)) return v;
+            }
+            catch { }
+        }
+
+        if (playerChoiceSyncInstance != null)
+        {
+            foreach (var f in playerChoiceSyncInstance.GetType().GetRuntimeFields())
+            {
+                try
+                {
+                    var v = f.GetValue(playerChoiceSyncInstance);
+                    if (v != null && t.IsInstanceOfType(v)) return v;
+                }
+                catch { }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>避免 RestoreFromSerializable 就地改写「上一轮」快照引用，回滚用克隆。</summary>
+    private static object TryCloneSerializableSnapshot(object snap)
+    {
+        if (snap == null) return null;
+        try
+        {
+            if (snap is ICloneable cl)
+            {
+                var c = cl.Clone();
+                if (c != null) return c;
+            }
+        }
+        catch { }
+        try
+        {
+            var m = snap.GetType().GetMethod("Clone", BindingFlags.Public | BindingFlags.Instance,
+                null, Type.EmptyTypes, null);
+            if (m != null) return m.Invoke(snap, null);
+        }
+        catch { }
+        try
+        {
+            var m = typeof(object).GetMethod("MemberwiseClone",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            if (m != null) return m.Invoke(snap, null);
+        }
+        catch { }
+        return snap;
+    }
+
+    /// <summary>
+    /// 全面诊断 Player 对象并尝试多种方式回滚卡组。
+    /// 返回实际使用的策略名，供日志确认。
+    /// </summary>
+    private static string _RollbackPlayerDeck(object player, object preSnapshot)
+    {
+        if (player == null || preSnapshot == null) return "null_player_or_snapshot";
+
+        var t = player.GetType();
+        LogDiag("Rollback", $"playerType={t.FullName} playerNetId={GetPlayerNetId(player)}");
+
+        // ── 1. 枚举 Player 的所有公开/私有方法（不含属性），找 Restore* / Reset* / Sync* ──
+        var restoreMethodNames = new[]
+        {
+            "RestoreFromSerializable", "RestoreStateFromSerializable",
+            "RestorePlayerFromSerializable", "RestoreDeck",
+            "ApplySerializableState", "ApplySnapshot",
+            "SyncFromSerializable", "SyncDeckFromSerializable",
+            "ResetDeckFromSerializable", "ReloadSerializableState",
+        };
+
+        foreach (var name in restoreMethodNames)
+        {
+            var m = t.GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (m != null)
+            {
+                LogDiag("Rollback", $"Found method: {name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))})");
+                try
+                {
+                    var ps = m.GetParameters();
+                    object[] args;
+                    if (ps.Length == 1)
+                        args = new[] { preSnapshot };
+                    else if (ps.Length == 2 && ps[1].ParameterType == typeof(bool))
+                        args = new[] { preSnapshot, true };
+                    else
+                        args = Array.Empty<object>();
+
+                    m.Invoke(player, args);
+                    LogDiag("Rollback", $"SUCCESS via {name}");
+                    _TryNotifyPlayerDeckChanged(player);
+                    return $"method:{name}";
+                }
+                catch (Exception ex)
+                {
+                    LogDiag("Rollback", $"{name} invoke failed: {ex.Message}");
+                }
+            }
+        }
+
+        // ── 2. 直接写 Deck 属性 ──
+        var deckProp = t.GetProperty("Deck", BindingFlags.Public | BindingFlags.Instance);
+        if (deckProp != null)
+        {
+            LogDiag("Rollback", $"Deck prop type={deckProp.PropertyType.Name} canWrite={deckProp.CanWrite}");
+            try
             {
                 var preDeck = GetSerializableDeck(preSnapshot);
                 if (preDeck != null)
                 {
-                    // 将 SerializableDeck 直接赋给 Deck 属性（游戏内部会处理转换）
+                    LogDiag("Rollback", $"preDeck count={preDeck.Count}");
                     deckProp.SetValue(player, preDeck);
-                    GD.Print($"[NCC] Rollback applied via Deck property");
+                    LogDiag("Rollback", "SUCCESS via Deck property");
+                    _TryNotifyPlayerDeckChanged(player);
+                    return "property:Deck";
                 }
             }
-            else
+            catch (Exception ex)
             {
-                GD.PushError("[NCC] _RollbackPlayerDeck: no RestoreFromSerializable or Deck property found");
+                LogDiag("Rollback", $"Deck prop write failed: {ex.Message}");
             }
         }
-        catch (Exception ex)
+
+        // ── 3. 找 private _deck / _mutableDeck 字段 ──
+        foreach (var f in t.GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
         {
-            GD.PushError($"[NCC] _RollbackPlayerDeck error: {ex}");
+            if (!f.Name.Contains("Deck", StringComparison.OrdinalIgnoreCase)) continue;
+            LogDiag("Rollback", $"Found field: {f.Name} type={f.FieldType.Name}");
+            try
+            {
+                var preDeck = GetSerializableDeck(preSnapshot);
+                if (preDeck != null)
+                {
+                    f.SetValue(player, preDeck);
+                    LogDiag("Rollback", $"SUCCESS via field {f.Name}");
+                    _TryNotifyPlayerDeckChanged(player);
+                    return $"field:{f.Name}";
+                }
+            }
+            catch (Exception ex)
+            {
+                LogDiag("Rollback", $"field {f.Name} write failed: {ex.Message}");
+            }
+        }
+
+        // ── 4. 枚举 Player 所有属性，列出名称+类型 ──
+        LogDiag("Rollback", $"All properties of {t.Name}:");
+        foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+        {
+            LogDiag("Rollback", $"  prop: {p.Name} = {GetMemberValue(player, p.Name)?.ToString() ?? "null"} ({p.PropertyType.Name})");
+        }
+
+        LogDiag("Rollback", $"All fields of {t.Name}:");
+        foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+        {
+            try
+            {
+                var v = f.GetValue(player);
+                LogDiag("Rollback", $"  field: {f.Name} = {v?.ToString() ?? "null"} ({f.FieldType.Name})");
+            }
+            catch { LogDiag("Rollback", $"  field: {f.Name} = (read error)"); }
+        }
+
+        GD.PushError($"[NCC] _RollbackPlayerDeck: no working strategy for {t.Name}");
+        return "failed";
+    }
+
+    /// <summary>回滚后尝试触发游戏内部的卡组/UI 刷新（若存在无参方法）。</summary>
+    private static void _TryNotifyPlayerDeckChanged(object player)
+    {
+        if (player == null) return;
+        var t = player.GetType();
+        foreach (var name in new[]
+                 {
+                     "InvalidateDeckCache", "RefreshDeck", "OnDeckChanged", "NotifyDeckChanged",
+                     "MarkDeckDirty", "SyncDeckFromSerializable"
+                 })
+        {
+            var m = t.GetMethod(name,
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+                null, Type.EmptyTypes, null);
+            if (m == null) continue;
+            try
+            {
+                m.Invoke(player, null);
+                GD.Print($"[NCC] Post-rollback invoked Player.{name}()");
+                return;
+            }
+            catch { /* try next name */ }
         }
     }
 
@@ -1015,4 +1589,373 @@ internal static class DeckSyncPatches
             catch { return null; }
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Patch E: PlayerChoiceSynchronizer —— 拦截玩家选卡结果
+    //
+    // 日志确认：卡组变换（NEW_LEAF / POMANDER 等）通过以下路径：
+    //   1. EventSynchronizer 通知副机选卡
+    //   2. 副机发 NetPlayerChoiceResult（包含 deck）给主机
+    //   3. PlayerChoiceSynchronizer 内部处理并执行卡组变化
+    //   4. ActionQueueSynchronizer 广播 SyncReceived
+    //
+    // ChooseOption / EnqueueAction 均未被调用，所以必须在 PlayerChoiceSynchronizer
+    // 上找方法。
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 存储「最后一次 SyncReceived 记录的卡组大小」。
+    /// Key: senderId，Value: 最近一次 SyncReceived 的 receivedCards
+    /// 用途：OnReceivePlayerChoice 时用这个值（transform 前的卡数）与 deckCards 对比
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, int>
+        _lastSyncDeckSize = new();
+
+    /// <summary>
+    /// 上一次合法 SyncReceived 的 SerializablePlayer（与 SyncReceivedPatch 共用）。
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, object>
+        _lastSerializablePlayer = new();
+
+    /// <summary>
+    /// 存储「transform 前一刻的卡组大小」（用于检测多选了卡）。
+    /// Key: senderId，Value: transform/reward/remove 前的卡组大小
+    /// 用途：SyncReceived 时与 receivedCards 对比，多选时 deckSizeDelta 异常
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, int>
+        _pendingPreDeckSize = new();
+
+    /// <summary>
+    /// 存储「transform/reward 前的卡组内容哈希」（用于精准验证）。
+    /// Key: senderId，Value: transform 前的 deckCards 哈希（cardId+upgradeLevel）
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, string>
+        _pendingPreDeckHash = new();
+
+    /// <summary>
+    /// 记录 OnReceivePlayerChoice 被调用的次数（每次调用=副机选了1张卡）。
+    /// Key: senderId，Value: 本轮选卡阶段的调用次数
+    /// 用途：两次调用=选了两张卡，结合 SyncReceived delta=0 可判断作弊
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, int>
+        _choiceCallCount = new();
+
+    /// <summary>
+    /// 记录 OnReceivePlayerChoice 最近一次调用的时间戳（用于去重同一选卡会话内的重复触发）
+    /// </summary>
+    private static long _lastChoiceTimestamp = 0;
+
+    /// <summary>
+    /// 最近一次在 OnReceivePlayerChoice 已立即提示作弊的时间（避免 SyncReceived 再弹一次）
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, long>
+        _immediateCheatNotifyTicks = new();
+
+    /// <summary>
+    /// 最近一次见到的远程 Player 引用（供 SyncReceived 回滚时 _TryResolveLivePlayerByNetId 失败兜底）
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, object>
+        _lastRemotePlayerByNetId = new();
+
+    private static MethodBase _playerChoiceTarget;
+
+
+    [HarmonyPatch]
+    private static class PlayerChoiceReceivePatch
+    {
+        static void DIAG(string msg) => LogDiag("PlayerChoice", msg);
+
+        static bool Prepare()
+        {
+            System.Type foundType = null;
+
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (asm.FullName.StartsWith("System") || asm.FullName.StartsWith("Mono")
+                    || asm.FullName.StartsWith("mscorlib") || asm.FullName.StartsWith("Godot")
+                    || asm.FullName.StartsWith("netstandard")) continue;
+
+                try
+                {
+                    foreach (var t in asm.GetTypes())
+                    {
+                        if (t == null) continue;
+                        if (t.Name.Contains("PlayerChoiceSynchronizer"))
+                        {
+                            foundType = t;
+                            break;
+                        }
+                    }
+                }
+                catch { }
+
+                if (foundType != null) break;
+            }
+
+            DIAG($"Prepare: PlayerChoiceSynchronizer = {(foundType != null ? foundType.FullName : "未找到")}");
+            if (foundType == null)
+            {
+                DIAG("Prepare: 跳过");
+                return false;
+            }
+
+            System.Reflection.MethodInfo target = null;
+            foreach (var method in foundType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                if (method.Name != "OnReceivePlayerChoice" || method.GetParameters().Length != 3)
+                    continue;
+                var ps = method.GetParameters();
+                if (ps[1].ParameterType == typeof(uint))
+                    target = method;
+            }
+
+            if (target == null)
+            {
+                DIAG("Prepare: OnReceivePlayerChoice(Player, uint, NetPlayerChoiceResult) 未找到，跳过");
+                return false;
+            }
+
+            _playerChoiceTarget = target;
+            var ps2 = target.GetParameters();
+            DIAG($"Prepare: Hook {target.Name}: {string.Join(", ", ps2.Select(p => $"{p.ParameterType.Name} {p.Name}"))}");
+
+            // 枚举该类所有方法，列出签名
+            DIAG($"Prepare: All methods on {foundType.Name}:");
+            foreach (var m in foundType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                try
+                {
+                    var mps = m.GetParameters();
+                    DIAG($"  {m.Name}({string.Join(",", mps.Select(p => p.ParameterType.Name))})");
+                }
+                catch { }
+            }
+
+            // 枚举该类所有字段
+            DIAG($"Prepare: All fields on {foundType.Name}:");
+            foreach (var f in foundType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                DIAG($"  {f.Name}: {f.FieldType.Name}");
+            }
+
+            // 枚举该类所有属性
+            DIAG($"Prepare: All properties on {foundType.Name}:");
+            foreach (var p in foundType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                DIAG($"  {p.Name}: {p.PropertyType.Name}");
+            }
+
+            // 找含 NetPlayerChoiceResult 的方法
+            try
+            {
+                foreach (var method in foundType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    foreach (var p in method.GetParameters())
+                    {
+                        if (!p.ParameterType.Name.Contains("NetPlayerChoiceResult", StringComparison.Ordinal))
+                            continue;
+                        DIAG($"Prepare: NetPlayerChoiceResult in {foundType.Name}.{method.Name}");
+                        break;
+                    }
+                }
+            }
+            catch { /* ignore */ }
+
+            return true;
+        }
+
+        static MethodBase TargetMethod() => _playerChoiceTarget;
+
+        /// <summary>
+        /// Prefix 纯诊断：打一行关键参数，帮助定位为什么 IsLocal/IsRemote/IsMultiplayerHost 判断失败。
+        /// 所有拦截逻辑保留在 Postfix 中。
+        /// </summary>
+        [HarmonyPriority(int.MaxValue)]
+        static bool Prefix(object __instance, object player, uint choiceId, object result)
+        {
+            if (player == null || result == null) return true;
+
+            try
+            {
+                ulong playerId = GetPlayerNetId(player);
+                bool isLocal = _IsLocalPlayer(player);
+                bool isRemote = _IsRemotePlayer(player);
+                ulong localNetId = TryGetLocalControllingNetId();
+                bool host = NoClientCheatsMod.IsMultiplayerHost();
+                bool inMp = IsInMultiplayerRun();
+
+                DIAG($"[PREFIX] playerId={playerId} IsLocal={isLocal} IsRemote={isRemote} "
+                    + $"localNetId={localNetId} host={host} inMp={inMp} "
+                    + $"playerType={player.GetType().Name}");
+
+                // 诊断：打印 player 的所有 bool 属性/字段
+                foreach (var f in player.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    if (f.FieldType != typeof(bool) && f.FieldType != typeof(Boolean)) continue;
+                    try { var v = f.GetValue(player); DIAG($"[PREFIX] player.{f.Name}={v}"); } catch { }
+                }
+                foreach (var p in player.GetType().GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    if (p.PropertyType != typeof(bool) && p.PropertyType != typeof(Boolean)) continue;
+                    try { var v = p.GetValue(player); DIAG($"[PREFIX] player.{p.Name}={v}"); } catch { }
+                }
+
+                // 始终让原方法执行；Postfix 里做真正的计数与作弊检测
+                return true;
+            }
+            catch (Exception ex)
+            {
+                DIAG($"Prefix error: {ex.Message}");
+                return true;
+            }
+        }
+
+        static void Postfix(object __instance, object player, uint choiceId, object result)
+        {
+            if (player == null || result == null) return;
+
+            try
+            {
+                ulong playerId = GetPlayerNetId(player);
+                bool isRemote = _IsRemotePlayer(player);
+                long now = DateTime.Now.Ticks;
+
+                DIAG($"[POSTFIX] playerId={playerId} isRemote={isRemote} choiceId={choiceId}");
+
+                // 记录 remote player 引用
+                if (isRemote)
+                    lock (_lastRemotePlayerByNetId) { _lastRemotePlayerByNetId[playerId] = player; }
+
+                // ── 选卡会话计时：超过 30s 视为新一轮选卡 ───────────────────────────────
+                bool isNewSession = (now - _lastChoiceTimestamp) > TimeSpan.FromSeconds(30).Ticks;
+                _lastChoiceTimestamp = now;
+
+                if (isNewSession)
+                    lock (_choiceCallCount) { _choiceCallCount[playerId] = 0; }
+
+                int newCount;
+                lock (_choiceCallCount)
+                {
+                    _choiceCallCount.TryGetValue(playerId, out int prev);
+                    newCount = prev + 1;
+                    _choiceCallCount[playerId] = newCount;
+                }
+
+                DIAG($"[POSTFIX] newCount={newCount} isRemote={isRemote} playerId={playerId}");
+
+                // ── 第二次回调 = 多选作弊 ───────────────────────────────────────────────
+                if (newCount >= 2)
+                {
+                    var safeName = GetPlayerDisplayName(player) ?? $"#{playerId % 10000}";
+                    const string cheatCmd = "deck:transform_multi_select(calls>=2,immediate)";
+
+                    // 仅对远程玩家记录作弊（主机视角下只有副机才是作弊来源）
+                    if (isRemote)
+                    {
+                        NoClientCheatsMod.RecordCheat(playerId, safeName, null, cheatCmd, true);
+                        lock (_immediateCheatNotifyTicks) { _immediateCheatNotifyTicks[playerId] = DateTime.Now.Ticks; }
+                    }
+                    DIAG($"[POSTFIX] CHEAT DETECTED newCount={newCount} isRemote={isRemote} playerId={playerId}");
+
+                    // 回滚：取第一次选卡后的合法快照（_lastSerializablePlayer）
+                    object prevSnap = null;
+                    lock (_lastSerializablePlayer)
+                        _lastSerializablePlayer.TryGetValue(playerId, out prevSnap);
+
+                    if (prevSnap == null)
+                    {
+                        DIAG($"[POSTFIX] prevSnap null, cannot rollback playerId={playerId}");
+                    }
+                    else
+                    {
+                        DIAG($"[POSTFIX] Attempting rollback playerId={playerId} snap={GetDeckSummary(prevSnap)}");
+
+                        object rollbackSnap = TryCloneSerializableSnapshot(prevSnap) ?? prevSnap;
+
+                        // 回滚到「活」的 Player 实例（RunManager.State.Players 中那个）
+                        object livePlayer = _TryResolveLivePlayerByNetId(playerId);
+                        if (livePlayer == null)
+                        {
+                            DIAG($"[POSTFIX] livePlayer not found by netId, using __instance player");
+                            livePlayer = player;
+                        }
+                        else
+                        {
+                            DIAG($"[POSTFIX] found livePlayer for netId={playerId}");
+                        }
+
+                        // 用诊断版回滚，记录实际使用的策略
+                        string rollbackStrategy = _RollbackPlayerDeck(livePlayer, rollbackSnap);
+                        DIAG($"[POSTFIX] Rollback strategy={rollbackStrategy} playerId={playerId}");
+
+                        // 方案 B：更新 CombatStateSynchronizer._syncData
+                        var sync = SyncReceivedPatch.GetCachedSynchronizer()
+                            ?? ResolveCombatStateSynchronizer(__instance);
+                        if (sync != null)
+                        {
+                            SyncReceivedPatch.RememberSynchronizer(sync);
+                            _ReplaceSyncData(sync, playerId, rollbackSnap);
+
+                            // 仅主机对远程玩家才发网络消息
+                            if (isRemote)
+                                _SendRollback(sync, playerId, rollbackSnap);
+                        }
+                        else
+                            GD.PushError("[NCC] Postfix rollback: CombatStateSynchronizer not resolved");
+
+                        SyncReceivedPatch.SetBaselineFromSerializable(playerId, rollbackSnap);
+                        NoClientCheatsMod.SetExpectedDeckSnapshot(playerId, rollbackSnap);
+
+                        DIAG($"[POSTFIX] Rollback applied playerId={playerId}");
+                    }
+
+                    // 重置计数，下次从 1 开始
+                    lock (_choiceCallCount) { _choiceCallCount[playerId] = 1; }
+                }
+                else
+                {
+                    // ── 第一次回调：记录当前卡组快照（供第二次回滚用）────────────────────
+                    try
+                    {
+                        var toSer = player?.GetType().GetMethod("ToSerializable",
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        object snap = toSer?.Invoke(player, null);
+                        if (snap != null)
+                        {
+                            lock (_lastSerializablePlayer)
+                                _lastSerializablePlayer[playerId] = snap;
+                            DIAG($"[POSTFIX] Snap saved playerId={playerId} deck={GetDeckSummary(snap)}");
+                        }
+                    }
+                    catch (Exception ex) { DIAG($"Snap save error: {ex.Message}"); }
+                }
+
+                // ── 记录 preDeckSize，供 SyncReceivedPatch 检测作弊（无论第几次）────────
+                try
+                {
+                    var deckProp = result.GetType().GetProperty("deckCards",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    object deckObj = deckProp?.GetValue(result);
+                    int deckSize = 0;
+                    if (deckObj is IList dl) deckSize = dl.Count;
+                    if (deckSize > 0)
+                    {
+                        lock (_pendingPreDeckSize)
+                            _pendingPreDeckSize[playerId] = deckSize;
+                        DIAG($"[POSTFIX] preDeckSize={deckSize} for playerId={playerId}");
+                    }
+                }
+                catch { }
+            }
+            catch (Exception ex) { DIAG($"Postfix error: {ex.Message}"); }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Patch F: SyncReceived —— 利用 PlayerChoiceReceivePatch 的 transform 前快照
+    //           检测 transform/reward/remove 类作弊：SyncReceived 的卡数与快照不符即为作弊
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static readonly System.Collections.Generic.Dictionary<ulong, long>
+        _syncCheckTimestamps = new();
 }

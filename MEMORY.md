@@ -207,9 +207,15 @@ tree.ProcessFrame += OnFrame2; // 帧2
 
 ### 4.3 初始化三重保险（所有主动作 Mod 通用）
 
-1. **静态构造**：Harmony `PatchAll` 时尝试（Engine 可能为 null，静默跳过）
-2. **Postfix**：`ModManager.Initialize` 的 Harmony Postfix（Engine 应该就绪）
-3. **懒触发**：业务逻辑首次触发时兜底调用
+> ⚠️ `[ModuleInitializer]` 方案（推荐）：
+> STS2 Android 加载器只调用 `Harmony.PatchAll()`，**不触发** `[ModInitializer]` / `static constructor` / Harmony static field initializer。
+> 使用 C# 9 `[ModuleInitializer]` 可确保 DLL 加载时必定执行初始化代码。
+> 条件：`TargetFramework >= net8.0`，需 `System.Runtime.CompilerServices` 引用。
+
+1. **`[ModuleInitializer]`**（推荐）：程序集加载时必定执行，不依赖游戏调用
+2. **静态构造**：Harmony `PatchAll` 时尝试（Engine 可能为 null，静默跳过）
+3. **Postfix**：`ModManager.Initialize` 的 Harmony Postfix（Engine 应该就绪）
+4. **懒触发**：业务逻辑首次触发时兜底调用
 
 ### 4.4 Godot 节点与静态字段
 
@@ -338,6 +344,37 @@ with open('mod_manifest.json') as f:
 ---
 
 ## 十一、会话历史（按时间顺序）
+
+---
+
+### 会话记录 2026-04-03 · ModListHider v0.3.1 Android 入口点修复
+
+**问题**：Android 端联机模组列表没有显示眼睛图标，Vanilla Mode 注入也失效。PC 端正常。
+
+**根因分析**：STS2 Android 加载器只加载 DLL 并调用 `Harmony.PatchAll()`，**不会触发** `[ModInitializer]`、`static constructor` 或任何 mod 代码中的方法。Harmony 的 static field initializer 也被跳过。
+
+**解决方案**：使用 C# 9 的 **`[ModuleInitializer]`** 特性：
+- `[ModuleInitializer]` 标记的方法在程序集加载时**必定**自动执行
+- 不依赖游戏调用任何 mod 代码
+- 已在 Android 和 PC 上验证成功
+
+**变更摘要**：
+- 升级 `TargetFramework`：`net8.0` → `net9.0`（ModuleInitializer 支持）
+- 新增 `ModuleInit.cs`：包含 `[ModuleInitializer] public static void Initialize()` 入口点
+- 移除 `ModLoaderTrigger.cs`、`BootstrapPatch.cs`、`HarmonyPatchBootstrap.cs`、`ModListHiderMod.cs`（旧入口尝试）
+- 目标程序集：`ModListHider.dll`
+
+**验证结果**（Android logcat）：
+```
+[ModListHider] ModuleInit.Initialize() called!
+[ModListHider] VanillaMode=False, HiddenMods=0, HarmonyPatches=3
+[ModListHider] VanillaModeToggleInjector added to tree
+[ModListHider] ModMenuRowIconInjector added to tree
+[ModListHider] Injected icons into 3 mod menu rows
+[ModListHider] Toggled '联机屏蔽...' hidden=True  (点击测试)
+```
+
+**PC 端**：与之前行为一致，无回归问题。
 
 ---
 

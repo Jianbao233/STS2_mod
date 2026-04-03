@@ -36,7 +36,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 
 | 项目 | 命令 | 依赖 |
 |------|------|------|
-| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer、ModListHider） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
+| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer、ModListHider） | `cd 项目` → `.\build.ps1` | .NET 8（ModListHider 需 .NET 9）、Godot 4.5.1 Mono |
 | MP_PlayerManager | `cd MP_PlayerManager` → `.\build_exe.bat` 或 `pyinstaller ... manage_players.py` | Python 3.8+、PyInstaller |
 | ~~MP_SavePlayerRemover~~ | ~~已废弃，使用 MP_PlayerManager~~ | ~~Python 3.8+、PyInstaller~~ |
 

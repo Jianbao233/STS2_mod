@@ -17,7 +17,7 @@ internal static class TopBarHistoryButtonPatch
     {
         var type = AccessTools.TypeByName("MegaCrit.Sts2.Core.Nodes.CommonUi.NTopBar")
                  ?? AccessTools.TypeByName("NTopBar");
-        GD.Print($"[NCCTopBar] TargetMethod: type={type?.FullName ?? "NOT FOUND"}");
+        NoClientCheatsMod.ThreadSafeLog($"[NCCTopBar] TargetMethod: type={type?.FullName ?? "NOT FOUND"}");
         return type?.GetMethod("_Ready", AccessTools.all);
     }
 

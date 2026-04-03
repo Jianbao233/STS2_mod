@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 using Godot;
 using HarmonyLib;
 using static NoClientCheats.Localization;
@@ -134,12 +135,46 @@ public static class NoClientCheatsMod
         {
             var harmony = new Harmony(ModId);
             harmony.PatchAll();
-            GD.Print("[NoClientCheats] Harmony patches applied.");
+            // PatchAll / TargetMethod 在模组加载线程执行，禁止此处调用 GD.Print（会触发「不可在加载线程运行」）
+            ThreadSafeLog("[NoClientCheats] Harmony patches applied.");
         }
         catch (System.Exception e)
         {
-            GD.PushError($"[NoClientCheats] Harmony patch failed: {e}");
+            ThreadSafeLog($"[NoClientCheats] Harmony patch failed: {e}");
         }
+    }
+
+    /// <summary>
+    /// 文件日志，绕过 Godot Engine API，在任何线程都可用。
+    /// 写入 %APPDATA%\SlayTheSpire2\NCC_diag.log。
+    /// </summary>
+    private static readonly System.IO.StreamWriter _diagWriter;
+
+    static NoClientCheatsMod()
+    {
+        try
+        {
+            var appData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData);
+            var dir = Path.Combine(appData, "SlayTheSpire2");
+            var logPath = Path.Combine(dir, "NCC_diag.log");
+            _diagWriter = new System.IO.StreamWriter(logPath, false, System.Text.Encoding.UTF8);
+            _diagWriter.WriteLine($"=== NCC {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
+            _diagWriter.AutoFlush = true;
+        }
+        catch
+        {
+            // 静默失败
+        }
+    }
+
+    internal static void ThreadSafeLog(string line)
+    {
+        try { _diagWriter?.WriteLine(line); } catch { }
+        try
+        {
+            if (Engine.Singleton != null) GD.Print(line);
+        }
+        catch { }
     }
 
     // ── 拦截记录 ────────────────────────────────────────────────────────
