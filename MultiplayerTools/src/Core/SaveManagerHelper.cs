@@ -457,6 +457,47 @@ namespace MultiplayerTools.Core
             return Path.Combine(GetRoamingSts2Dir(), "backups");
         }
 
+        /// <summary>
+        /// Load <c>steam_names.json</c> from the saves directory of the given save path.
+        /// This file is maintained by the v2 Python tool and stores Steam persona names
+        /// indexed by SteamID64 — mirroring v2 App._load_profile + get_all_contacts.
+        /// Returns null if the file does not exist or cannot be parsed.
+        /// </summary>
+        internal static Dictionary<string, string>? LoadSteamNames(string savePath)
+        {
+            try
+            {
+                var dir = Path.GetDirectoryName(savePath);
+                if (string.IsNullOrEmpty(dir)) return null;
+
+                var namesFile = Path.Combine(dir, "steam_names.json");
+                if (!File.Exists(namesFile)) return null;
+
+                var text = File.ReadAllText(namesFile);
+                if (string.IsNullOrWhiteSpace(text)) return null;
+
+                var raw = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(text);
+                if (raw == null) return null;
+
+                var result = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var kvp in raw)
+                {
+                    if (kvp.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var s = kvp.Value.GetString();
+                        if (!string.IsNullOrWhiteSpace(s))
+                            result[kvp.Key] = s;
+                    }
+                }
+                return result.Count > 0 ? result : null;
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"[MultiplayerTools] LoadSteamNames failed: " + ex.Message);
+                return null;
+            }
+        }
+
         /// <summary>Get a human-readable size string.</summary>
         internal static string FormatSize(long bytes)
         {

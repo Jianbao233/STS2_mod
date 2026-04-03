@@ -70,6 +70,19 @@ namespace MultiplayerTools
                 // Derive Steam ID + profile key from path
                 DeriveProfileKeys(path);
 
+                // Drop stale persona strings (old regex could pair wrong PersonaName to Steam ID).
+                Steam.SteamIntegration.ClearPersonaNameCache();
+
+                // Load steam_names.json from the saves directory (v2 tool's cached friend names).
+                // This is the primary name source — mirrors v2 App._load_profile().
+                var steamNames = Core.SaveManagerHelper.LoadSteamNames(path);
+                if (steamNames != null && steamNames.Count > 0)
+                    Steam.SteamIntegration.MergeSteamNames(steamNames);
+
+                // Offline: scan ALL userdata/localconfig.vdf for friend names (mirrors v2 get_all_contacts).
+                // This finds player names even if they belong to a different Steam account on this PC.
+                Steam.SteamIntegration.PreloadFromLocalVdf();
+
                 SaveContextChanged?.Invoke();
                 return true;
             }

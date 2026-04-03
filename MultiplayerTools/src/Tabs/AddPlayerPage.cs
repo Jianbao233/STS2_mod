@@ -31,11 +31,14 @@ namespace MultiplayerTools.Tabs
         // Guards against Build being called again during RefreshPanels
         private static bool _pageInitComplete = false;
 
-        // ── Built-in characters (aligned with Python v2 characters.py BUILTIN_CHARACTERS) ──
-        // Order: built-in first, then mod characters (populated at runtime via ModelDb).
+        // ── Built-in characters (aligned with game wiki / IGN guide) ──
         // Fields: (charId, maxHp, starterRelic, starterDeck)
-        // Python v2 source: Ironclad 80/BURNING_BLOOD, Silent 70/RING_OF_THE_SNAKE,
-        //   Defect 75/CRACKED_CORE, Necrobinder 66/BOUND_PHYLACTERY, Regent 75/CROWN
+        // Wiki source: https://ie.ign.com/wikis/slay-the-spire-2/Characters
+        //   Ironclad 80/BURNING_BLOOD  → Strike×5, Defend×4, Bash
+        //   Silent   70/RING_OF_THE_SNAKE → Strike×5, Defend×5, Neutralize, Survivor
+        //   Defect   75/CRACKED_CORE   → Strike×4, Defend×4, Zap, Dualcast
+        //   Necrobinder 66/BOUND_PHYLACTERY → Strike×4, Defend×4, Bodyguard, Unleash
+        //   Regent   75/DIVINE_RIGHT   → Strike×4, Defend×4, Falling Star, Venerate
         private static readonly (string charId, int maxHp, string starterRelic, string[] starterDeck)[] BuiltInChars = new[]
         {
             ("CHARACTER.IRONCLAD",     80, "RELIC.BURNING_BLOOD",      new[] {
@@ -48,15 +51,13 @@ namespace MultiplayerTools.Tabs
             ("CHARACTER.SILENT",       70, "RELIC.RING_OF_THE_SNAKE", new[] {
                 "CARD.STRIKE_SILENT", "CARD.STRIKE_SILENT", "CARD.STRIKE_SILENT",
                 "CARD.STRIKE_SILENT", "CARD.STRIKE_SILENT",
+                "CARD.DEFEND_SILENT", "CARD.DEFEND_SILENT", "CARD.DEFEND_SILENT",
                 "CARD.DEFEND_SILENT", "CARD.DEFEND_SILENT",
-                "CARD.DEFEND_SILENT", "CARD.DEFEND_SILENT",
-                "CARD.NEUTRALIZE"
+                "CARD.NEUTRALIZE", "CARD.SURVIVOR"
             }),
             ("CHARACTER.DEFECT",       75, "RELIC.CRACKED_CORE",       new[] {
-                "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT",
-                "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT",
-                "CARD.DEFEND_DEFECT", "CARD.DEFEND_DEFECT",
-                "CARD.DEFEND_DEFECT", "CARD.DEFEND_DEFECT",
+                "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT", "CARD.STRIKE_DEFECT",
+                "CARD.DEFEND_DEFECT", "CARD.DEFEND_DEFECT", "CARD.DEFEND_DEFECT", "CARD.DEFEND_DEFECT",
                 "CARD.ZAP", "CARD.DUALCAST"
             }),
             ("CHARACTER.NECROBINDER",  66, "RELIC.BOUND_PHYLACTERY",  new[] {
@@ -64,14 +65,12 @@ namespace MultiplayerTools.Tabs
                 "CARD.STRIKE_NECROBINDER", "CARD.STRIKE_NECROBINDER",
                 "CARD.DEFEND_NECROBINDER", "CARD.DEFEND_NECROBINDER",
                 "CARD.DEFEND_NECROBINDER", "CARD.DEFEND_NECROBINDER",
-                "CARD.UNLEASH", "CARD.FLASH_OF_STEEL"
+                "CARD.BODYGUARD", "CARD.UNLEASH"
             }),
-            ("CHARACTER.REGENT",       75, "RELIC.CROWN",              new[] {
-                "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT",
-                "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT",
-                "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT",
-                "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT",
-                "CARD.CHARGE", "CARD.GLOW"
+            ("CHARACTER.REGENT",       75, "RELIC.DIVINE_RIGHT",       new[] {
+                "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT",
+                "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT",
+                "CARD.FALLING_STAR", "CARD.VENERATE"
             }),
         };
 
@@ -219,7 +218,7 @@ namespace MultiplayerTools.Tabs
                 if (pl == null) continue;
                 int hp = GetInt(pl, "current_hp");
                 int gold = GetInt(pl, "gold");
-                string netId = GetStr(pl, "net_id");
+                string netId = Steam.SteamIntegration.NormalizeSteamIdForApi(GetStr(pl, "net_id"));
                 string charId = GetStr(pl, "character_id");
 
                 var radio = new CheckBox
@@ -559,7 +558,8 @@ namespace MultiplayerTools.Tabs
 
             // Check conflict
             foreach (var p in MpSessionState.GetPlayers())
-                if (p is Dictionary<string, object> pd && pd.TryGetValue("net_id", out var nid) && nid?.ToString() == steamId)
+                if (p is Dictionary<string, object> pd && pd.TryGetValue("net_id", out var nid) &&
+                    Steam.SteamIntegration.NormalizeSteamIdForApi(nid?.ToString()) == Steam.SteamIntegration.NormalizeSteamIdForApi(steamId))
                 {
                     ShowMsg(Loc.Get("add.id_conflict", "Steam ID already in save."), Panel.Styles.Red);
                     return;
@@ -611,6 +611,7 @@ namespace MultiplayerTools.Tabs
 
         private static void ShowFriendPicker(LineEdit targetEdit)
         {
+            Steam.SteamIntegration.ClearFriendsListCache();
             var me = Steam.SteamIntegration.GetCurrentSteamId() ?? "";
             var room = BuildRoomMemberOptions(me);
             var rawFriends = Steam.SteamIntegration.GetLocalFriends();
@@ -618,7 +619,7 @@ namespace MultiplayerTools.Tabs
                 .Select(c => new SteamIdPickerPopup.SteamIdOption(
                     c.SteamId,
                     c.PersonaName,
-                    MpSessionState.ShortenSteamId(c.SteamId)))
+                    string.IsNullOrEmpty(c.PersonaName) || c.PersonaName == c.SteamId ? null : c.SteamId))
                 .ToList();
 
             SteamIdPickerPopup.Show(targetEdit, room, friends);
@@ -631,7 +632,7 @@ namespace MultiplayerTools.Tabs
             for (int i = 0; i < players.Count; i++)
             {
                 if (players[i] is not Dictionary<string, object> pl) continue;
-                string netId = GetStr(pl, "net_id").Trim();
+                string netId = Steam.SteamIntegration.NormalizeSteamIdForApi(GetStr(pl, "net_id"));
                 if (string.IsNullOrEmpty(netId)) continue;
                 if (!string.IsNullOrEmpty(localSteamId) && netId == localSteamId) continue;
 

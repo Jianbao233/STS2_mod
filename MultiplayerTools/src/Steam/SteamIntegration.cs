@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Godot;
@@ -22,14 +22,50 @@ namespace MultiplayerTools.Steam
         private static readonly Dictionary<string, SteamContact> ContactCache = new();
         private static readonly Dictionary<string, List<SteamContact>> FriendsCache = new();
 
+        /// <summary>
+        /// Bulk-import a dictionary of SteamID64 → persona name into the persona cache.
+        /// Called after loading steam_names.json so cached names are used by GetPersonaName
+        /// without re-parsing VDF files.
+        /// </summary>
+        internal static void MergeSteamNames(Dictionary<string, string> names)
+        {
+            if (names == null) return;
+            foreach (var kvp in names)
+            {
+                var sid = NormalizeSteamIdForApi(kvp.Key);
+                if (string.IsNullOrEmpty(sid)) continue;
+                if (!string.IsNullOrWhiteSpace(kvp.Value))
+                    PersonaNameCache[sid] = kvp.Value;
+            }
+        }
+
+        /// <summary>Clear cached friends list so VDF parsing fixes take effect without restarting the game.</summary>
+        internal static void ClearFriendsListCache()
+        {
+            FriendsCache.Clear();
+            InvalidateFriendListDisplayMap();
+        }
+
+        /// <summary>Clear persona cache (e.g. after load) so corrected VDF parsing replaces stale nicknames.</summary>
+        internal static void ClearPersonaNameCache()
+        {
+            PersonaNameCache.Clear();
+            InvalidateFriendListDisplayMap();
+        }
+
+        /// <summary>Steam client shows friends under custom aliases from localconfig.vdf; invalidate when caches clear.</summary>
+        private static Dictionary<string, string>? _friendListDisplayBySteamId;
+
+        private static uint? _friendListDisplayLoadedForAccount;
+
+        private static void InvalidateFriendListDisplayMap()
+        {
+            _friendListDisplayBySteamId = null;
+            _friendListDisplayLoadedForAccount = null;
+        }
+
         // Steam Account ID -> SteamID64 conversion base
         private const ulong SteamIdBase = 76561197960265728UL;
-
-        // Steam Web API for persona name lookup (no API key needed for public data)
-        private const string SteamApiUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries_v0002/?key=&steamids=";
-
-        // Shared HttpClient (disposed on shutdown)
-        private static System.Net.Http.HttpClient? _httpClient;
 
         /// <summary>Get the Steam installation path from registry.</summary>
         internal static string? GetSteamInstallPath()
@@ -122,12 +158,13 @@ namespace MultiplayerTools.Steam
         private static string? _steamIdCache;
 
         /// <summary>
-        /// Convert Steam Account ID to SteamID64.
-        /// Formula: SteamID64 = 76561197960265728 + accountId * 2 + (accountId & 1)
+        /// Convert Steam Account ID (registry ActiveUser, userdata folder name) to SteamID64.
+        /// Matches MP_PlayerManager_v2 steam_api._account_id_to_steam64:
+        /// <c>76561197960265728 + (account_id &gt;&gt; 1) * 2 + (account_id &amp; 1)</c> ≡ <c>base + account_id</c>.
         /// </summary>
         private static ulong AccountIdToSteamId64(uint accountId)
         {
-            return SteamIdBase + ((ulong)accountId * 2) + ((ulong)accountId & 1UL);
+            return SteamIdBase + accountId;
         }
 
         private static string? ExtractCurrentSteamIdFromLoginUsers(string content)
@@ -169,19 +206,40 @@ namespace MultiplayerTools.Steam
             return null;
         }
 
-        /// <summary>Get persona name (nickname) for a Steam ID — two-level priority:
-        /// 1. Local cache (PersonaNameCache, pre-populated by RefreshPersonaNameCacheAsync)
-        /// 2. users.vdf (local Steam cache, fast, always available)
-        ///
-        /// This method is always synchronous and safe to call from the main thread.
-        /// For async lookup use RefreshPersonaNameCacheAsync() and wait for it before rendering.
-        /// </summary>
+        /// <summary>Canonical SteamID64 string from save <c>net_id</c> or UI input (digits only).</summary>
+        internal static string NormalizeSteamIdForApi(string? steamId)
+        {
+            if (string.IsNullOrWhiteSpace(steamId)) return "";
+            var s = steamId.Trim();
+            if (s.Length >= 15 && s.Length <= 20 && IsDigitsOnly(s)) return s;
+            if (long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var li) && li > 0)
+                return li.ToString(CultureInfo.InvariantCulture);
+            return s;
+        }
+
         internal static string GetPersonaName(string steamId)
         {
-            if (string.IsNullOrEmpty(steamId)) return steamId;
-            if (PersonaNameCache.TryGetValue(steamId, out var cached)) return cached;
+            steamId = NormalizeSteamIdForApi(steamId);
+            if (string.IsNullOrEmpty(steamId)) return "";
 
-            // Local users.vdf (fast, no network, safe on main thread)
+            // Priority 1: cache (populated by steam_names.json merge + PreloadFromLocalVdf).
+            if (PersonaNameCache.TryGetValue(steamId, out var cached) &&
+                !string.IsNullOrWhiteSpace(cached) && cached != steamId)
+            {
+                return cached;
+            }
+
+            // Priority 2: Friend-list label (localconfig.vdf) — matches Steam overlay / 好友.
+            // Often differs from global PersonaName in users.vdf (e.g. custom alias vs seller default name).
+            if (TryGetFriendListDisplayName(steamId, out var friendLabel) &&
+                !string.IsNullOrWhiteSpace(friendLabel) &&
+                !string.Equals(friendLabel, steamId, StringComparison.Ordinal))
+            {
+                PersonaNameCache[steamId] = friendLabel;
+                return friendLabel;
+            }
+
+            // Priority 3: Local users.vdf — correct nested blocks; overwrites any stale cache.
             var localName = GetPersonaNameFromUsersVdf(steamId);
             if (!string.IsNullOrEmpty(localName) && localName != steamId)
             {
@@ -189,7 +247,7 @@ namespace MultiplayerTools.Steam
                 return localName;
             }
 
-            // Fallback: loginusers.vdf may contain persona names
+            // Priority 4: loginusers.vdf (current user account list).
             var loginName = GetPersonaNameFromLoginUsers(steamId);
             if (!string.IsNullOrEmpty(loginName) && loginName != steamId)
             {
@@ -197,55 +255,80 @@ namespace MultiplayerTools.Steam
                 return loginName;
             }
 
-            // No Web API here — avoid .Result blocking the main thread.
-            // Call RefreshPersonaNameCacheAsync() during init if web names are needed.
             return steamId;
         }
 
         /// <summary>
-        /// Asynchronously fetch persona names from Steam WebAPI for the given Steam IDs
-        /// and populate the PersonaNameCache. Safe to fire-and-forget from the main thread.
+        /// Preload persona names for all known profile Steam IDs from local VDF files.
+        /// Mirrors v2 get_all_contacts() which uses only offline data sources.
         /// </summary>
-        internal static async Task RefreshPersonaNameCacheAsync(params string[] steamIds)
+        internal static void PreloadFromLocalVdf()
         {
-            foreach (var sid in steamIds)
+            // Re-parse all userdata localconfig.vdf files to populate the friend display map
+            // so that GetPersonaName can find names even for IDs we haven't explicitly looked up yet.
+            InvalidateFriendListDisplayMap();
+            // Also populate the friend display map now (it will be lazily built on first TryGetFriendListDisplayName call).
+            // But since TryGetFriendListDisplayName always re-scans, just call it once to warm up.
+            var steamPath = GetSteamInstallPath();
+            if (string.IsNullOrEmpty(steamPath)) return;
+            var userdataRoot = Path.Combine(steamPath, "userdata");
+            if (!Directory.Exists(userdataRoot)) return;
+            foreach (var folder in Directory.GetDirectories(userdataRoot))
             {
-                if (string.IsNullOrEmpty(sid)) continue;
-                if (PersonaNameCache.ContainsKey(sid)) continue;
-
-                var name = await FetchPersonaNameFromWebApi(sid);
-                if (!string.IsNullOrEmpty(name) && name != sid)
-                    PersonaNameCache[sid] = name;
+                try
+                {
+                    var cfg = Path.Combine(folder, "config", "localconfig.vdf");
+                    if (!File.Exists(cfg)) continue;
+                    var entries = ExtractFriendEntriesFromLocalConfig(File.ReadAllText(cfg));
+                    foreach (var (sid, nm) in entries)
+                    {
+                        if (!string.IsNullOrWhiteSpace(nm) && !string.IsNullOrEmpty(sid))
+                            PersonaNameCache[sid] = nm.Trim();
+                    }
+                }
+                catch { /* skip */ }
             }
         }
 
-        /// <summary>
-        /// Kick off async preload of persona names for all known multiplayer save Steam IDs.
-        /// Safe to call from the main thread — fire and forget.
-        /// </summary>
-        internal static async Task PreloadPersonaNamesAsync()
+        /// <summary>Read PersonaName from the VDF object keyed exactly by <paramref name="steamId"/>.</summary>
+        private static string? GetPersonaNameFromKeyedBlock(string content, string steamId)
         {
-            try
+            if (string.IsNullOrEmpty(content) || string.IsNullOrEmpty(steamId)) return null;
+            string needle = "\"" + steamId + "\"";
+            for (int keyIdx = 0; keyIdx < content.Length; )
             {
-                var steamIds = Core.SaveManagerHelper.GetAllProfiles()
-                    .Select(p => p.SteamId)
-                    .Where(sid => !string.IsNullOrEmpty(sid) && !PersonaNameCache.ContainsKey(sid))
-                    .Distinct()
-                    .ToArray();
-
-                if (steamIds.Length == 0) return;
-
-                foreach (var sid in steamIds)
+                keyIdx = content.IndexOf(needle, keyIdx, StringComparison.Ordinal);
+                if (keyIdx < 0) return null;
+                int afterQuotedKey = keyIdx + needle.Length;
+                if (afterQuotedKey < content.Length && content[afterQuotedKey] == '"')
                 {
-                    var name = await FetchPersonaNameFromWebApi(sid);
-                    if (!string.IsNullOrEmpty(name) && name != sid)
-                        PersonaNameCache[sid] = name;
+                    keyIdx++;
+                    continue;
                 }
+
+                int j = afterQuotedKey;
+                while (j < content.Length && char.IsWhiteSpace(content[j])) j++;
+                if (j >= content.Length || content[j] != '{')
+                {
+                    keyIdx++;
+                    continue;
+                }
+
+                string block = ExtractVdfBracedBlock(content, j);
+                if (string.IsNullOrEmpty(block))
+                {
+                    keyIdx++;
+                    continue;
+                }
+
+                var m = Regex.Match(block, @"""PersonaName""\s+""([^""]*)""", RegexOptions.IgnoreCase);
+                if (m.Success && !string.IsNullOrWhiteSpace(m.Groups[1].Value))
+                    return m.Groups[1].Value.Trim();
+
+                keyIdx++;
             }
-            catch (Exception ex)
-            {
-                GD.PrintErr("[MultiplayerTools] PreloadPersonaNamesAsync failed: " + ex.Message);
-            }
+
+            return null;
         }
 
         /// <summary>Fetch persona name from local users.vdf cache.</summary>
@@ -256,14 +339,9 @@ namespace MultiplayerTools.Steam
                 var steamPath = GetSteamInstallPath();
                 if (string.IsNullOrEmpty(steamPath)) return null;
                 var usersVdf = Path.Combine(steamPath, "config", "users.vdf");
-                if (File.Exists(usersVdf))
-                {
-                    var content = File.ReadAllText(usersVdf);
-                    var pattern = $@"""{steamId}""[^}}]*?""PersonaName""\s+""([^""]+)""";
-                    var match = Regex.Match(content, pattern, RegexOptions.Singleline);
-                    if (match.Success)
-                        return match.Groups[1].Value;
-                }
+                if (!File.Exists(usersVdf)) return null;
+                var content = File.ReadAllText(usersVdf);
+                return GetPersonaNameFromKeyedBlock(content, steamId);
             }
             catch (Exception ex)
             {
@@ -281,62 +359,12 @@ namespace MultiplayerTools.Steam
                 if (string.IsNullOrEmpty(steamPath)) return null;
                 var loginUsersPath = Path.Combine(steamPath, "config", "loginusers.vdf");
                 if (!File.Exists(loginUsersPath)) return null;
-
                 var content = File.ReadAllText(loginUsersPath);
-                var idx = content.IndexOf($"\"{steamId}\"");
-                if (idx < 0) return null;
-
-                // Find the PersonaName within the same account block
-                int blockStart = content.LastIndexOf('{', idx);
-                int blockEnd = FindMatchingBrace(content, blockStart);
-                if (blockEnd <= blockStart) return null;
-
-                string block = content.Substring(blockStart, blockEnd - blockStart + 1);
-                var nameMatch = Regex.Match(block, @"""PersonaName""\s+?""([^""]+)""");
-                if (nameMatch.Success)
-                    return nameMatch.Groups[1].Value;
+                return GetPersonaNameFromKeyedBlock(content, steamId);
             }
             catch (Exception ex)
             {
                 GD.PrintErr($"[MultiplayerTools] GetPersonaNameFromLoginUsers({steamId}) failed: " + ex.Message);
-            }
-            return null;
-        }
-
-        /// <summary>Fetch persona name from Steam WebAPI (async). No API key required for public data.</summary>
-        private static async Task<string?> FetchPersonaNameFromWebApi(string steamId)
-        {
-            try
-            {
-                if (_httpClient == null)
-                    _httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-
-                var url = SteamApiUrl + steamId;
-                var response = await _httpClient.GetStringAsync(url);
-
-                // Parse JSON: {"response": {"players": [{"personaname": "..."}]}}
-                using var doc = JsonDocument.Parse(response);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("response", out var resp) &&
-                    resp.TryGetProperty("players", out var players) &&
-                    players.ValueKind == JsonValueKind.Array &&
-                    players.GetArrayLength() > 0)
-                {
-                    var player = players[0];
-                    if (player.TryGetProperty("personaname", out var personaName))
-                    {
-                        var name = personaName.GetString();
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            GD.Print($"[MultiplayerTools] GetPersonaName WebAPI: {steamId} -> {name}");
-                            return name;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                GD.PrintErr($"[MultiplayerTools] FetchPersonaNameFromWebApi({steamId}) failed: " + ex.Message);
             }
             return null;
         }
@@ -353,15 +381,45 @@ namespace MultiplayerTools.Steam
 
                 var content = File.ReadAllText(loginUsersPath);
                 var contacts = new List<SteamContact>();
-                var blockPattern = @"\""(\d+)\""\s*\{[^}]*?\""PersonaName\""\s+?\""([^\""]+)\""";
-                foreach (Match m in Regex.Matches(content, blockPattern, RegexOptions.Singleline))
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+
+                void AddLoginUser(string steamId64, string personaName)
                 {
-                    var id = m.Groups[1].Value;
-                    var name = m.Groups[2].Value;
-                    if (!ContactCache.ContainsKey(id))
-                        ContactCache[id] = new SteamContact { SteamId = id, PersonaName = name };
-                    contacts.Add(ContactCache[id]);
+                    personaName = personaName.Trim();
+                    if (string.IsNullOrEmpty(personaName) || !seen.Add(steamId64)) return;
+                    if (!ContactCache.TryGetValue(steamId64, out var contact))
+                    {
+                        contact = new SteamContact { SteamId = steamId64, PersonaName = personaName };
+                        ContactCache[steamId64] = contact;
+                    }
+                    else if (string.IsNullOrEmpty(contact.PersonaName))
+                        contact.PersonaName = personaName;
+                    contacts.Add(contact);
                 }
+
+                foreach (Match m in Regex.Matches(content, @"""(7656119\d{10})""\s*\{", RegexOptions.None))
+                {
+                    int braceAt = m.Index + m.Length - 1;
+                    string block = ExtractVdfBracedBlock(content, braceAt);
+                    if (string.IsNullOrEmpty(block)) continue;
+                    var pn = Regex.Match(block, @"""PersonaName""\s+""([^""]*)""", RegexOptions.IgnoreCase);
+                    if (!pn.Success) continue;
+                    AddLoginUser(m.Groups[1].Value, pn.Groups[1].Value);
+                }
+
+                foreach (Match m in Regex.Matches(content, @"""(\d{8,10})""\s*\{", RegexOptions.None))
+                {
+                    string raw = m.Groups[1].Value;
+                    string id64 = ConvertToSteamId64(raw);
+                    if (string.IsNullOrEmpty(id64)) continue;
+                    int braceAt = m.Index + m.Length - 1;
+                    string block = ExtractVdfBracedBlock(content, braceAt);
+                    if (string.IsNullOrEmpty(block)) continue;
+                    var pn = Regex.Match(block, @"""PersonaName""\s+""([^""]*)""", RegexOptions.IgnoreCase);
+                    if (!pn.Success) continue;
+                    AddLoginUser(id64, pn.Groups[1].Value);
+                }
+
                 return contacts.OrderBy(c => c.PersonaName).ToList();
             }
             catch (Exception ex)
@@ -383,7 +441,6 @@ namespace MultiplayerTools.Steam
                 // Get Steam Account ID (int folder name in userdata/)
                 uint? accountId = GetCurrentSteamAccountId();
                 string? steamId64 = GetCurrentSteamId();
-                GD.Print($"[MultiplayerTools] GetLocalFriends: accountId={accountId?.ToString() ?? "null"}, steamId64={steamId64 ?? "null"}");
 
                 if (!accountId.HasValue)
                 {
@@ -392,10 +449,7 @@ namespace MultiplayerTools.Steam
                 }
 
                 if (FriendsCache.TryGetValue(accountId.Value.ToString(), out var cached))
-                {
-                    GD.Print($"[MultiplayerTools] GetLocalFriends: cache hit, returning {cached.Count} contacts");
                     return cached;
-                }
 
                 var steamPath = GetSteamInstallPath();
                 if (string.IsNullOrEmpty(steamPath))
@@ -406,14 +460,12 @@ namespace MultiplayerTools.Steam
 
                 // Use account ID (not SteamID64!) as folder name
                 var localCfg = Path.Combine(steamPath, "userdata", accountId.Value.ToString(), "config", "localconfig.vdf");
-                GD.Print($"[MultiplayerTools] GetLocalFriends: steamPath={steamPath}, userdata folder={accountId}, localCfg={localCfg}, exists={File.Exists(localCfg)}");
 
                 if (!File.Exists(localCfg))
                 {
                     GD.PrintErr("[MultiplayerTools] GetLocalFriends: localconfig.vdf not found for user " + accountId);
                     // Fallback: try SteamID64 folder name
                     var altPath = Path.Combine(steamPath, "userdata", steamId64 ?? "", "config", "localconfig.vdf");
-                    GD.Print($"[MultiplayerTools] GetLocalFriends: trying SteamID64 path: {altPath}, exists={File.Exists(altPath)}");
                     if (!string.IsNullOrEmpty(steamId64) && File.Exists(altPath))
                         localCfg = altPath;
                     else
@@ -425,7 +477,6 @@ namespace MultiplayerTools.Steam
 
                 var content = File.ReadAllText(localCfg);
                 var friendEntries = ExtractFriendEntriesFromLocalConfig(content);
-                GD.Print($"[MultiplayerTools] GetLocalFriends: extracted {friendEntries.Count} entries from localconfig.vdf");
                 var list = new List<SteamContact>();
 
                 foreach (var (sid, name) in friendEntries)
@@ -445,7 +496,6 @@ namespace MultiplayerTools.Steam
                 // Fallback: if no friends found, scan all userdata folders
                 if (list.Count == 0)
                 {
-                    GD.Print("[MultiplayerTools] GetLocalFriends: no friends in current user folder, scanning all userdata folders...");
                     var userdataRoot = Path.Combine(steamPath, "userdata");
                     if (Directory.Exists(userdataRoot))
                     {
@@ -482,10 +532,7 @@ namespace MultiplayerTools.Steam
 
                 // Final fallback: use GetLocalContacts (all accounts from loginusers.vdf)
                 if (list.Count == 0)
-                {
-                    GD.Print("[MultiplayerTools] GetLocalFriends: no friends found, falling back to GetLocalContacts");
                     list = GetLocalContacts();
-                }
 
                 // Sort: named first, then id
                 list = list
@@ -494,7 +541,6 @@ namespace MultiplayerTools.Steam
                     .ThenBy(c => c.SteamId)
                     .ToList();
 
-                GD.Print($"[MultiplayerTools] GetLocalFriends: returning {list.Count} contacts (with fallback)");
                 FriendsCache[accountId.Value.ToString()] = list;
                 return list;
             }
@@ -502,6 +548,75 @@ namespace MultiplayerTools.Steam
             {
                 GD.PrintErr("[MultiplayerTools] GetLocalFriends failed: " + ex.Message);
                 return new List<SteamContact>();
+            }
+        }
+
+        /// <summary>
+        /// Name shown in Steam Friends for <paramref name="steamId64"/> on this PC.
+        /// Scans ALL userdata/localconfig.vdf files — mirrors v2 get_all_contacts() behavior
+        /// (friends can be stored in ANY Steam account's localconfig, not just the current one).
+        /// </summary>
+        private static bool TryGetFriendListDisplayName(string steamId64, out string displayName)
+        {
+            displayName = "";
+            if (string.IsNullOrEmpty(steamId64)) return false;
+
+            // Use a sentinel value (0) so we always scan all localconfig.vdf files regardless of active account.
+            const uint AllAccountsSentinel = 0;
+            if (_friendListDisplayBySteamId == null || _friendListDisplayLoadedForAccount != AllAccountsSentinel)
+                LoadFriendListDisplayMap();
+
+            if (_friendListDisplayBySteamId != null &&
+                _friendListDisplayBySteamId.TryGetValue(steamId64, out var nm) &&
+                !string.IsNullOrWhiteSpace(nm))
+            {
+                displayName = nm;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Load friend display names from ALL localconfig.vdf files under userdata/.
+        /// Unlike the original that only checked the active account, this mirrors v2
+        /// by scanning every account — players can be friends with any Steam account on this PC.
+        /// </summary>
+        private static void LoadFriendListDisplayMap()
+        {
+            _friendListDisplayBySteamId = new Dictionary<string, string>(StringComparer.Ordinal);
+            // Sentinel ensures we always re-scan when called; no stale cache.
+            _friendListDisplayLoadedForAccount = 0;
+
+            var steamPath = GetSteamInstallPath();
+            if (string.IsNullOrEmpty(steamPath)) return;
+
+            void MergeEntries(string vdfText)
+            {
+                foreach (var (sid, nm) in ExtractFriendEntriesFromLocalConfig(vdfText))
+                {
+                    if (string.IsNullOrWhiteSpace(nm) || string.IsNullOrEmpty(sid)) continue;
+                    _friendListDisplayBySteamId![sid] = nm.Trim();
+                }
+            }
+
+            var userdataRoot = Path.Combine(steamPath, "userdata");
+            if (!Directory.Exists(userdataRoot)) return;
+
+            foreach (var folder in Directory.GetDirectories(userdataRoot))
+            {
+                try
+                {
+                    var folderName = Path.GetFileName(folder);
+                    // Accept both uint (Steam Account ID) and string (SteamID64) folder names
+                    if (!uint.TryParse(folderName, out _) &&
+                        !folderName.StartsWith("7656119", StringComparison.Ordinal))
+                        continue;
+                    var cfg = Path.Combine(folder, "config", "localconfig.vdf");
+                    if (!File.Exists(cfg)) continue;
+                    MergeEntries(File.ReadAllText(cfg));
+                }
+                catch { /* skip invalid folders */ }
             }
         }
 
@@ -513,21 +628,19 @@ namespace MultiplayerTools.Steam
             // Locate "friends" section
             int idx = IndexOfToken(content, "\"friends\"");
             if (idx < 0) idx = IndexOfToken(content, "\"Friends\"");
-            if (idx < 0) return results;
+            if (idx < 0)
+                return results;
 
             // Take a large snippet starting from the friends keyword (covers the entire friends block)
             string snippet = content.Substring(idx, Math.Min(content.Length - idx, 5_000_000));
-            GD.Print($"[MultiplayerTools] ExtractFriends: snippet length={snippet.Length}, starts with: {snippet.Substring(0, Math.Min(200, snippet.Length))}");
 
             // Try VDF parse first (handles nested structures properly)
             var vdfResults = ExtractFriendsViaVdfParse(snippet);
-            GD.Print($"[MultiplayerTools] ExtractFriends: VDF parse found {vdfResults.Count} entries");
-            if (vdfResults.Count > 0) return vdfResults;
+            if (vdfResults.Count > 0)
+                return vdfResults;
 
-            // Fallback: regex for older flat format (account id or SteamID64 as keys)
-            var regexResults = ExtractFriendsViaRegex(snippet);
-            GD.Print($"[MultiplayerTools] ExtractFriends: regex found {regexResults.Count} entries");
-            return regexResults;
+            // Fallback: scan keyed blocks (regex [^}] breaks on nested VDF)
+            return ExtractFriendsViaRegex(snippet);
         }
 
         /// <summary>VDF-aware parse of friends block. Wraps snippet in a synthetic root key and
@@ -541,108 +654,110 @@ namespace MultiplayerTools.Steam
             if (braceStart < 0) return results;
 
             string block = ExtractVdfBracedBlock(snippet, braceStart);
-            if (string.IsNullOrEmpty(block)) { GD.Print("[MultiplayerTools] VDF: block empty"); return results; }
+            if (string.IsNullOrEmpty(block)) return results;
 
             // Wrap in synthetic root so _tokenize_vdf produces a clean tree
             string wrapped = "\"_root\" " + block;
-            GD.Print($"[MultiplayerTools] VDF: wrapped length={wrapped.Length}, first 200: {wrapped.Substring(0, Math.Min(200, wrapped.Length))}");
             var tokens = TokenizeVdf(wrapped);
-            GD.Print($"[MultiplayerTools] VDF: {tokens.Count} tokens");
             var dict = BuildVdfDict(tokens);
-            GD.Print($"[MultiplayerTools] VDF: dict has {dict.Count} top-level keys: [{string.Join(",", dict.Keys)}]");
 
             if (!dict.TryGetValue("_root", out var rootVal) || rootVal is not Dictionary<string, object> root)
                 return results;
 
-            GD.Print($"[MultiplayerTools] VDF: root has {root.Count} entries");
             foreach (var kvp in root)
             {
                 if (!IsDigitKey(kvp.Key)) continue;
                 if (kvp.Value is not Dictionary<string, object> entry) continue;
-                if (!entry.TryGetValue("name", out var nameRaw)) {
-                    GD.Print($"[MultiplayerTools] VDF: entry key={kvp.Key} has no 'name' field, keys={string.Join(",", entry.Keys)}");
-                    // Fallback to persona_name
-                    if (entry.TryGetValue("persona_name", out var pnRaw))
-                    {
-                        string pnName = pnRaw?.ToString() ?? "";
-                        if (!string.IsNullOrEmpty(pnName) && pnName.Length <= 100)
-                        {
-                            string sidResult = ConvertToSteamId64(kvp.Key);
-                            if (!string.IsNullOrEmpty(sidResult) && !seen.Contains(sidResult))
-                            {
-                                seen.Add(sidResult);
-                                results.Add((sidResult, pnName));
-                                GD.Print($"[MultiplayerTools] VDF: added via persona_name: {pnName}");
-                            }
-                        }
-                    }
-                    continue;
-                }
-                string name = nameRaw?.ToString() ?? "";
+
+                string? name = null;
+                if (TryGetVdfChildString(entry, "name", out var n0)) name = n0;
+                else if (TryGetVdfChildString(entry, "persona_name", out var n1)) name = n1;
+
                 if (string.IsNullOrEmpty(name) || name.Length > 100) continue;
 
                 string steamId64 = ConvertToSteamId64(kvp.Key);
-                if (string.IsNullOrEmpty(steamId64)) continue;
-                if (seen.Contains(steamId64)) continue;
+                if (string.IsNullOrEmpty(steamId64) || seen.Contains(steamId64)) continue;
                 seen.Add(steamId64);
                 results.Add((steamId64, name));
             }
             return results;
         }
 
-        /// <summary>Regex fallback for older flat-format friends lists without nested objects.</summary>
+        private static bool TryGetVdfChildString(Dictionary<string, object> d, string key, out string? value)
+        {
+            foreach (var k in d.Keys)
+            {
+                if (!string.Equals(k, key, StringComparison.OrdinalIgnoreCase)) continue;
+                value = d[k]?.ToString();
+                return true;
+            }
+            value = null;
+            return false;
+        }
+
+        /// <summary>Scan friend entries by SteamID/account key + balanced <c>{ }</c> block (nested VDF safe).</summary>
         private static List<(string steamId64, string name)> ExtractFriendsViaRegex(string snippet)
         {
             var results = new List<(string, string)>();
-            var seen = new HashSet<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
 
-            void AddFriend(string idRaw, string name)
+            void AddFromBlock(string idRaw, int openBraceIndex)
             {
-                name = name.Trim();
+                if (openBraceIndex < 0 || openBraceIndex >= snippet.Length || snippet[openBraceIndex] != '{')
+                    return;
+                string block = ExtractVdfBracedBlock(snippet, openBraceIndex);
+                if (string.IsNullOrEmpty(block)) return;
+                if (!block.Contains("\"name\"", StringComparison.OrdinalIgnoreCase) &&
+                    !block.Contains("\"persona_name\"", StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                string? name = TryExtractFriendDisplayNameFromBlock(block);
                 if (string.IsNullOrEmpty(name) || name.Length > 100) return;
+
                 string steamId64 = ConvertToSteamId64(idRaw);
                 if (string.IsNullOrEmpty(steamId64) || seen.Contains(steamId64)) return;
                 seen.Add(steamId64);
-                results.Add((steamId64, name));
+                results.Add((steamId64, name.Trim()));
             }
 
-            // New format: SteamID64 as key (17 digits starting 7656119)
-            var sid64Matches = Regex.Matches(snippet, @"""(7656119\d{10})""\s*\{[^}]*?""name""\s+?""([^""]+)""", RegexOptions.Singleline);
-            GD.Print($"[MultiplayerTools] Regex: found {sid64Matches.Count} SteamID64 entries");
-            foreach (Match m in sid64Matches)
-                AddFriend(m.Groups[1].Value, m.Groups[2].Value);
+            foreach (Match m in Regex.Matches(snippet, @"""(7656119\d{10})""\s*\{", RegexOptions.None))
+                AddFromBlock(m.Groups[1].Value, m.Index + m.Length - 1);
 
-            // Legacy format: account id as key (8-11 digits)
-            var legacyMatches = Regex.Matches(snippet, @"""(\d{8,11})""\s*\{[^}]*?""name""\s+?""([^""]+)""", RegexOptions.Singleline);
-            GD.Print($"[MultiplayerTools] Regex: found {legacyMatches.Count} legacy account entries");
-            foreach (Match m in legacyMatches)
-                AddFriend(m.Groups[1].Value, m.Groups[2].Value);
-
-            // Also try "persona_name" field (used in some Steam versions)
-            var pnMatches = Regex.Matches(snippet, @"""(7656119\d{10})""\s*\{[^}]*?""persona_name""\s+?""([^""]+)""", RegexOptions.Singleline);
-            GD.Print($"[MultiplayerTools] Regex: found {pnMatches.Count} persona_name entries");
-            foreach (Match m in pnMatches)
-                AddFriend(m.Groups[1].Value, m.Groups[2].Value);
+            foreach (Match m in Regex.Matches(snippet, @"""(\d{8,11})""\s*\{", RegexOptions.None))
+                AddFromBlock(m.Groups[1].Value, m.Index + m.Length - 1);
 
             return results;
+        }
+
+        private static string? TryExtractFriendDisplayNameFromBlock(string block)
+        {
+            var nm = Regex.Match(block, @"""name""\s+""([^""]*)""", RegexOptions.IgnoreCase);
+            if (nm.Success && !string.IsNullOrWhiteSpace(nm.Groups[1].Value))
+                return nm.Groups[1].Value;
+            var pn = Regex.Match(block, @"""persona_name""\s+""([^""]*)""", RegexOptions.IgnoreCase);
+            if (pn.Success && !string.IsNullOrWhiteSpace(pn.Groups[1].Value))
+                return pn.Groups[1].Value;
+            return null;
         }
 
         /// <summary>Convert a key to SteamID64 string.
         /// - If already a 17-digit SteamID64 (starts 7656119): return as-is.
-        /// - If an account id (8-11 digits): convert using SteamID64 formula.</summary>
+        /// - If a short account id (8-11 digits): <c>SteamID64 = base + account_id</c> (same as v2 _account_id_to_steam64).
+        /// </summary>
         private static string ConvertToSteamId64(string key)
         {
             if (string.IsNullOrEmpty(key)) return "";
             key = key.Trim();
             if (key.StartsWith("7656119") && key.Length == 17 && IsDigitsOnly(key))
                 return key;
+            // Accept 8-11 digit account IDs (mirrors Python v2 steam_api._friend_key_to_account_id_or_none
+            // and _friends_regex_fallback which uses {8,11}).
             if (key.Length >= 8 && key.Length <= 11 && IsDigitsOnly(key))
             {
                 try
                 {
                     ulong accountId = ulong.Parse(key);
-                    ulong steamId64 = SteamIdBase + (accountId * 2) + (accountId & 1);
-                    return steamId64.ToString();
+                    return (SteamIdBase + accountId).ToString();
                 }
                 catch { return ""; }
             }

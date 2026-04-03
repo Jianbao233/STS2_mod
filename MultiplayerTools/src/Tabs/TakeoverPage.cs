@@ -127,7 +127,7 @@ namespace MultiplayerTools.Tabs
 
         private static void RenderPlayerCard(VBoxContainer parent, Dictionary<string, object> pl, int index, bool isHost)
         {
-            string netId = GetStr(pl, "net_id");
+            string netId = Steam.SteamIntegration.NormalizeSteamIdForApi(GetStr(pl, "net_id"));
             string netIdShort = MpSessionState.ShortenSteamId(netId);
             string charId = GetStr(pl, "character_id");
             int hp = GetInt(pl, "current_hp");
@@ -260,6 +260,7 @@ namespace MultiplayerTools.Tabs
 
         private static void ShowFriendPicker(LineEdit targetEdit)
         {
+            Steam.SteamIntegration.ClearFriendsListCache();
             var me = Steam.SteamIntegration.GetCurrentSteamId() ?? "";
             var room = BuildRoomMemberOptions(me);
             var friends = Steam.SteamIntegration.GetLocalFriends()
@@ -279,7 +280,7 @@ namespace MultiplayerTools.Tabs
             for (int i = 0; i < players.Count; i++)
             {
                 if (players[i] is not Dictionary<string, object> pl) continue;
-                string netId = GetStr(pl, "net_id").Trim();
+                string netId = Steam.SteamIntegration.NormalizeSteamIdForApi(GetStr(pl, "net_id"));
                 if (string.IsNullOrEmpty(netId)) continue;
                 if (!string.IsNullOrEmpty(localSteamId) && netId == localSteamId) continue;
 

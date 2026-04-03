@@ -291,6 +291,9 @@ namespace MultiplayerTools.Tabs
                 var backupRoot = SaveManagerHelper.GetBackupRoot();
                 if (!Directory.Exists(backupRoot)) return;
 
+                // One scan for all folders (avoid re-scanning disk per backup when resolving Steam ID).
+                var allProfiles = SaveManagerHelper.GetAllProfiles();
+
                 foreach (var dir in Directory.GetDirectories(backupRoot))
                 {
                     var di = new DirectoryInfo(dir);
@@ -304,7 +307,7 @@ namespace MultiplayerTools.Tabs
                     }
 
                     if (string.IsNullOrEmpty(steamId))
-                        steamId = ResolveSteamIdForBackupProfile(profileKey);
+                        steamId = ResolveSteamIdForBackupProfile(profileKey, allProfiles);
 
                     // Scan for save files in this backup
                     var saveFiles = Directory.GetFiles(dir, "*.save").Concat(
@@ -364,12 +367,12 @@ namespace MultiplayerTools.Tabs
         }
 
         /// <summary>Legacy folder names lack Steam ID; infer from scanned save profiles (unique match only).</summary>
-        private static string ResolveSteamIdForBackupProfile(string profileKeyRaw)
+        private static string ResolveSteamIdForBackupProfile(string profileKeyRaw, List<SaveProfile> profiles)
         {
             string norm = NormalizeUnderscoreProfileKey(profileKeyRaw).Replace('\\', '/').Trim('/');
             if (string.IsNullOrEmpty(norm)) return "";
 
-            var matches = SaveManagerHelper.GetAllProfiles()
+            var matches = profiles
                 .Where(p => ProfileSpecMatchesBackup(p, norm))
                 .Select(p => p.SteamId)
                 .Where(s => !string.IsNullOrEmpty(s))

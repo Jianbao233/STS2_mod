@@ -55,7 +55,15 @@ namespace MultiplayerTools
                         UiFontStep = Math.Clamp(fs.GetInt32(), 0, 6);
 
                     if (root.TryGetProperty("debug", out var dbg))
-                        DebugMode = dbg.GetBoolean();
+                    {
+                        // Handle both JSON boolean (true/false) and string ("True"/"False"/"true"/"false")
+                        try { DebugMode = dbg.GetBoolean(); }
+                        catch
+                        {
+                            var s = dbg.GetString();
+                            DebugMode = string.Equals(s, "true", StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
                 }
                 else
                 {

@@ -25,6 +25,9 @@ internal static class ClientCheatBlockPrefix
         "energy", "remove_card"
     };
 
+    // 诊断标志：确保 action 字段只枚举一次
+    private static bool _actionFieldsLogged = false;
+
     static MethodBase TargetMethod()
     {
         var t = AccessTools.TypeByName("MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer")
@@ -35,6 +38,10 @@ internal static class ClientCheatBlockPrefix
 
     static bool Prefix(object __instance, object message, ulong senderId)
     {
+        // 全面日志：追踪每一个进来的 action
+        static void DIAG(string msg) => Godot.GD.Print($"[NCC|FULLTRACE] ClientCheatBlockPrefix: {msg}");
+        DIAG($"HandleRequestEnqueueActionMessage senderId={senderId}");
+
         // 第三重保险：若 ModManagerInitPostfix 的两条路径都因 GetMainLoop()==null 而未执行，
         // 作弊拦截触发时兜底尝试初始化（确保终局也能创建 UI 节点）
         ModManagerInitPostfix.TryScheduleInit();
@@ -45,12 +52,25 @@ internal static class ClientCheatBlockPrefix
         var t = message.GetType();
         action ??= t.GetProperty("action", BindingFlags.Public | BindingFlags.Instance)?.GetValue(message);
         action ??= t.GetField("action", BindingFlags.Public | BindingFlags.Instance)?.GetValue(message);
+        DIAG($"action type={action?.GetType().Name ?? "null"}");
 
         if (action == null) return true;
+
+        // 枚举 action 的所有字段（一次性诊断）
+        if (!_actionFieldsLogged && action != null)
+        {
+            _actionFieldsLogged = true;
+            foreach (var f in action.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                try { DIAG($"  action field: {f.FieldType.Name} {f.Name} = {f.GetValue(action)}"); } catch { }
+            }
+        }
+
         if (action.GetType().Name != "NetConsoleCmdGameAction") return true;
 
         var cmdField = action.GetType().GetField("cmd", BindingFlags.Public | BindingFlags.Instance);
         var cmd = cmdField?.GetValue(action) as string;
+        DIAG($"cmd={cmd ?? "null"}");
         if (string.IsNullOrWhiteSpace(cmd)) return true;
 
         var cmdName = cmd.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
@@ -102,7 +122,8 @@ internal static class ClientCheatBlockPrefix
         list.Insert(0, new CodeInstruction(OpCodes.Ldarg_2) { labels = { startLabel } }); // 加载 senderId
         list.Insert(1, new CodeInstruction(OpCodes.Call, setMethod));                      // 调用 SetCurrentRemotePlayer
 
-        // 2. 在所有 ret 指令前插入 ClearCurrentRemotePlayer
+        // 诊断：在每个 ret 前的清除调用旁打印日志
+        // Transpiler 方法内不能用 static lambda，但 Transpiler 本身只调用一次所以不影响
         var result = new List<CodeInstruction>();
         foreach (var inst in list)
         {

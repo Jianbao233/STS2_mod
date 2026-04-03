@@ -13,6 +13,7 @@ from typing import Optional
 
 BUILTIN_CHARACTERS = {
     # Note: name field is filled lazily via _get_name() to avoid circular import
+    # Wiki source: https://ie.ign.com/wikis/slay-the-spire-2/Characters
     "CHARACTER.IRONCLAD": {
         "i18n_key": "char.ironclad",
         "max_hp": 80,
@@ -36,7 +37,8 @@ BUILTIN_CHARACTERS = {
             "CARD.STRIKE_SILENT",
             "CARD.DEFEND_SILENT", "CARD.DEFEND_SILENT",
             "CARD.DEFEND_SILENT", "CARD.DEFEND_SILENT",
-            "CARD.NEUTRALIZE",
+            "CARD.DEFEND_SILENT",
+            "CARD.NEUTRALIZE", "CARD.SURVIVOR",
         ],
     },
     "CHARACTER.DEFECT": {
@@ -61,20 +63,20 @@ BUILTIN_CHARACTERS = {
             "CARD.STRIKE_NECROBINDER", "CARD.STRIKE_NECROBINDER",
             "CARD.DEFEND_NECROBINDER", "CARD.DEFEND_NECROBINDER",
             "CARD.DEFEND_NECROBINDER", "CARD.DEFEND_NECROBINDER",
+            "CARD.BODYGUARD",
             "CARD.UNLEASH",
-            "CARD.FLASH_OF_STEEL",
         ],
     },
     "CHARACTER.REGENT": {
         "i18n_key": "char.regent",
         "max_hp": 75,
-        "starter_relic": "RELIC.CROWN",
+        "starter_relic": "RELIC.DIVINE_RIGHT",
         "starter_deck": [
             "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT",
             "CARD.STRIKE_REGENT", "CARD.STRIKE_REGENT",
             "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT",
             "CARD.DEFEND_REGENT", "CARD.DEFEND_REGENT",
-            "CARD.CHARGE", "CARD.GLOW",
+            "CARD.FALLING_STAR", "CARD.VENERATE",
         ],
     },
 }

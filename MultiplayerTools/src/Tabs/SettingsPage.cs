@@ -39,6 +39,15 @@ namespace MultiplayerTools.Tabs
 
             BuildLangCard(container);
 
+            // ── Steam ID section ───────────────────────────────────────────────
+            var steamTitle = new Label { Text = "Steam" };
+            steamTitle.AddThemeFontSizeOverride("font_size", 18);
+            steamTitle.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
+            steamTitle.AddThemeConstantOverride("custom_minimum_size_y", 30);
+            container.AddChild(steamTitle, false, Node.InternalMode.Disabled);
+
+            BuildSteamIdCard(container);
+
             // ── Font size section ─────────────────────────────────────────────
             var fontTitle = new Label { Text = Loc.Get("settings.font_size", "Font Size") };
             fontTitle.AddThemeFontSizeOverride("font_size", 18);
@@ -122,6 +131,74 @@ namespace MultiplayerTools.Tabs
             AddLangRadio("game", Loc.Get("settings.lang_game", "Follow Game"));
             AddLangRadio("eng", "English");
             AddLangRadio("zho", "简体中文");
+        }
+
+        private static void BuildSteamIdCard(VBoxContainer container)
+        {
+            string? steamId = Steam.SteamIntegration.GetCurrentSteamId();
+            string displayId = !string.IsNullOrEmpty(steamId)
+                ? steamId
+                : Loc.Get("settings.steam_id_unavailable", "Not available");
+
+            var card = new PanelContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                CustomMinimumSize = new Vector2(0, 54)
+            };
+            var cardStyle = new StyleBoxFlat
+            {
+                BgColor = Panel.Styles.MpNavSelected,
+                BorderColor = Panel.Styles.PanelBorder,
+                ShadowSize = 0, ShadowColor = Godot.Colors.Transparent
+            };
+            cardStyle.SetBorderWidthAll(0);
+            cardStyle.SetCornerRadiusAll(8);
+            card.AddThemeStyleboxOverride("panel", cardStyle);
+            container.AddChild(card, false, Node.InternalMode.Disabled);
+
+            var margin = new MarginContainer();
+            margin.AddThemeConstantOverride("margin_left", 14);
+            margin.AddThemeConstantOverride("margin_right", 14);
+            margin.AddThemeConstantOverride("margin_top", 10);
+            margin.AddThemeConstantOverride("margin_bottom", 10);
+            card.AddChild(margin, false, Node.InternalMode.Disabled);
+
+            var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            row.AddThemeConstantOverride("separation", 12);
+            margin.AddChild(row, false, Node.InternalMode.Disabled);
+
+            var lbl = new Label
+            {
+                Text = Loc.Get("settings.steam_id_label", "Your Steam ID:"),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+                CustomMinimumSize = new Vector2(130, 0)
+            };
+            lbl.AddThemeFontSizeOverride("font_size", 17);
+            lbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
+            row.AddChild(lbl, false, Node.InternalMode.Disabled);
+
+            var idLbl = new Label
+            {
+                Text = displayId,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+            };
+            idLbl.AddThemeFontSizeOverride("font_size", 17);
+            idLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextNav);
+            row.AddChild(idLbl, false, Node.InternalMode.Disabled);
+
+            var copyBtn = MpPanel.CreateActionButton(Loc.Get("settings.copy", "Copy"), Panel.Styles.MpPrimaryBtn);
+            copyBtn.CustomMinimumSize = new Vector2(70, 32);
+            copyBtn.AddThemeFontSizeOverride("font_size", 16);
+            copyBtn.Pressed += () =>
+            {
+                if (!string.IsNullOrEmpty(steamId))
+                {
+                    DisplayServer.ClipboardSet(steamId);
+                    MpPanel.ShowStatusMessage(Loc.Get("settings.copied", "Steam ID copied!"), Panel.Styles.Green);
+                }
+            };
+            row.AddChild(copyBtn, false, Node.InternalMode.Disabled);
         }
 
         private static void BuildFontSlider(VBoxContainer container)

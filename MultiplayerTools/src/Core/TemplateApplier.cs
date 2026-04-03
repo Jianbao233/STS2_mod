@@ -75,7 +75,6 @@ namespace MultiplayerTools.Core
         {
             try
             {
-                GD.Print($"[MultiplayerTools] Applying template '{template.Name}' to player");
                 var runState = RunManager.Instance?.DebugOnlyGetState();
                 if (runState == null) { GD.PrintErr("[MultiplayerTools] No run state"); return; }
 
@@ -98,7 +97,6 @@ namespace MultiplayerTools.Core
                 // 5. Clear + Rebuild relics
                 await RebuildRelicsAsync(player, template);
 
-                GD.Print($"[MultiplayerTools] Template '{template.Name}' applied successfully");
             }
             catch (Exception ex)
             {
@@ -196,8 +194,10 @@ namespace MultiplayerTools.Core
             try
             {
                 var allCards = ModelDb.AllCards;
-                return allCards.FirstOrDefault(c => c.Id?.Entry == cardId)
-                    ?? allCards.FirstOrDefault(c => c.Id?.Entry.Contains(cardId, StringComparison.OrdinalIgnoreCase) == true);
+                var exact = allCards.FirstOrDefault(c => c.Id?.Entry == cardId);
+                if (exact != null) return exact;
+                GD.PrintErr($"[MultiplayerTools] Unknown card id (exact match only): {cardId}");
+                return null;
             }
             catch { return null; }
         }
@@ -207,8 +207,10 @@ namespace MultiplayerTools.Core
             try
             {
                 var allRelics = ModelDb.AllRelics;
-                return allRelics.FirstOrDefault(r => r.Id?.Entry == relicId)
-                    ?? allRelics.FirstOrDefault(r => r.Id?.Entry.Contains(relicId, StringComparison.OrdinalIgnoreCase) == true);
+                var exact = allRelics.FirstOrDefault(r => r.Id?.Entry == relicId);
+                if (exact != null) return exact;
+                GD.PrintErr($"[MultiplayerTools] Unknown relic id (exact match only): {relicId}");
+                return null;
             }
             catch { return null; }
         }

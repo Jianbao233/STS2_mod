@@ -21,8 +21,14 @@ namespace NoClientCheats;
 [HarmonyPatch]
 internal static class DeckSyncPatches
 {
-    // 诊断标志：确保 CombatStateSynchronizer 字段列表只打印一次
-    private static bool _syncDataFieldsLogged = false;
+    // 诊断标志：确保 SyncMessage 字段只打印一次
+    private static bool _syncMsgFieldsLogged = false;
+
+    // 诊断标志：确保 _restSites 结构只打印一次
+    private static bool _restSiteFieldsLogged = false;
+
+    // 诊断标志：确保 ChooseOption 参数类型只打印一次
+    private static bool _chooseOptionParamsLogged = false;
 
     // ─── Patch A: RestSiteSynchronizer.ChooseOption (Prefix) ──────────────────
     // 时机：玩家确认选项、选项执行之前，记录此刻的卡组快照
@@ -39,6 +45,27 @@ internal static class DeckSyncPatches
             )?.GetMethod("ChooseOption",
                 BindingFlags.NonPublic | BindingFlags.Instance);
             DIAG($"TargetMethod: type={t?.DeclaringType?.FullName ?? "null"} method={t?.Name ?? "null"}");
+
+            // 一次性诊断：打印 ChooseOption 参数类型
+            if (!_chooseOptionParamsLogged && t != null)
+            {
+                _chooseOptionParamsLogged = true;
+                var p = t.GetParameters();
+                DIAG($"ChooseOption params count={p.Length}");
+                for (int i = 0; i < p.Length; i++)
+                    DIAG($"  param[{i}] {p[i].ParameterType.Name} {p[i].Name}");
+
+                // 也枚举 SerializablePlayer 的所有属性（供 _IsRemotePlayer 参考）
+                var playerType = p.Length > 1 ? p[1].ParameterType : null;
+                if (playerType != null)
+                {
+                    foreach (var prop in playerType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                        DIAG($"  playerProp: {prop.PropertyType.Name} {prop.Name}");
+                    foreach (var field in playerType.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                        DIAG($"  playerField: {field.FieldType.Name} {field.Name}");
+                }
+            }
+
             return t;
         }
 
@@ -46,26 +73,64 @@ internal static class DeckSyncPatches
         {
             try
             {
-                // ── 核心判断：只对远程玩家的操作做快照 ──
-                ulong remoteNetId = NoClientCheatsMod.GetCurrentRemotePlayer();
-                DIAG($"Prefix: remoteNetId={remoteNetId} player={player?.GetType().Name ?? "null"} optionIndex={optionIndex}");
-                if (remoteNetId == 0) return; // 本地玩家，不检测
+                // ── 核心：直接从 player 参数取 NetId，不再依赖 AsyncLocal ──
+                // AsyncLocal 只在 HandleRequestEnqueueActionMessage 中设置，但卡牌升级走其他消息路径
+                ulong playerNetId = GetPlayerNetId(player);
 
-                if (player == null) return;
+                // 诊断：打印 player 的 IsLocal 属性值
+                object isLocalVal = null;
+                try { isLocalVal = player?.GetType().GetProperty("IsLocal")?.GetValue(player); } catch { }
+                bool isRemote = !Convert.ToBoolean(isLocalVal); // null → false（本地）
+                DIAG($"[FULLTRACE] ChooseOption.Prefix playerNetId={playerNetId} IsLocal={isLocalVal} isRemote={isRemote} optionIndex={optionIndex} playerType={player?.GetType().Name ?? "null"}");
 
-                var netId = GetPlayerNetId(player);
-                DIAG($"player.NetId={netId} remoteNetId={remoteNetId} match={netId == remoteNetId}");
-                if (netId == 0) return;
-                if (netId != remoteNetId) return; // 不是当前正在处理的远程玩家
+                if (!isRemote) {
+                    DIAG($"[FULLTRACE] Skip: local player");
+                    return;
+                }
+
+                if (player == null) { DIAG($"Skip: player=null"); return; }
+                if (playerNetId == 0) { DIAG($"Skip: playerNetId=0"); return; }
+
+                // 枚举 __instance 的 _restSites 结构（一次性诊断）
+                if (!_restSiteFieldsLogged)
+                {
+                    _restSiteFieldsLogged = true;
+                    try {
+                        var rsField = __instance.GetType().GetField("_restSites", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var rs = rsField?.GetValue(__instance) as IList;
+                        if (rs != null) {
+                            DIAG($"_restSites count={rs.Count}");
+                            for (int i = 0; i < rs.Count; i++) {
+                                var site = rs[i];
+                                var optsField = site?.GetType().GetField("options", BindingFlags.Public | BindingFlags.Instance);
+                                var opts = optsField?.GetValue(site) as IList;
+                                DIAG($"  _restSites[{i}] options count={opts?.Count ?? -1}");
+                                if (opts != null) {
+                                    for (int j = 0; j < opts.Count; j++) {
+                                        var opt = opts[j];
+                                        var oidProp = opt?.GetType().GetProperty("OptionId");
+                                        DIAG($"    [{i}][{j}] OptionId={oidProp?.GetValue(opt)}");
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ex) { DIAG($"_restSites enum error: {ex.Message}"); }
+                }
+
+                DIAG($"[FULLTRACE] ChooseOption.Prefix playerNetId={playerNetId} isRemote={isRemote} optionIndex={optionIndex}");
+
+                if (!isRemote) { DIAG($"Skip: local player"); return; }
+                if (player == null) { DIAG($"Skip: player=null"); return; }
+                if (playerNetId == 0) { DIAG($"Skip: playerNetId=0"); return; }
 
                 var toSerializable = player.GetType().GetMethod("ToSerializable",
                     BindingFlags.Public | BindingFlags.Instance);
                 if (toSerializable == null) { DIAG("ToSerializable=null, returning"); return; }
 
                 var preSnapshot = toSerializable.Invoke(player, null);
-                NoClientCheatsMod.SetPreDeckSnapshot(netId, preSnapshot);
+                NoClientCheatsMod.SetPreDeckSnapshot(playerNetId, preSnapshot);
 
-                var safeName = GetPlayerDisplayName(player) ?? $"#{netId % 10000}";
+                var safeName = GetPlayerDisplayName(player) ?? $"#{playerNetId % 10000}";
                 var optionName = "?";
                 try
                 {
@@ -92,7 +157,7 @@ internal static class DeckSyncPatches
                 }
                 catch { /* ignore */ }
 
-                DIAG($"PRE snapshot set: {safeName} netId={netId} option={optionName} deck={GetDeckSummary(preSnapshot)}");
+                DIAG($"PRE snapshot set: {safeName} netId={playerNetId} option={optionName} deck={GetDeckSummary(preSnapshot)}");
             }
             catch (Exception ex)
             {
@@ -123,22 +188,27 @@ internal static class DeckSyncPatches
 
         static void Postfix(object __instance, object player, int optionIndex, Task<bool> __result)
         {
-            DIAG($"Postfix: remoteNetId={NoClientCheatsMod.GetCurrentRemotePlayer()} result={__result?.Result} player={player?.GetType().Name ?? "null"} optionIndex={optionIndex}");
-            if (__result?.Result != true) return; // 仅在选项执行成功时记录快照
+            ulong playerNetId = GetPlayerNetId(player);
+            bool isRemote = _IsRemotePlayer(player);
+            bool resultVal = __result?.Result == true;
+            DIAG($"[FULLTRACE] ChooseOption.Postfix playerNetId={playerNetId} isRemote={isRemote} optionIndex={optionIndex} result={resultVal}");
+
+            if (!resultVal) {
+                DIAG($"[FULLTRACE] Skip: result=false");
+                return;
+            }
 
             try
             {
-                // ── 核心判断：只对远程玩家的操作做检测 ──
-                ulong remoteNetId = NoClientCheatsMod.GetCurrentRemotePlayer();
-                if (remoteNetId == 0) { DIAG("Postfix: local player, skipping"); return; }
-                if (player == null) return;
+                // ── 核心：直接从 player 参数判断，不依赖 AsyncLocal ──
+                if (!isRemote) {
+                    DIAG($"[FULLTRACE] Postfix skip: local player");
+                    return;
+                }
+                if (player == null) { DIAG($"Postfix skip: player=null"); return; }
+                if (playerNetId == 0) { DIAG($"Postfix skip: playerNetId=0"); return; }
 
-                var netId = GetPlayerNetId(player);
-                DIAG($"Postfix player.NetId={netId} remoteNetId={remoteNetId} match={netId == remoteNetId}");
-                if (netId == 0) return;
-                if (netId != remoteNetId) { DIAG("Postfix: not current remote player, skipping"); return; }
-
-                var safeName = GetPlayerDisplayName(player) ?? $"#{netId % 10000}";
+                var safeName = GetPlayerDisplayName(player) ?? $"#{playerNetId % 10000}";
 
                 var toSerializable = player.GetType().GetMethod("ToSerializable",
                     BindingFlags.Public | BindingFlags.Instance);
@@ -146,41 +216,55 @@ internal static class DeckSyncPatches
 
                 var postSnapshot = toSerializable.Invoke(player, null);
 
-                // 1. 保留原有逻辑：记录 post 快照（用于 sync 备用）
-                NoClientCheatsMod.SetExpectedDeckSnapshot(netId, postSnapshot);
+                // 1. 记录 post 快照（用于 sync 备用）
+                NoClientCheatsMod.SetExpectedDeckSnapshot(playerNetId, postSnapshot);
 
                 var optionName = GetOptionIdAtIndex(__instance, optionIndex);
-                DIAG($"POST snapshot set: {safeName} netId={netId} option={optionName} deck={GetDeckSummary(postSnapshot)}");
+                DIAG($"[FULLTRACE] POST for {safeName} netId={playerNetId} option={optionName} deck={GetDeckSummary(postSnapshot)}");
+
+                // 3. 计算允许的增量并通知 SyncReceivedPatch
+                int allowedCardDelta = 0, allowedUpgradeDelta = 0;
+                bool isRemoveEvent = optionName?.Contains("Remove", StringComparison.OrdinalIgnoreCase) == true ||
+                                     optionName?.Contains("Scissors", StringComparison.OrdinalIgnoreCase) == true ||
+                                     optionName?.Contains("Cut", StringComparison.OrdinalIgnoreCase) == true;
+                bool isUpgradeEvent = optionName?.Contains("Upgrade", StringComparison.OrdinalIgnoreCase) == true ||
+                                      optionName?.Contains("Scent", StringComparison.OrdinalIgnoreCase) == true ||
+                                      optionName?.Contains("Scented", StringComparison.OrdinalIgnoreCase) == true;
+                if (isRemoveEvent) allowedCardDelta = -1; // 最多删除 1 张
+                if (isUpgradeEvent) allowedUpgradeDelta = 1; // 最多升级 1 张
+
+                DIAG($"[FULLTRACE] SetLastOptionId: allowedCardDelta={allowedCardDelta} allowedUpgradeDelta={allowedUpgradeDelta}");
+                SyncReceivedPatch.SetLastOptionId(playerNetId, optionName, allowedCardDelta, allowedUpgradeDelta);
 
                 // 2. 立即对比：操作前快照 vs 操作后快照（核心检测）
-                var preSnapshot = NoClientCheatsMod.ConsumePreDeckSnapshot(netId);
-                DIAG($"ConsumePreDeckSnapshot({netId}) => {(preSnapshot != null ? "found " + GetDeckSummary(preSnapshot) : "null")}");
+                var preSnapshot = NoClientCheatsMod.ConsumePreDeckSnapshot(playerNetId);
+                DIAG($"[FULLTRACE] ConsumePre({playerNetId}) => {(preSnapshot != null ? "found " + GetDeckSummary(preSnapshot) : "null")}");
                 if (preSnapshot != null)
                 {
                     bool matches = _DecksMatch(preSnapshot, postSnapshot);
-                    DIAG($"_DecksMatch={matches}");
+                    DIAG($"[FULLTRACE] _DecksMatch={matches}");
                     if (!matches)
                     {
                         var cheatType = _DetectCheatType(preSnapshot, postSnapshot);
                         NoClientCheatsMod.RecordCheat(
-                            netId, safeName, null,
+                            playerNetId, safeName, null,
                             $"ui_exploit:{cheatType}", true);
 
                         GD.Print($"[NCC] IMMEDIATE exploit detected for {safeName} "
-                            + $"(netId={netId}) at {optionName}: "
+                            + $"(netId={playerNetId}) at {optionName}: "
                             + $"expected {GetDeckSummary(preSnapshot)}, "
                             + $"got {GetDeckSummary(postSnapshot)}, "
                             + $"type: {cheatType}");
 
                         // 立即回滚：将卡组恢复到操作前状态
-                        DIAG($"Triggering rollback for {safeName}");
+                        DIAG($"[FULLTRACE] Triggering rollback for {safeName}");
                         _RollbackPlayerDeck(player, preSnapshot);
                     }
                 }
                 else
                 {
                     // 无 pre 快照说明不是通过 ChooseOption 触发的，跳过即时检测
-                    DIAG($"No pre-snapshot — skipping immediate check");
+                    DIAG($"[FULLTRACE] No pre-snapshot — skipping immediate check");
                 }
             }
             catch (Exception ex)
@@ -226,15 +310,21 @@ internal static class DeckSyncPatches
         }
     }
 
-    // ─── Patch B: CombatStateSynchronizer.OnSyncPlayerMessageReceived ─────────
-    // 时机：主机收到客机的 SyncPlayerDataMessage 时
     // ─── Patch C: CombatStateSynchronizer.OnSyncPlayerMessageReceived ───────────
-    // 时机：主机收到客机的 SyncPlayerDataMessage 时
-    // 逻辑：在消息被处理前，取客机的当前卡组作为期望值，与消息中的数据进行对比
+    // 检测逻辑：
+    //   存储上一次 SyncReceived 的 SerializablePlayer 作为基准（pre-event）
+    //   当前 SyncReceived 的 SerializablePlayer 是事件后状态（post-event）
+    //   对比 upgrade 增量 vs 事件允许值（通过 ChooseOptionPostfix 设置的 optionId 查表）
     [HarmonyPatch]
-    private static class SyncReceivedPrefix
+    private static class SyncReceivedPatch
     {
         static void DIAG(string msg) => LogDiag("SyncReceived", msg);
+
+        // 存储上次 SyncReceived 的卡组状态（由上一次 Postfix 写入）
+        // 这样当前 Postfix 比较的是：当前消息 vs 上一次 SyncReceived 消息
+        // tuple: (cardCount, upgradedCount, optionId, allowedCardDelta, allowedUpgradeDelta)
+        private static readonly System.Collections.Generic.Dictionary<ulong, (int cardCount, int upgradedCount, string optionId, int allowedCardDelta, int allowedUpgradeDelta)>
+            _lastSyncState = new();
 
         static MethodBase TargetMethod()
         {
@@ -247,79 +337,121 @@ internal static class DeckSyncPatches
             return m;
         }
 
-        static void Prefix(object __instance, object syncMessage, ulong senderId)
+        // 供外部调用：ChooseOptionPostfix 在此注册当前事件类型和允许的增量
+        public static void SetLastOptionId(ulong netId, string optionId, int allowedCardDelta = 0, int allowedUpgradeDelta = 0)
+        {
+            lock (_lastSyncState)
+            {
+                // 写入 optionId 和允许的增量（不清除已有的 cardCount/upgradedCount）
+                if (_lastSyncState.TryGetValue(netId, out var existing))
+                    _lastSyncState[netId] = (existing.cardCount, existing.upgradedCount, optionId, allowedCardDelta, allowedUpgradeDelta);
+                else
+                    _lastSyncState[netId] = (0, 0, optionId, allowedCardDelta, allowedUpgradeDelta);
+            }
+        }
+
+        static void Postfix(object __instance, object syncMessage, ulong senderId)
         {
             if (syncMessage == null) return;
-
             try
             {
-                // ── Step 1：获取消息中的玩家卡组数据 ──
                 var receivedPlayer = GetSyncMessagePlayer(syncMessage);
-                if (receivedPlayer == null) { DIAG("receivedPlayer=null"); return; }
+                if (receivedPlayer == null) return;
 
                 var receivedDeck = GetSerializableDeck(receivedPlayer);
                 var receivedUpgraded = CountUpgraded(receivedDeck);
-                DIAG($"Sync from senderId={senderId}: {receivedDeck.Count} cards, {receivedUpgraded} upgraded");
+                var receivedCards = receivedDeck.Count;
+                var receivedNetId = GetPlayerNetId(receivedPlayer);
+                var realName = GetPlayerDisplayName(receivedPlayer) ?? $"#{senderId % 10000}";
 
-                // ── Step 2：通过 INetGameService.GetPlayer(senderId) 获取客机的实时卡组 ──
-                var senderDeck = GetRemotePlayerCurrentDeck(__instance, senderId);
-                if (senderDeck == null) { DIAG("senderDeck=null (GetPlayer failed)"); return; }
+                // 取出上一次 SyncReceived 的状态
+                int prevCards = 0, prevUpgraded = 0;
+                string optionId = null;
+                bool hasPrev = false;
+                int allowedCardDelta = 0, allowedUpgradeDelta = 0;
+                lock (_lastSyncState)
+                {
+                    if (_lastSyncState.TryGetValue(senderId, out var prev))
+                    {
+                        prevCards = prev.cardCount;
+                        prevUpgraded = prev.upgradedCount;
+                        optionId = prev.optionId;
+                        allowedCardDelta = prev.allowedCardDelta;
+                        allowedUpgradeDelta = prev.allowedUpgradeDelta;
+                        hasPrev = prevCards > 0 || prevUpgraded > 0 || !string.IsNullOrEmpty(prev.optionId);
+                    }
+                    // 更新为当前状态（先比较再更新！）
+                    _lastSyncState[senderId] = (receivedCards, receivedUpgraded, optionId ?? "", allowedCardDelta, allowedUpgradeDelta);
+                }
 
-                var senderSerializable = senderDeck.GetType().GetMethod("ToSerializable",
-                    BindingFlags.Public | BindingFlags.Instance)?.Invoke(senderDeck, null);
-                if (senderSerializable == null) { DIAG("ToSerializable failed"); return; }
+                int cardDelta = receivedCards - prevCards;
+                int upgradeDelta = receivedUpgraded - prevUpgraded;
+                DIAG($"[FULLTRACE] Sync.Postfix senderId={senderId}(netId={receivedNetId}) {prevCards}C/{prevUpgraded}U -> {receivedCards}C/{receivedUpgraded}U delta={cardDelta}/{upgradeDelta} option={optionId ?? "?"} hasPrev={hasPrev} allowedD={allowedCardDelta}/{allowedUpgradeDelta}");
 
-                var expectedDeck = GetSerializableDeck(senderSerializable);
-                var expectedUpgraded = CountUpgraded(expectedDeck);
-                var senderName = GetPlayerDisplayName(senderDeck) ?? $"#{senderId % 10000}";
-                DIAG($"Expected from NetGameService: {expectedDeck.Count} cards, {expectedUpgraded} upgraded");
-
-                // ── Step 3：对比检测 ──
-                // 如果消息中的卡数 > 服务端的卡数（多了卡）：add_excess
-                // 如果消息中的卡数 < 服务端的卡数（少了卡）：remove_excess
-                // 如果消息中升级数 > 服务端的升级数（多了升级）：upgrade_excess
-                // 如果卡组完全一致：正常
-                bool isExcess = false;
+                // ── 检测作弊 ──
+                // 逻辑：
+                //   如果 ChooseOption 设置了 allowedDeltas → 本轮 sync 变化必须 <= allowedDeltas
+                //   如果没有 optionId（ChooseOption 未触发）→ 任何变化都是可疑的
+                bool cheated = false;
                 string cheatType = null;
 
-                if (receivedDeck.Count > expectedDeck.Count)
+                if (hasPrev)
                 {
-                    isExcess = true;
-                    cheatType = $"add_excess({receivedDeck.Count - expectedDeck.Count})";
-                }
-                else if (receivedDeck.Count < expectedDeck.Count)
-                {
-                    isExcess = true;
-                    cheatType = $"remove_excess({expectedDeck.Count - receivedDeck.Count})";
-                }
-                else if (receivedUpgraded > expectedUpgraded)
-                {
-                    isExcess = true;
-                    cheatType = $"upgrade_excess({receivedUpgraded - expectedUpgraded})";
+                    bool isRemoveEvent = optionId?.Contains("Remove", StringComparison.OrdinalIgnoreCase) == true ||
+                                         optionId?.Contains("Scissors", StringComparison.OrdinalIgnoreCase) == true ||
+                                         optionId?.Contains("Cut", StringComparison.OrdinalIgnoreCase) == true;
+                    bool isUpgradeEvent = optionId?.Contains("Upgrade", StringComparison.OrdinalIgnoreCase) == true ||
+                                          optionId?.Contains("Scent", StringComparison.OrdinalIgnoreCase) == true ||
+                                          optionId?.Contains("Scented", StringComparison.OrdinalIgnoreCase) == true;
+                    bool isGainCardEvent = optionId?.Contains("AddCard", StringComparison.OrdinalIgnoreCase) == true ||
+                                          optionId?.Contains("Obtain", StringComparison.OrdinalIgnoreCase) == true ||
+                                          optionId?.Contains("GainCard", StringComparison.OrdinalIgnoreCase) == true;
+
+                    if (isRemoveEvent)
+                    {
+                        // 删除类：cardDelta 应 <= 0（负数），超过 allowed（-1）则作弊
+                        if (cardDelta < allowedCardDelta)
+                        {
+                            cheated = true;
+                            cheatType = $"remove_excess(deleted={-cardDelta} allowed={-allowedCardDelta})";
+                        }
+                    }
+                    else if (isUpgradeEvent)
+                    {
+                        // 升级类：upgradeDelta 应 >= 0 且 <= allowedUpgradeDelta
+                        if (upgradeDelta < 0)
+                        {
+                            cheated = true;
+                            cheatType = $"upgrade_undo(count={-upgradeDelta})";
+                        }
+                        else if (upgradeDelta > allowedUpgradeDelta)
+                        {
+                            cheated = true;
+                            cheatType = $"upgrade_excess(upgraded={upgradeDelta} allowed={allowedUpgradeDelta})";
+                        }
+                    }
+                    else if (!isGainCardEvent)
+                    {
+                        // 非发牌类事件：卡数不应增加
+                        if (cardDelta > allowedCardDelta)
+                        {
+                            cheated = true;
+                            cheatType = $"add_cards(count={cardDelta} allowed={allowedCardDelta})";
+                        }
+                    }
                 }
 
-                if (!isExcess)
+                if (!cheated)
                 {
-                    DIAG($"Check passed for {senderName}: decks match");
+                    DIAG($"Check passed for {realName}");
                     return;
                 }
 
-                // ── Step 4：作弊检测到！──
-                NoClientCheatsMod.RecordCheat(
-                    senderId, senderName, null,
-                    $"deck:{cheatType}", true);
-
-                DIAG($"CHEAT DETECTED from {senderName} (senderId={senderId}): {cheatType}");
-
-                // 发送回滚消息
-                _SendRollback(__instance, senderId, senderSerializable);
-                _ReplaceSyncData(__instance, senderId, senderSerializable);
+                // 作弊检测到！
+                NoClientCheatsMod.RecordCheat(senderId, realName, optionId, $"deck:{cheatType}", true);
+                DIAG($"CHEAT from {realName}: {cheatType}");
             }
-            catch (Exception ex)
-            {
-                GD.PushError($"[NCC] SyncReceived Prefix error: {ex}");
-                DIAG($"Exception: {ex.Message}");
-            }
+            catch (Exception ex) { DIAG($"Postfix error: {ex.Message}"); }
         }
     }
 
@@ -501,93 +633,9 @@ internal static class DeckSyncPatches
         catch { return false; }
     }
 
-    /// <summary>
-    /// 获取远程玩家的当前 Player 对象。
-    /// 策略1：从 CombatStateSynchronizer 的字段/属性中找 Player 集合
-    /// 策略2：从 syncMessage 自身获取（player 字段）
-    /// </summary>
-    private static object GetRemotePlayerCurrentDeck(object synchronizer, ulong senderId)
+    private static bool _IsRemotePlayer(object player)
     {
-        try
-        {
-            // ── 策略1：枚举 CombatStateSynchronizer 的所有字段（一次性诊断）──
-            if (!_syncDataFieldsLogged)
-            {
-                _syncDataFieldsLogged = true;
-                foreach (var f in synchronizer.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-                {
-                    LogDiag("SyncReceived", $"  CSS field: {f.FieldType.Name} {f.Name}");
-                    // 打印集合内容的类型（如果是 IDictionary/IList）
-                    try {
-                        var val = f.GetValue(synchronizer);
-                        if (val is IDictionary d)
-                        {
-                            LogDiag("SyncReceived", $"    -> dict keys: {string.Join(",", d.Keys.Cast<object>().Take(5))}");
-                            foreach (var k in d.Keys)
-                                LogDiag("SyncReceived", $"    -> [{k}] = {d[k]?.GetType().Name}");
-                        }
-                    } catch { }
-                }
-                foreach (var p in synchronizer.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-                {
-                    LogDiag("SyncReceived", $"  CSS prop: {p.PropertyType.Name} {p.Name}");
-                }
-            }
-
-            // ── 策略2：从同步消息自身取 player ──
-            // syncMessage.player 就是发送方客机的 Player 对象（我们已有）
-            // 但需要找另一个调用点传入 syncMessage 参数……
-            // 这里我们换个思路：用 CombatStateSynchronizer._runState._players[senderId]
-            try {
-                var runStateField = AccessTools.Field(synchronizer.GetType(), "_runState");
-                var runState = runStateField?.GetValue(synchronizer);
-                if (runState != null)
-                {
-                    var playersField = runState.GetType().GetField("_players", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    var players = playersField?.GetValue(runState) as IDictionary;
-                    if (players != null && players.Contains(senderId))
-                    {
-                        var result = players[senderId];
-                        LogDiag("SyncReceived", $"Found player via _runState._players: {result?.GetType().Name}");
-                        return result;
-                    }
-                    LogDiag("SyncReceived", $"_runState._players: keys={players?.Count ?? -1}, contains={players?.Contains(senderId)}");
-                }
-            } catch (Exception ex) {
-                LogDiag("SyncReceived", $"_runState._players error: {ex.Message}");
-            }
-
-            // ── 策略3：直接枚举所有已知 Player 相关字段 ──
-            foreach (var f in synchronizer.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-            {
-                if (!f.FieldType.Name.Contains("Player") &&
-                    !f.FieldType.Name.Contains("Dictionary") &&
-                    !f.FieldType.Name.Contains("List")) continue;
-                try {
-                    var val = f.GetValue(synchronizer);
-                    if (val is IDictionary d && d.Contains(senderId))
-                    {
-                        var result = d[senderId];
-                        LogDiag("SyncReceived", $"Found via dict field {f.Name}: {result?.GetType().Name}");
-                        return result;
-                    }
-                    if (val is IList l && senderId < (uint)l.Count)
-                    {
-                        var result = l[(int)senderId];
-                        LogDiag("SyncReceived", $"Found via list field {f.Name}[{senderId}]: {result?.GetType().Name}");
-                        return result;
-                    }
-                } catch { }
-            }
-
-            LogDiag("SyncReceived", "GetRemotePlayer: all strategies failed");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            LogDiag("SyncReceived", $"GetRemotePlayer error: {ex.Message}");
-            return null;
-        }
+        return !_IsLocalPlayer(player);
     }
 
     private static string GetPlayerDisplayName(object player)
@@ -710,6 +758,261 @@ internal static class DeckSyncPatches
         catch (Exception ex)
         {
             GD.PushError($"[NCC] _RollbackPlayerDeck error: {ex}");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Patch D: 通用 GameAction Hook——拦截所有修改卡组的行为
+    // 不依赖 ChooseOption，直接 Hook GameAction 子类（UpgradeCard/RemoveCard/AddCard）
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static readonly System.Collections.Generic.Dictionary<string, (int maxCardDelta, int maxUpgradeDelta)> EventRules = new()
+    {
+        { "UpgradeCard",   (0,  1) },  // 橙型香盒：最多升级 1 张
+        { "RemoveCard",    (-1, 0) },  // 精准剪刀：最多删除 1 张
+        { "AddCard",       (1,  0) },  // 获得卡牌：最多获得 1 张
+    };
+
+    // 诊断标志：确保 GameAction 属性只枚举一次
+    private static bool _gameActionPropsLogged = false;
+
+    [HarmonyPatch]
+    private static class GameActionCardModifierPatch
+    {
+        static void DIAG(string msg) => LogDiag("GameActionHook", msg);
+
+        // 存储每个玩家当前允许的卡组变化量
+        private static readonly System.Collections.Generic.Dictionary<ulong, (int maxCardDelta, int maxUpgradeDelta)>
+            _playerAllowedDelta = new();
+
+        /// <summary>由 Prepare 解析并缓存；找不到则整类补丁跳过，避免 TargetMethod 返回 null 导致 PatchAll 崩溃。</summary>
+        private static MethodBase _resolvedGameActionHookMethod;
+
+        /// <summary>在 TargetMethod 之前调用；返回 false 时 Harmony 不会调用 TargetMethod。</summary>
+        static bool Prepare()
+        {
+            _resolvedGameActionHookMethod = ResolveGameActionQueueHookMethod();
+            if (_resolvedGameActionHookMethod == null)
+            {
+                DIAG("Prepare: 未找到 ActionQueue 入口方法，跳过 GameActionCardModifierPatch（避免加载失败）");
+                return false;
+            }
+
+            DIAG($"Prepare: 将 Hook {_resolvedGameActionHookMethod.DeclaringType?.FullName}.{_resolvedGameActionHookMethod.Name}");
+            return true;
+        }
+
+        static MethodBase TargetMethod() => _resolvedGameActionHookMethod;
+
+        /// <summary>
+        /// 在 ActionQueueSynchronizer 上查找「入队 GameAction」的实例方法。
+        /// 游戏版本更名/重载时 GetMethod 单名会失败，故枚举候选。
+        /// </summary>
+        static MethodBase ResolveGameActionQueueHookMethod()
+        {
+            var t = AccessTools.TypeByName(
+                "MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer"
+            ) ?? AccessTools.TypeByName("ActionQueueSynchronizer");
+
+            if (t == null)
+            {
+                DIAG("Resolve: ActionQueueSynchronizer 类型未找到");
+                return null;
+            }
+
+            static bool LooksLikeGameActionParam(Type pt)
+            {
+                if (pt == null) return false;
+                if (pt == typeof(object)) return true;
+                var n = pt.Name;
+                return n.Contains("GameAction", StringComparison.Ordinal) || n == "IGameAction";
+            }
+
+            MethodBase tryExactNames(Type type)
+            {
+                foreach (var name in new[] { "Enqueue", "EnqueueGameAction", "ProcessAction", "QueueAction", "AddAction" })
+                {
+                    var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                        .Where(m => m.Name == name);
+                    foreach (var method in methods)
+                    {
+                        var ps = method.GetParameters();
+                        if (ps.Length < 2) continue;
+                        if (ps[^1].ParameterType != typeof(ulong)) continue;
+                        if (LooksLikeGameActionParam(ps[0].ParameterType))
+                            return method;
+                    }
+                }
+
+                return null;
+            }
+
+            MethodBase tryBroadScan(Type type)
+            {
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    if (method.IsSpecialName) continue;
+                    var ps = method.GetParameters();
+                    if (ps.Length < 2) continue;
+                    if (ps[^1].ParameterType != typeof(ulong)) continue;
+                    if (!LooksLikeGameActionParam(ps[0].ParameterType)) continue;
+                    var mn = method.Name;
+                    if (mn.Contains("Enqueue", StringComparison.OrdinalIgnoreCase)
+                        || mn.Contains("Queue", StringComparison.OrdinalIgnoreCase)
+                        || mn.Contains("Process", StringComparison.OrdinalIgnoreCase)
+                        || mn.Contains("Add", StringComparison.OrdinalIgnoreCase))
+                        return method;
+                }
+
+                return null;
+            }
+
+            var m = tryExactNames(t) ?? tryBroadScan(t);
+            DIAG($"Resolve: type={t.FullName} picked={(m == null ? "null" : m.Name)}");
+            return m;
+        }
+
+        // 参数名必须与 EnqueueAction(GameAction action, UInt64 actionOwnerId) 一致，否则 Harmony 报 Parameter "senderId" not found
+        static void Prefix(object __instance, object action, ulong actionOwnerId)
+        {
+            if (action == null) return;
+            try
+            {
+                string actionType = action.GetType().Name;
+                DIAG($"[FULLTRACE] GameActionHook.Prefix actionOwnerId={actionOwnerId} action={actionType}");
+
+                // 一次性诊断：枚举 action 的所有属性
+                if (!_gameActionPropsLogged)
+                {
+                    _gameActionPropsLogged = true;
+                    foreach (var p in action.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                    {
+                        try { DIAG($"  actionProp: {p.PropertyType.Name} {p.Name} = {p.GetValue(action)}"); } catch { }
+                    }
+                    foreach (var f in action.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
+                    {
+                        try { DIAG($"  actionField: {f.FieldType.Name} {f.Name} = {f.GetValue(action)}"); } catch { }
+                    }
+                }
+
+                // 查找该 action 类型对应的规则
+                if (EventRules.TryGetValue(actionType, out var rule))
+                {
+                    lock (_playerAllowedDelta)
+                    {
+                        _playerAllowedDelta[actionOwnerId] = rule;
+                    }
+                    DIAG($"[FULLTRACE] Set allowed delta for actionOwnerId={actionOwnerId} action={actionType}: card={rule.maxCardDelta} upgrade={rule.maxUpgradeDelta}");
+                }
+            }
+            catch (Exception ex) { DIAG($"GameActionHook Prefix error: {ex.Message}"); }
+        }
+
+        static void Postfix(object __instance, object action, ulong actionOwnerId)
+        {
+            if (action == null) return;
+            try
+            {
+                string actionType = action.GetType().Name;
+                DIAG($"[FULLTRACE] GameActionHook.Postfix actionOwnerId={actionOwnerId} action={actionType}");
+
+                // 取出该玩家的允许增量
+                (int maxCardDelta, int maxUpgradeDelta) allowed;
+                lock (_playerAllowedDelta)
+                {
+                    if (!_playerAllowedDelta.TryGetValue(actionOwnerId, out allowed))
+                        return; // 没有规则，不处理
+                    _playerAllowedDelta.Remove(actionOwnerId);
+                }
+
+                DIAG($"[FULLTRACE] Checking delta for actionOwnerId={actionOwnerId} action={actionType} allowedCard={allowed.maxCardDelta} allowedUpgrade={allowed.maxUpgradeDelta}");
+
+                // 从 action 中提取卡牌变化量
+                int cardDelta = 0, upgradeDelta = 0;
+
+                if (actionType == "RemoveCard")
+                {
+                    cardDelta = -1;
+                    // 多选删除时 cardDelta = -N（N > 1）
+                    var countField = action.GetType().GetField("count", BindingFlags.Public | BindingFlags.Instance)
+                        ?? action.GetType().GetField("_count", BindingFlags.Public | BindingFlags.Instance);
+                    if (countField != null)
+                    {
+                        int count = Convert.ToInt32(countField.GetValue(action));
+                        cardDelta = -count;
+                    }
+                }
+                else if (actionType == "UpgradeCard")
+                {
+                    // 多选升级时 upgradeDelta = N（N > 1）
+                    upgradeDelta = 1;
+                    var countField = action.GetType().GetField("count", BindingFlags.Public | BindingFlags.Instance)
+                        ?? action.GetType().GetField("_count", BindingFlags.Public | BindingFlags.Instance);
+                    if (countField != null)
+                    {
+                        int count = Convert.ToInt32(countField.GetValue(action));
+                        upgradeDelta = count;
+                    }
+                }
+                else if (actionType == "AddCard")
+                {
+                    cardDelta = 1;
+                    var countField = action.GetType().GetField("count", BindingFlags.Public | BindingFlags.Instance)
+                        ?? action.GetType().GetField("_count", BindingFlags.Public | BindingFlags.Instance);
+                    if (countField != null)
+                    {
+                        int count = Convert.ToInt32(countField.GetValue(action));
+                        cardDelta = count;
+                    }
+                }
+
+                // 检测作弊
+                bool cheated = false;
+                string cheatType = null;
+
+                if (cardDelta < allowed.maxCardDelta)
+                {
+                    cheated = true;
+                    cheatType = $"remove_excess(deleted={-cardDelta} allowed={-allowed.maxCardDelta})";
+                }
+                else if (upgradeDelta > allowed.maxUpgradeDelta)
+                {
+                    cheated = true;
+                    cheatType = $"upgrade_excess(upgraded={upgradeDelta} allowed={allowed.maxUpgradeDelta})";
+                }
+
+                if (cheated)
+                {
+                    var playerName = _GetPlayerNameFromSync(__instance, actionOwnerId);
+                    var safeName = string.IsNullOrWhiteSpace(playerName) ? $"#{actionOwnerId % 10000}" : playerName;
+                    NoClientCheatsMod.RecordCheat(actionOwnerId, safeName, actionType, $"game_action:{cheatType}", true);
+                    DIAG($"CHEAT from {safeName}: {cheatType}");
+                }
+                else
+                {
+                    DIAG($"GameAction check passed for {actionType}");
+                }
+            }
+            catch (Exception ex) { DIAG($"GameActionHook Postfix error: {ex.Message}"); }
+        }
+
+        static string _GetPlayerNameFromSync(object sync, ulong senderId)
+        {
+            if (sync == null) return null;
+            try
+            {
+                var netServiceField = AccessTools.Field(sync.GetType(), "_netService");
+                var netService = netServiceField?.GetValue(sync);
+                if (netService == null) return null;
+                var platform = netService.GetType().GetProperty("Platform")?.GetValue(netService);
+                if (platform == null) return null;
+                var platformUtil = AccessTools.TypeByName("MegaCrit.Sts2.Core.Platform.PlatformUtil");
+                var getPlayerName = platformUtil?.GetMethod("GetPlayerName",
+                    BindingFlags.Public | BindingFlags.Static);
+                if (getPlayerName == null) return null;
+                return getPlayerName.Invoke(null, new object[] { platform, senderId }) as string;
+            }
+            catch { return null; }
         }
     }
 }

@@ -1,8 +1,8 @@
 using Godot;
 using HarmonyLib;
+using MultiplayerTools.Steam;
 using System;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace MultiplayerTools
 {
@@ -76,9 +76,6 @@ namespace MultiplayerTools
                 Config.Load();
                 Loc.Reload();
                 new Harmony("multiplayer.tools").PatchAll(Assembly.GetExecutingAssembly());
-
-                // Preload persona names async so SaveSelectPage renders without blocking the main thread.
-                _ = MultiplayerTools.Steam.SteamIntegration.PreloadPersonaNamesAsync();
 
                 tree.Root?.AddChild(new F1InputNode());
 
