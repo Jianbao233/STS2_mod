@@ -32,8 +32,23 @@ internal static class ClientCheatBlockPrefix
     {
         var t = AccessTools.TypeByName("MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer")
             ?? AccessTools.TypeByName("ActionQueueSynchronizer");
-        return t?.GetMethod("HandleRequestEnqueueActionMessage",
+
+        // 诊断：枚举该类所有方法
+        if (t != null)
+        {
+            foreach (var m in t.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (m.Name.Contains("Enqueue") || m.Name.Contains("Handle"))
+                    Godot.GD.Print($"[NCC|DIAG] ActionQueueSynchronizer method: {m.Name}({string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name))}");
+            }
+        }
+
+        var method = t?.GetMethod("HandleRequestEnqueueActionMessage",
             BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Godot.GD.Print($"[NCC|DIAG] HandleRequestEnqueueActionMessage target: type={t?.FullName ?? "null"} method={method?.Name ?? "null"}");
+
+        return method;
     }
 
     static bool Prefix(object __instance, object message, ulong senderId)

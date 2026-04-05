@@ -503,4 +503,255 @@ SERVER_REGISTRY_PUBLIC_BASE_URL / SERVER_REGISTRY_PUBLIC_WS_URL
 
 ---
 
-*本文档由 AI 基于 STS2-Game-Lobby 公开仓库源码和文档自动生成。*
+## 十、游戏源码关键分析与 Bug 修复记录
+
+> 本章节记录 NCC 开发过程中对游戏源码的深度分析，以及发现的 Bug 和修复方案。
+> 游戏源码来源：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\`
+
+### 10.1 RestSiteSynchronizer.ChooseOption — 关键源码分析
+
+游戏源码路径：`MegaCrit.Sts2.Core.Multiplayer.Game.RestSiteSynchronizer`
+
+**方法签名**：
+```csharp
+private async Task<bool> ChooseOption(Player player, int optionIndex)
+```
+
+**源码关键流程**（第 158-233 行）：
+
+```csharp
+// 第 176-180 行：BeforePlayerOptionChosen 事件
+Action<RestSiteOption, ulong> beforePlayerOptionChosen = this.BeforePlayerOptionChosen;
+if (beforePlayerOptionChosen != null)
+{
+    beforePlayerOptionChosen(option, player.NetId);
+}
+
+// 第 181 行：执行选项操作（核心！卡组变换发生在这里）
+bool flag = await option.OnSelect();
+
+// 第 195-198 行：AfterPlayerOptionChosen 事件
+Action<RestSiteOption, bool, ulong> afterPlayerOptionChosen = this.AfterPlayerOptionChosen;
+if (afterPlayerOptionChosen != null)
+{
+    afterPlayerOptionChosen(option, flag2, player.NetId);
+}
+```
+
+**关键洞察**：
+1. `BeforePlayerOptionChosen` 在 `option.OnSelect()` 之前触发，此时玩家卡组是**变换前的状态**
+2. `option.OnSelect()` 是异步操作，**卡组变换在这个方法内部发生**
+3. `AfterPlayerOptionChosen` 在操作完成后触发，此时卡组已经是**变换后的最终状态**
+
+**NCC Patch 策略**：
+- Prefix Patch：在 `BeforePlayerOptionChosen`（即 NCC 的 Prefix）时记录卡组快照
+- Postfix Patch：在 `AfterPlayerOptionChosen`（即 NCC 的 Postfix）时记录最终卡组快照
+- 对比两次快照，可以检测客机是否通过作弊指令修改了卡组
+
+---
+
+### 10.2 NetPlayerChoiceResult — 关键数据结构
+
+游戏源码路径：`MegaCrit.Sts2.Core.Entities.Multiplayer.NetPlayerChoiceResult`
+
+**结构定义**：
+
+```csharp
+public struct NetPlayerChoiceResult : IPacketSerializable
+{
+    public PlayerChoiceType type;
+    public List<CardModel> canonicalCards;        // 作弊前的卡组（CanonicalCard 类型）
+    public List<NetCombatCard> combatCards;       // 战斗卡（CombatCard 类型）
+    public List<NetDeckCard> deckCards;           // 卡组卡（DeckCard 类型）
+    public List<SerializableCard> mutableCards;   // 可变卡（MutableCard 类型）
+    public ulong? mutableCardOwner;
+    public List<int> indexes;
+    public ulong? playerId;
+}
+```
+
+**PlayerChoiceType 枚举**：
+
+| 枚举值 | 对应字段 | 说明 |
+|--------|----------|------|
+| `CanonicalCard` | `canonicalCards` | 变换前的卡组快照 |
+| `CombatCard` | `combatCards` | 战斗中的卡 |
+| `DeckCard` | `deckCards` | 卡组中的卡 |
+| `MutableCard` | `mutableCards` | 可变卡（升级/附魔后的卡） |
+| `Player` | `playerId` | 玩家ID |
+| `Index` | `indexes` | 索引列表 |
+
+**作弊检测核心字段**：
+- `canonicalCards`：游戏内置作弊引擎记录的"变换前卡组"，作弊指令（如 `card`、`remove_card`）不会修改这个字段
+- `mutableCards`：作弊后的卡牌列表
+
+---
+
+### 10.3 PlayerChoiceSynchronizer — 选卡同步机制
+
+游戏源码路径：`MegaCrit.Sts2.Core.GameActions.Multiplayer.PlayerChoiceSynchronizer`
+
+**事件触发流程**（第 208-214 行）：
+
+```csharp
+private void OnReceivePlayerChoice(Player player, uint choiceId, NetPlayerChoiceResult result)
+{
+    Action<Player, uint, NetPlayerChoiceResult> playerChoiceReceived = this.PlayerChoiceReceived;
+    if (playerChoiceReceived != null)
+    {
+        playerChoiceReceived(player, choiceId, result);
+    }
+    // ...
+}
+```
+
+**关键发现**：
+1. `PlayerChoiceReceived` 事件在 `OnReceivePlayerChoice` 方法内同步触发
+2. `result` 参数包含 `canonicalCards`（作弊前卡组）和 `mutableCards`（作弊后卡组）
+3. NCC 通过 Hook 这个事件的订阅者，捕获 `canonicalCards` 用于作弊检测
+
+**PlayerChoiceMessage 序列化**（第 44-57 行）：
+
+```csharp
+public void Serialize(PacketWriter writer)
+{
+    writer.WriteUInt(this.choiceId, 32);
+    writer.Write<NetPlayerChoiceResult>(this.result);
+}
+
+public void Deserialize(PacketReader reader)
+{
+    this.choiceId = reader.ReadUInt(32);
+    this.result = reader.Read<NetPlayerChoiceResult>();
+}
+```
+
+---
+
+### 10.4 Bug 修复记录
+
+#### Bug 1：CardPile 回滚时 ID 不匹配
+
+**问题描述**：
+旧版回滚策略通过比较 `SerializableCard.Id` 来判断"多余卡"和"缺失卡"，但 `FromSerializable()` 每次返回新的 CardModel 实例，导致 ID 引用不一致。
+
+**源码问题**（DeckSyncPatches.cs 第 1460-1462 行注释）：
+
+```
+旧 delta 策略的问题：snapshot 的卡 ID 和 CardPile 中卡的实际 ID 不匹配
+（FromSerializable 每次返回新实例），导致按 ID 比较时全部标记为"多余"，
+反而删掉了正确的变换后卡，留下了错误的卡。
+```
+
+**修复方案**：全量替换策略
+1. 清空 `CardPile._cards`
+2. 从 `canonicalCards` 按原序重建整个卡组
+3. 调用 `InvokeContentsChanged` 刷新
+
+**修复后代码**（DeckSyncPatches.cs 第 1467-1545 行）：
+
+```csharp
+if (cardsField != null && preDeck != null && preDeck.Count > 0)
+{
+    LogDiag("Rollback", $"FULL REPLACE: {currentCards?.Count ?? 0} -> {preDeck.Count} cards");
+
+    // 1) 清空
+    if (currentCards != null)
+    {
+        currentCards.Clear();
+        cardsField.SetValue(cardPileObj, currentCards);
+    }
+
+    // 2) 从 snapshot 重建（按 SerializableCards 顺序）
+    foreach (object sCard in preDeck)
+    {
+        if (fromSerializable != null)
+        {
+            var cm = fromSerializable.Invoke(null, new[] { sCard });
+            if (cm != null && currentCards != null)
+                currentCards.Add(cm);
+        }
+    }
+
+    // 3) 触发刷新
+    invokeContentsChanged?.Invoke(cardPileObj, null);
+    return "CardPile.full_replace";
+}
+```
+
+---
+
+#### Bug 2：Prefix 和 Postfix 时序问题
+
+**问题描述**：
+`OnReceivePlayerChoice` 的 Postfix 在 action queue 执行后触发，此时卡组已经被变换。如果在 Postfix 中记录"变换前"状态，会拿到错误的（变换后）数据。
+
+**源码时序分析**：
+
+```
+1. Prefix（action queue 执行前）→ 记录卡数
+2. action queue 执行 → 卡组被变换
+3. Postfix（action queue 执行后）→ 收到 canonicalCards（但此时记录已晚）
+```
+
+**修复方案**（DeckSyncPatches.cs 第 2056-2099 行）：
+
+```csharp
+// 核心修复：在 Prefix（action queue 执行前）记录当前卡组大小。
+// 这才是真正的"变换前"状态。Postfix 在执行后触发，此时卡组已被变换。
+if (isRemote)
+{
+    try
+    {
+        // 尝试从 RunManager 获取该玩家的当前卡组大小
+        var rmType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager");
+        var inst = rmType?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+        if (inst != null)
+        {
+            object state = inst.GetType().GetProperty("State", BindingFlags.Public | BindingFlags.Instance)?.GetValue(inst);
+            // ... 获取 Players 并记录卡数
+            lock (_pendingPreDeckSize)
+                _pendingPreDeckSize[playerId] = deckCount;
+        }
+    }
+    catch (Exception ex) { DIAG($"[PREFIX] deck capture error: {ex.Message}"); }
+}
+```
+
+---
+
+#### Bug 3：Transform 检测漏计问题
+
+**问题描述**：
+当 `preDeckSize` 为空（未被缓存）时，`choiceCallCount` 也为 0，导致无法检测多选作弊。
+
+**修复方案**（DeckSyncPatches.cs 第 513-521 行）：
+
+```csharp
+// 修复后强制累加：在无 preDeck 时也记录 choiceCallCount（防止漏计）
+// 若 _pendingPreDeckSize 已为空，说明之前被第一次 SyncReceived 消费了，
+// 此时 choiceCallCount 仍有效，直接用于检测
+if (preDeckSize == 0 && choiceCallCount == 0)
+{
+    // 尝试从 _lastSyncDeckSize 取上一次的卡数作为 preDeck
+    lock (_lastSyncDeckSize)
+        _lastSyncDeckSize.TryGetValue(senderId, out preDeckSize);
+    DIAG($"[FULLTRACE] TransformCheck FIXED: no preDeck cached, using _lastSyncDeckSize={preDeckSize} for delta calc");
+}
+```
+
+---
+
+### 10.5 源码索引速查表
+
+| 游戏源码文件 | 关键方法/类 | NCC 对应 Patch |
+|--------------|-------------|----------------|
+| `RestSiteSynchronizer.cs` | `ChooseOption()` | `ChooseOptionPrefix` / `ChooseOptionPostfix` |
+| `PlayerChoiceSynchronizer.cs` | `OnReceivePlayerChoice()` | `OnReceivePlayerChoicePatch` |
+| `NetPlayerChoiceResult.cs` | 结构体定义 | 作弊检测数据源 |
+| `CombatStateSynchronizer.cs` | `OnSyncPlayerMessageReceived()` | `SyncReceivedPostfix` |
+| `PlayerChoiceMessage.cs` | `PlayerChoiceMessage` | 网络消息序列化 |
+
+---
+
+*本文档由 AI 基于 STS2-Game-Lobby 公开仓库源码和游戏反编译源码自动生成。*

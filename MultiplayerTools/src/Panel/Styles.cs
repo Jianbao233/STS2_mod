@@ -19,6 +19,8 @@ namespace MultiplayerTools.Panel
         internal static readonly Color MpGray = new Color("6B7280");
         internal static readonly Color MpPrimaryBtn = new Color("2A3F7A");
         internal static readonly Color MpPrimaryBtnHover = new Color("3A5FAA");
+        /// <summary>High-contrast text on <see cref="MpPrimaryBtn"/> (callers often mistake bg for font color).</summary>
+        internal static readonly Color MpOnPrimaryBtn = new Color(0.98f, 0.98f, 1f);
         internal static readonly Color MpCard = new Color("1A2F50");
         internal static readonly Color MpContentBg = new Color("0D1117");
         internal static readonly Color MpSeparator = new Color("1F2937");
@@ -144,11 +146,21 @@ namespace MultiplayerTools.Panel
         {
             btn.CustomMinimumSize = new Vector2(72, 32);
             UiFont.ApplyTo(btn, 13);
-            btn.AddThemeColorOverride("font_color", fontColor ?? MpTextNav);
+            // Second arg is FONT color. Callers often pass MpPrimaryBtn / Blue (bg) by mistake.
+            // Those blues have luminance ~0.25 — above an old 0.15 threshold, so text stayed illegible.
+            // Only accept clearly "light" colors as intentional font colors (lum >= ~0.42).
+            Color actualFont = fontColor ?? MpOnPrimaryBtn;
+            if (fontColor.HasValue)
+            {
+                float lum = fontColor.Value.R * 0.299f + fontColor.Value.G * 0.587f + fontColor.Value.B * 0.114f;
+                actualFont = lum >= 0.42f ? fontColor.Value : MpOnPrimaryBtn;
+            }
+            btn.AddThemeColorOverride("font_color", actualFont);
             btn.AddThemeColorOverride("font_hover_color", MpGold);
             btn.AddThemeColorOverride("font_pressed_color", MpGray);
-            btn.AddThemeColorOverride("font_outline_color", OutlineColor);
-            btn.AddThemeConstantOverride("outline_size", 2);
+            // Dark outline + blue fill made labels look like one muddy color; no outline on primary actions.
+            btn.AddThemeColorOverride("font_outline_color", Colors.Transparent);
+            btn.AddThemeConstantOverride("outline_size", 0);
             var normal = NavItemBox(MpPrimaryBtn);
             var hover = NavItemBox(MpPrimaryBtnHover);
             btn.AddThemeStyleboxOverride("normal", normal);

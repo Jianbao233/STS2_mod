@@ -347,6 +347,65 @@ with open('mod_manifest.json') as f:
 
 ---
 
+### 会话记录 2026-04-04 · NCC 作弊弹窗和回滚功能问题深度分析
+
+**背景**：用户反馈作弊弹窗不弹出、回滚功能无法正常使用。
+
+**完成工作**：
+
+1. **读取游戏日志**：
+   - `NCC_diag.log` — NCC 诊断日志
+   - `godot.log` — Godot 游戏主日志
+
+2. **问题分析**：
+   - **作弊弹窗不弹出**：`CheatNotification._instance` 可能为 null，导致 `Show()` 方法直接返回
+   - **Transpiler 问题**：IL2CPP 下 Transpiler 可能不工作，`AsyncLocal` 未正确设置
+   - **回滚功能失效**：`choiceCallCount` 为 0，没有正确累加
+
+3. **生成文档**：
+   - `ARCHITECTURE.md` — NCC 项目完整架构文档（子Agent生成）
+   - `BUG_ANALYSIS.md` — Bug分析与修复报告
+
+4. **关键发现**：
+   - `HandleRequestEnqueueActionMessage` 是 void 方法，没有显式 return
+   - Transpiler 在 IL2CPP 环境下可能不工作
+   - `DeckSyncPatches.cs` 中未使用 `GetCurrentRemotePlayer()`
+
+5. **修复建议**：
+   - 在 `Show()` 方法中添加诊断日志
+   - 使用 Prefix 替代 Transpiler 设置 AsyncLocal
+   - 确保 `choiceCallCount` 强制累加
+
+**源码路径**：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\`
+
+---
+
+### 会话记录 2026-04-04 · NCC 源码分析与 Bug 修复文档整理
+
+**背景**：用户要求将游戏源码解包的 bug 相关部分结合进分析文档。
+
+**完成工作**：
+
+1. **读取工作区记忆**：从 `STS2_mod/MEMORY.md` 和 `NoClientCheats/MEMORY.md` 获取项目上下文
+
+2. **分析游戏源码**：从 `Tools/sts.dll历史存档/sts2_decompiled20260322/sts2/` 提取关键源码：
+   - `RestSiteSynchronizer.cs` — 休息点选项选择逻辑
+   - `NetPlayerChoiceResult.cs` — 卡组变换结果数据结构
+   - `PlayerChoiceSynchronizer.cs` — 选卡同步机制
+   - `PlayerChoiceMessage.cs` — 网络消息序列化
+   - `CombatStateSynchronizer.cs` — 战斗状态同步
+
+3. **整理 Bug 修复记录**：
+   - Bug 1：CardPile 回滚时 ID 不匹配 → 全量替换策略
+   - Bug 2：Prefix/Postfix 时序问题 → 前置捕获卡数
+   - Bug 3：Transform 检测漏计问题 → 强制累加 choiceCallCount
+
+4. **更新分析文档**：`NoClientCheats/STS2_GAME_LOBBY_INTEGRATION_ANALYSIS.md` 新增第十章"游戏源码关键分析与 Bug 修复记录"
+
+**源码路径**：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\`
+
+---
+
 ### 会话记录 2026-04-03 · ModListHider v0.3.1 Android 入口点修复
 
 **问题**：Android 端联机模组列表没有显示眼睛图标，Vanilla Mode 注入也失效。PC 端正常。

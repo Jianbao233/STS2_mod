@@ -143,7 +143,8 @@ public partial class CheatNotification : CanvasLayer
         };
         histBtn.AddThemeColorOverride("font_color", new Color(0.85f, 0.75f, 0.55f, 1f));
         histBtn.AddThemeColorOverride("font_hover_color", new Color(1f, 0.9f, 0.6f, 1f));
-        histBtn.Pressed += () => NoClientCheatsMod.ShowHistoryPanelUI();
+        histBtn.Pressed += () =>
+            Callable.From(NoClientCheatsMod.ShowHistoryPanelUI).CallDeferred();
         row.AddChild(histBtn);
 
         root.AddChild(panel);

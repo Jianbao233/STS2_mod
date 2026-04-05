@@ -29,6 +29,9 @@ public partial class InputHandlerNode : Node
 
     public override void _Process(double delta)
     {
+        // 处理延迟的 Player 刷新（地图阶段作弊检测后 Player 对象尚未加载）
+        NoClientCheatsMod.ProcessPendingPlayerRefreshes();
+
         Key key = NoClientCheatsMod.HistoryToggleKey;
         bool down = Input.IsKeyPressed(key);
         if (down && !_prevDown)

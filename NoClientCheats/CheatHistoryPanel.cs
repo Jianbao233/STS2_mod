@@ -154,6 +154,11 @@ public partial class CheatHistoryPanel : CanvasLayer
 
     public void ShowPanel()
     {
+        if (!IsInsideTree())
+        {
+            CallDeferred(nameof(ShowPanel));
+            return;
+        }
         EnsureWindowBuilt(); // 首次 Show 时若 _Ready 尚未执行，先构建窗口
         if (_window == null || !GodotObject.IsInstanceValid(_window)) return;
         _window.Visible = true;
@@ -175,9 +180,9 @@ public partial class CheatHistoryPanel : CanvasLayer
     bool _uiBuilt;
     void EnsureWindowBuilt()
     {
-        if (_uiBuilt && _window != null && GodotObject.IsInstanceValid(_window)) return;
-        if (_window == null || !GodotObject.IsInstanceValid(_window)) _BuildUI();
-        _uiBuilt = true;
+        if (_window != null && GodotObject.IsInstanceValid(_window)) { _uiBuilt = true; return; }
+        _BuildUI();
+        _uiBuilt = _window != null && GodotObject.IsInstanceValid(_window);
     }
 
     /// <summary>将窗口居中到屏幕中央。</summary>
@@ -283,10 +288,22 @@ public partial class CheatHistoryPanel : CanvasLayer
     // 已迁移到 _Input 统一处理，此处保留空函数供外部引用
     void _OnTitleGuiInput(InputEvent ev) { }
 
-    // ── UI 构建 ────────────────────────────────────────────────────────
+    // ── UI 构建（必须在场景树线程中调用）────────────────────────────────
     void _BuildUI()
     {
-        var root = GetTree().Root;
+        if (!IsInsideTree())
+        {
+            CallDeferred(nameof(EnsureWindowBuilt));
+            return;
+        }
+        if (!GodotObject.IsInstanceValid(this)) return;
+        SceneTree sceneTree;
+        try { sceneTree = GetTree(); }
+        catch (ObjectDisposedException) { sceneTree = null; }
+        catch { sceneTree = null; }
+        sceneTree ??= Engine.GetMainLoop() as SceneTree;
+        if (sceneTree?.Root == null) return;
+        var root = sceneTree.Root;
         var screenH = (float)DisplayServer.WindowGetSize().Y;
 
         _window = new Panel

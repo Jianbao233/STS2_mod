@@ -67,6 +67,34 @@ public static class NoClientCheatsMod
             _historyPanel.ShowPanel();
     }
 
+    // ── 延迟 Player 刷新（由 InputHandlerNode._Process 每帧调用）──────────
+    private static bool _pendingRefreshChecked;
+    /// <summary>
+    /// 每帧调用：将地图阶段无法立即刷新的 Player 延迟到游戏对象就绪后处理。
+    /// 由 InputHandlerNode._Process 每帧触发（无需显式调用）。
+    /// </summary>
+    public static void ProcessPendingPlayerRefreshes()
+    {
+        if (_pendingRefreshChecked) return;
+        _pendingRefreshChecked = true;
+        Callable.From(_DoProcessPendingPlayerRefreshes).CallDeferred();
+    }
+    private static void _DoProcessPendingPlayerRefreshes()
+    {
+        _pendingRefreshChecked = false;
+        System.Collections.Generic.Dictionary<ulong, (ulong playerId, object snapshot, object synchronizer)> toProcess;
+        lock (DeckSyncPatches.PendingPlayerRefreshLock)
+        {
+            if (DeckSyncPatches.PendingPlayerRefreshes.Count == 0) return;
+            toProcess = new System.Collections.Generic.Dictionary<ulong, (ulong, object, object)>(DeckSyncPatches.PendingPlayerRefreshes);
+            DeckSyncPatches.PendingPlayerRefreshes.Clear();
+        }
+        foreach (var kv in toProcess)
+        {
+            DeckSyncPatches.ProcessDeferredPlayerRefresh(kv.Value.playerId, kv.Value.snapshot, kv.Value.synchronizer);
+        }
+    }
+
     // ── 初始化（仅执行一次）──────────────────────────────────────────────
     internal static void EnsureInitialized()
     {
@@ -379,65 +407,47 @@ public static class NoClientCheatsMod
 
     /// <summary>
     /// 检测当前是否为联机主机。
-    /// 通过 INetGameService.Type == NetGameType.Host 判断。
+    /// 使用 AccessTools.TypeByName 搜索所有已加载类型，兼容 STS2 动态程序集。
+    /// 通过 RunManager.Instance.NetService.Type == NetGameType.Host 判断。
     /// </summary>
     internal static bool IsMultiplayerHost()
     {
         // #region NCC_DIAG_HOSTCHECK
-        var diag = new System.Text.StringBuilder();
-        diag.Append("[IsMultiplayerHost] ");
         try
         {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                var netServiceType = asm.GetType("MegaCrit.Sts2.Core.Multiplayer.INetGameService")
-                    ?? asm.GetType("INetGameService");
-                if (netServiceType == null) continue;
+            // 用 TypeByName 搜索（比 Assembly.GetType 更可靠）
+            var rmType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager");
+            if (rmType == null) { GD.Print("[NCC|DIAG] [IsMultiplayerHost] RunManager type not found"); return false; }
 
-                var netGameType = asm.GetType("MegaCrit.Sts2.Core.Multiplayer.NetGameType")
-                    ?? asm.GetType("NetGameType");
-                if (netGameType == null) continue;
+            var inst = rmType.GetProperty("Instance",
+                BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            if (inst == null) { GD.Print("[NCC|DIAG] [IsMultiplayerHost] RunManager.Instance=null"); return false; }
 
-                var hostField = netGameType.GetField("Host",
-                    BindingFlags.Public | BindingFlags.Static);
-                if (hostField == null) continue;
-                var hostValue = hostField.GetValue(null);
-                int hostInt = Convert.ToInt32(hostValue);
-                diag.Append($"hostInt={hostInt} ");
+            var netServiceProp = inst.GetType().GetProperty("NetService",
+                BindingFlags.Public | BindingFlags.Instance);
+            var netService = netServiceProp?.GetValue(inst);
+            if (netService == null) { GD.Print("[NCC|DIAG] [IsMultiplayerHost] NetService=null"); return false; }
 
-                var runManagerType = asm.GetType("MegaCrit.Sts2.Core.Runs.RunManager")
-                    ?? asm.GetType("RunManager");
-                if (runManagerType == null) continue;
+            var typeProp = netService.GetType().GetProperty("Type",
+                BindingFlags.Public | BindingFlags.Instance);
+            var netType = typeProp?.GetValue(netService);
+            if (netType == null) { GD.Print("[NCC|DIAG] [IsMultiplayerHost] netType=null"); return false; }
 
-                var instProp = runManagerType.GetProperty("Instance",
-                    BindingFlags.Public | BindingFlags.Static);
-                var rm = instProp?.GetValue(null);
-                if (rm == null) { diag.Append("RunManager.Instance=null "); continue; }
-                diag.Append("RunManager.Instance=found ");
+            var netGameType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Multiplayer.NetGameType")
+                ?? AccessTools.TypeByName("NetGameType");
+            if (netGameType == null) { GD.Print("[NCC|DIAG] [IsMultiplayerHost] NetGameType not found"); return false; }
 
-                var netServiceProp = rm.GetType().GetProperty("NetService",
-                    BindingFlags.Public | BindingFlags.Instance);
-                var netService = netServiceProp?.GetValue(rm);
-                if (netService == null) { diag.Append("NetService=null "); continue; }
-                diag.Append($"NetService.type={netService.GetType().Name} ");
+            var hostField = netGameType.GetField("Host",
+                BindingFlags.Public | BindingFlags.Static);
+            if (hostField == null) { GD.Print("[NCC|DIAG] [IsMultiplayerHost] NetGameType.Host field not found"); return false; }
 
-                var typeProp = netService.GetType().GetProperty("Type",
-                    BindingFlags.Public | BindingFlags.Instance);
-                var netType = typeProp?.GetValue(netService);
-                if (netType == null) { diag.Append("netType=null "); continue; }
-                int currentInt = Convert.ToInt32(netType);
-                diag.Append($"currentInt={currentInt} ");
-
-                bool result = currentInt == hostInt;
-                diag.Append($"result={result} ");
-                GD.Print($"[NCC|DIAG] {diag}");
-                return result;
-            }
-            diag.Append("no matching assembly ");
+            int currentInt = Convert.ToInt32(netType);
+            int hostInt = Convert.ToInt32(hostField.GetValue(null));
+            bool result = currentInt == hostInt;
+            GD.Print($"[NCC|DIAG] [IsMultiplayerHost] current={currentInt} host={hostInt} result={result}");
+            return result;
         }
-        catch (Exception ex) { diag.Append($"EXCEPTION:{ex.Message} "); }
-        GD.Print($"[NCC|DIAG] {diag}");
-        return false;
+        catch (Exception ex) { GD.Print($"[NCC|DIAG] [IsMultiplayerHost] EXCEPTION: {ex.Message}"); return false; }
         // #endregion
     }
 }

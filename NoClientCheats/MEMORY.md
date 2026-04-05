@@ -127,6 +127,138 @@ object _historyLock;                 // 线程安全保护
 
 ---
 
+## 联机同步关键机制
+
+### NetHostGameService 消息发送
+
+```csharp
+// NetHostGameService.SendMessage<T>(T message, ulong peerId)  ← NCC 用这个发回滚消息
+// → SendMessageToClientInternal(message, peerId, channel, overrideSenderId=null)
+// → SerializeMessage(overrideSenderId ?? this._netHost.NetId, message, ...)
+// 当 overrideSenderId=null 时，packet header senderId = 主机NetId
+```
+
+### CombatStateSynchronizer WaitForSync 流程
+
+```csharp
+// 副机收到回滚消息时：
+// 1. packet header senderId = 主机NetId
+// 2. 反序列化：_syncData[主机NetId] = msg.player（作弊玩家的 SerializablePlayer，NetId=副机NetId）
+// 3. WaitForSync: GetPlayer(主机NetId) → 找到副机的 Player（NetId=主机NetId）
+// 4. SyncWithSerializedPlayer(msg.player)
+//    → 检查 msg.player.NetId != this.NetId → 副机NetId != 主机NetId → 强退！
+```
+
+### SerializablePlayer.NetId 与 Player.NetId 的区别
+
+| 对象 | NetId 来源 | 说明 |
+|------|-----------|------|
+| `Player.NetId` | 构造函数传入 | 副机的 Player.NetId = 主机NetId（游戏网络层分配） |
+| `SerializablePlayer.NetId` | `ToSerializable()` 时复制 | 副机的 SP.NetId = 副机NetId（作弊玩家的 Steam ID） |
+
+这两个不是同一个值！游戏用来查找玩家的 `NetId` 与 `SerializablePlayer` 里的 `NetId` 来自不同体系。
+
+### 关键源代码文件（游戏 DLL 存档）
+
+```
+K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\MegaCrit\sts2\
+├── Core\Multiplayer\
+│   ├── CombatStateSynchronizer.cs     ← WaitForSync，强退点
+│   ├── NetHostGameService.cs          ← SendMessage，senderId 来源
+│   ├── NetMessageBus.cs               ← SerializeMessage，senderId 写入
+│   └── Messages\Game\
+│       └── SyncPlayerDataMessage.cs   ← 消息结构
+├── Core\Saves\Runs\
+│   └── SerializablePlayer.cs          ← SerializablePlayer.NetId
+└── Core\Entities\Players\
+    └── Player.cs                      ← Player.NetId，SyncWithSerializedPlayer
+```
+
+### STS2 联机 NetId 分配机制（重要补充）
+
+游戏中 `Player.NetId` 的分配策略：
+- 每个端（host/client）在**加入联机游戏时**，从本地的 `ConnectedPlayer` 列表中获取
+- 主机端：`HostNetId = 本机 Steam ID`
+- 副机端：自己的 NetId 可能被设置为**主机的 Steam ID**（STS2 的特殊处理）
+- 这导致同一个玩家在不同端有不同的 NetId 表示
+
+**结论**：`senderId` 和 `SerializablePlayer.NetId` 在不同端代表的含义可能不同，跨端发送带 NetId 的消息时需要特别注意。
+
+---
+
+## ForkedRoad 参考模式（自定义网络消息）
+
+### ForkedRoad 自定义消息模式
+
+参考 `Snoivyel/STS2-Forked-Road`（v1.0.3，MIT 协议）：
+
+```csharp
+public struct ForkedRoadBranchStartMessage : INetMessage
+{
+    public int actIndex;
+    public MapCoord coord;
+    public int branchSequence;
+    public int remainingBranches;
+    public List playerIds;
+
+    public bool ShouldBroadcast => true;   // 广播到所有玩家
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.Info;
+
+    public void Serialize(PacketWriter writer) { ... }
+    public void Deserialize(PacketReader reader) { ... }
+}
+```
+
+**关键设计**：
+- `ShouldBroadcast = true`：消息通过 `NetHostGameService.SendMessage(msg)`（无 peerId 参数）广播
+- 广播时 senderId 由游戏网络层自动处理，不存在 overrideSenderId 问题
+- Handler 在 `InitializeForRun` 中注册：`netService.RegisterMessageHandler(HandleMethod)`
+- Handler 方法签名：`void HandleMethod(TMessage msg, ulong senderId)`
+
+### INetMessage 接口实现要点
+
+```csharp
+// 完整实现模式（参考 ForkedRoadBranchStartMessage）
+public struct NCCRollbackNotifyMessage : INetMessage
+{
+    public ulong targetPlayerNetId;        // NCC 新增：明确指定目标玩家的 NetId
+    public ulong serializedDeckData;       // NCC 新增：作弊前的卡组数据（JSON 或二进制）
+    public bool ShouldBroadcast => false;  // 点对点，不要广播
+    public NetTransferMode Mode => NetTransferMode.Reliable;
+    public LogLevel LogLevel => LogLevel.Info;
+
+    public void Serialize(PacketWriter writer)
+    {
+        writer.WriteULong(targetPlayerNetId);
+        writer.WriteString(serializedDeckJson);
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
+        targetPlayerNetId = reader.ReadULong();
+        serializedDeckJson = reader.ReadString();
+    }
+}
+```
+
+### ForkedRoad 消息发送模式
+
+```csharp
+// ForkedRoadManager 中的消息发送
+_netService.SendMessage(new ForkedRoadBranchMergeMessage { ... });
+// 直接调用无 peerId 的 SendMessage，ShouldBroadcast 决定是否广播
+
+// 发送端（Host）：
+// → SendMessage(msg) → SendMessageToClientInternal → Broadcast=true → 发给所有 peers
+// → 广播时每条消息的 senderId = 游戏自动填充（senderId=主机NetId）
+// 接收端（Client）：
+// → 收到广播，handler 接收 msg 和 senderId
+// → 接收端使用 senderId 和 msg 里的 targetPlayerNetId 做业务逻辑
+```
+
+---
+
 ## 开发备忘
 
 ### 构建
