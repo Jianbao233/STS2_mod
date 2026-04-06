@@ -10,6 +10,7 @@
 
   "panel.title": "MultiplayerTools",
   "panel.subtitle": "Saves · Templates · Backups",
+  "panel.warning": "⚠ Only use on the main menu — never during gameplay",
 
   "nav.menu": "MENU",
   "nav.save_select": "Save Select",
@@ -151,6 +152,14 @@
   "settings.default_path": "(default)",
   "settings.about": "About",
   "settings.version": "Version {0}",
+  "settings.hotkey_section": "Hotkey",
+  "settings.hotkey_label": "Current hotkey:",
+  "settings.hotkey_set": "Set",
+  "settings.hotkey_reset": "Reset",
+  "settings.hotkey_unset": "Not set",
+  "settings.mobile_hint": "Mobile: tap the floating button to open",
+  "settings.open_panel": "MultiplayerTools",
+  "steam.id_unavailable": "Unavailable ({platform})",
 
   "error.load_save_failed": "Failed to load save",
   "error": "Error",

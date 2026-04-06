@@ -1,6 +1,8 @@
 using Godot;
 using HarmonyLib;
 using MultiplayerTools.Steam;
+using MultiplayerTools.UI;
+using MultiplayerTools.Platform;
 using System;
 using System.Reflection;
 
@@ -75,9 +77,11 @@ namespace MultiplayerTools
                 tree.ProcessFrame -= OnFrame2;
                 Config.Load();
                 Loc.Reload();
+                PlatformInfo.LogStartupInfo();
                 new Harmony("multiplayer.tools").PatchAll(Assembly.GetExecutingAssembly());
 
                 tree.Root?.AddChild(new F1InputNode());
+                tree.Root?.AddChild(new MpFloatingButton());
 
                 MpPanel.Toggle();
                 MpPanel.Hide();

@@ -393,6 +393,16 @@ namespace MultiplayerTools
             authorLink.AddThemeColorOverride("font_color", Panel.Styles.MpBlueAccent);
             verRow.AddChild(authorLink, false, Node.InternalMode.Disabled);
 
+            // Warning row
+            var warningLbl = new Label
+            {
+                Text = Loc.Get("panel.warning", "⚠ Only use on the main menu — never during gameplay"),
+                CustomMinimumSize = new Vector2(0, 22)
+            };
+            warningLbl.AddThemeFontSizeOverride("font_size", 14);
+            warningLbl.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
+            titleCol.AddChild(warningLbl, false, Node.InternalMode.Disabled);
+
             header.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, false, Node.InternalMode.Disabled);
 
             // GitHub repo link button

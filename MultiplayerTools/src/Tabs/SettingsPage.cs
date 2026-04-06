@@ -4,6 +4,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Localization;
 using MultiplayerTools.Core;
 using MultiplayerTools.Panel;
+using MultiplayerTools.Platform;
 
 namespace MultiplayerTools.Tabs
 {
@@ -47,6 +48,15 @@ namespace MultiplayerTools.Tabs
             container.AddChild(steamTitle, false, Node.InternalMode.Disabled);
 
             BuildSteamIdCard(container);
+
+            // ── Hotkey section (desktop only) ────────────────────────────────────
+            var hotkeyTitle = new Label { Text = Loc.Get("settings.hotkey_section", "Hotkey") };
+            hotkeyTitle.AddThemeFontSizeOverride("font_size", 18);
+            hotkeyTitle.AddThemeColorOverride("font_color", Panel.Styles.MpGold);
+            hotkeyTitle.AddThemeConstantOverride("custom_minimum_size_y", 30);
+            container.AddChild(hotkeyTitle, false, Node.InternalMode.Disabled);
+
+            BuildHotkeyCard(container);
 
             // ── Font size section ─────────────────────────────────────────────
             var fontTitle = new Label { Text = Loc.Get("settings.font_size", "Font Size") };
@@ -199,6 +209,92 @@ namespace MultiplayerTools.Tabs
                 }
             };
             row.AddChild(copyBtn, false, Node.InternalMode.Disabled);
+        }
+
+        private static void BuildHotkeyCard(VBoxContainer container)
+        {
+            // Mobile: show hint, hide keybind UI
+            if (MultiplayerTools.Platform.PlatformInfo.IsMobile)
+            {
+                var hintLbl = new Label
+                {
+                    Text = Loc.Get("settings.mobile_hint", "移动端可点击悬浮按钮打开工具")
+                };
+                hintLbl.AddThemeFontSizeOverride("font_size", 15);
+                hintLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
+                container.AddChild(hintLbl, false, Node.InternalMode.Disabled);
+                return;
+            }
+
+            var card = new PanelContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                CustomMinimumSize = new Vector2(0, 54)
+            };
+            var cardStyle = new StyleBoxFlat
+            {
+                BgColor = Panel.Styles.MpNavSelected,
+                BorderColor = Panel.Styles.PanelBorder,
+                ShadowSize = 0, ShadowColor = Godot.Colors.Transparent
+            };
+            cardStyle.SetBorderWidthAll(0);
+            cardStyle.SetCornerRadiusAll(8);
+            card.AddThemeStyleboxOverride("panel", cardStyle);
+            container.AddChild(card, false, Node.InternalMode.Disabled);
+
+            var margin = new MarginContainer();
+            margin.AddThemeConstantOverride("margin_left", 14);
+            margin.AddThemeConstantOverride("margin_right", 14);
+            margin.AddThemeConstantOverride("margin_top", 10);
+            margin.AddThemeConstantOverride("margin_bottom", 10);
+            card.AddChild(margin, false, Node.InternalMode.Disabled);
+
+            var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            row.AddThemeConstantOverride("separation", 12);
+            margin.AddChild(row, false, Node.InternalMode.Disabled);
+
+            var lbl = new Label
+            {
+                Text = Loc.Get("settings.hotkey_label", "Current hotkey:"),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+                CustomMinimumSize = new Vector2(150, 0)
+            };
+            lbl.AddThemeFontSizeOverride("font_size", 17);
+            lbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextMuted);
+            row.AddChild(lbl, false, Node.InternalMode.Disabled);
+
+            var hotkeyLbl = new Label
+            {
+                Text = Config.ToggleHotkey,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+            };
+            hotkeyLbl.AddThemeFontSizeOverride("font_size", 17);
+            hotkeyLbl.AddThemeColorOverride("font_color", Panel.Styles.MpTextNav);
+            row.AddChild(hotkeyLbl, false, Node.InternalMode.Disabled);
+
+            var setBtn = MpPanel.CreateActionButton(Loc.Get("settings.hotkey_set", "Set"), Panel.Styles.MpPrimaryBtn);
+            setBtn.CustomMinimumSize = new Vector2(60, 32);
+            setBtn.AddThemeFontSizeOverride("font_size", 16);
+            setBtn.Pressed += () =>
+            {
+                MpPanel.ShowStatusMessage("Hotkey capture: press a key (F1 = reset)", Panel.Styles.MpGold);
+                // TODO: trigger key capture overlay (ConfirmationDialog-style)
+                // Until implemented: hotkey defaults to F1 and can be changed via config.json
+            };
+            row.AddChild(setBtn, false, Node.InternalMode.Disabled);
+
+            var resetBtn = MpPanel.CreateActionButton(Loc.Get("settings.hotkey_reset", "Reset"), Panel.Styles.MpPrimaryBtn);
+            resetBtn.CustomMinimumSize = new Vector2(70, 32);
+            resetBtn.AddThemeFontSizeOverride("font_size", 16);
+            resetBtn.Pressed += () =>
+            {
+                Config.ToggleHotkey = "F1";
+                Config.SaveField("toggle_hotkey", "F1");
+                hotkeyLbl.Text = "F1";
+                MpPanel.ShowStatusMessage("Hotkey reset to F1", Panel.Styles.Green);
+            };
+            row.AddChild(resetBtn, false, Node.InternalMode.Disabled);
         }
 
         private static void BuildFontSlider(VBoxContainer container)

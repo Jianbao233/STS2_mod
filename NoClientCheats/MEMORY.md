@@ -1,6 +1,8 @@
 # NoClientCheats · 项目记忆
 
 > 本文件为 NoClientCheats 项目的专属记忆，每次新对话开始时请先阅读本文。
+>
+> **今日重大发现 (2026-04-05)**：通过游戏 DLL 反编译 + ForkedRoad 源码研究，确认了副机黑屏强退的根因——`SyncPlayerDataMessage` 中 `senderId`（=主机NetId）与 `msg.player.NetId`（=副机NetId）在副机端错配，导致 `SyncWithSerializedPlayer` 断言失败。6 种解决思路已提出，详见 `docs/NCC_NetId_思路分析.md`。**最新方案（2026-04-05，已构建成功）**：通过 `ClientDiagnosticPatches.cs` 的三步协作——Patch A 记录接收、Patch B 存储 NCC 回滚上下文（ThreadLocal）、Patch C 用正确 NetId 执行同步并跳过原方法——实现黑屏修复。**下一步**：客机安装 DEBUG 版 NCC 并在设置中启用，收集诊断日志验证效果。
 
 ---
 
@@ -33,7 +35,9 @@
 | `LanConnectBridge` | 反射桥接 `Sts2LanConnect.LanConnectLobbyRuntime`，将作弊拦截广播到大厅房间聊天。`SendRoomChatMessageAsync`/`HasActiveRoomSession`/`Instance` 均为 `internal`（需 `BindingFlags.NonPublic`） |
 | `ModListFilterPatch.cs` | `GetGameplayRelevantModNameList` 的 Prefix，从联机 Mod 列表移除本 Mod |
 | `CheatLocHelper.cs` | 反射 `LocString`，汉化角色名/遗物名/指令（无编译期 LocDB 引用） |
-| `HarmonyPatches/` | 各补丁类分目录存放（`ClientCheatBlockPatch.cs` 等） |
+| `HarmonyPatches/` | 各补丁类分目录存放 |
+| `ClientDiagnosticPatches.cs` | 客机诊断模块：Patch A/B/C 三步协作修复 NetId 黑屏问题，含完整日志追踪 |
+| `NetIdFixTranspiler.cs` | NetId 修正注册表 API（仅存储，已不再 Patch 游戏 IL） |
 
 ---
 
@@ -124,6 +128,8 @@ object _historyLock;                 // 线程安全保护
 | **注入节点用 InternalMode.Disabled** | `AddChild(node, false, Node.InternalMode.Disabled)` 防止注入按钮截获本来流向其他控件的 Godot 输入事件 |
 | **角色 ID 格式不统一** | 可能是 `"CHARACTER.IRONCLAD"` 也可能是 `"IRONCLAD"`，`CheatLocHelper` 两边都处理 |
 | **多个通知弹窗同时出现** | `_visible.Count >= MAX_VISIBLE(4)` 保护防止无限堆积；旧条目必须完成淡出才能出现新条目 |
+| **struct 参数被 boxing 导致 Harmony Patch 不生效** | `SerializablePlayer` 是 struct，参数通过 `object` 传参时触发 boxing，Prefix/Finalizer 修改的是副本，原方法看不到改动。这是导致副机强退补丁全部失效的根本原因之一。详见 `docs/NCC_NetId_思路分析.md` 第2.3节。**已解决**：Patch C 通过反射调用同步，跳过原方法避免 boxing 副本问题 |
+| **客机 NCC 被游戏设置禁用** | 客机 NCC 被 `it is set to disabled in settings` 跳过，导致修正补丁无法在客机运行，是副机强退的直接原因。**修复**：客机安装 NCC DEBUG 版并在设置中启用 |
 
 ---
 
@@ -136,7 +142,10 @@ object _historyLock;                 // 线程安全保护
 // → SendMessageToClientInternal(message, peerId, channel, overrideSenderId=null)
 // → SerializeMessage(overrideSenderId ?? this._netHost.NetId, message, ...)
 // 当 overrideSenderId=null 时，packet header senderId = 主机NetId
+// 【关键】msg.player.NetId = 副机NetId（作弊玩家的 Steam ID），与 senderId（主机NetId）不匹配
 ```
+
+**NetId 错配的根源**：NCC 用 `correctSnapshot.ToSerializable()` 填充消息，`SerializablePlayer.NetId` = 副机的 Steam ID。但发送时 `senderId` = 主机NetId（由网络层自动填入包头）。副机收到后，用 `senderId`（主机NetId）查找 Player 对象，找到的是自己的 Player（其 NetId 已被游戏设为主机NetId），然后用 `msg.player.NetId`（副机NetId）做比较——两边 NetId 不等，强退。
 
 ### CombatStateSynchronizer WaitForSync 流程
 
@@ -149,11 +158,17 @@ object _historyLock;                 // 线程安全保护
 //    → 检查 msg.player.NetId != this.NetId → 副机NetId != 主机NetId → 强退！
 ```
 
+**代码证据**（`CombatStateSynchronizer.cs` 第70行）：
+```csharp
+this._syncData[senderId] = syncMessage.player;  // 用 senderId（主机NetId）作为 key
+// 副机用 senderId 查 _syncData，找到 msg.player，再用 senderId 查 Player，两边 NetId 不等
+```
+
 ### SerializablePlayer.NetId 与 Player.NetId 的区别
 
 | 对象 | NetId 来源 | 说明 |
 |------|-----------|------|
-| `Player.NetId` | 构造函数传入 | 副机的 Player.NetId = 主机NetId（游戏网络层分配） |
+| `Player.NetId` | 构造函数传入 | 副机的 Player.NetId = **主机NetId**（游戏网络层分配，特殊处理） |
 | `SerializablePlayer.NetId` | `ToSerializable()` 时复制 | 副机的 SP.NetId = 副机NetId（作弊玩家的 Steam ID） |
 
 这两个不是同一个值！游戏用来查找玩家的 `NetId` 与 `SerializablePlayer` 里的 `NetId` 来自不同体系。
@@ -163,8 +178,8 @@ object _historyLock;                 // 线程安全保护
 ```
 K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\MegaCrit\sts2\
 ├── Core\Multiplayer\
-│   ├── CombatStateSynchronizer.cs     ← WaitForSync，强退点
-│   ├── NetHostGameService.cs          ← SendMessage，senderId 来源
+│   ├── CombatStateSynchronizer.cs     ← WaitForSync，强退点，第70行 _syncData[senderId]=msg.player
+│   ├── NetHostGameService.cs          ← SendMessage，senderId 来源，第168行
 │   ├── NetMessageBus.cs               ← SerializeMessage，senderId 写入
 │   └── Messages\Game\
 │       └── SyncPlayerDataMessage.cs   ← 消息结构
@@ -183,6 +198,36 @@ K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\
 - 这导致同一个玩家在不同端有不同的 NetId 表示
 
 **结论**：`senderId` 和 `SerializablePlayer.NetId` 在不同端代表的含义可能不同，跨端发送带 NetId 的消息时需要特别注意。
+
+> **本项目核心问题的根因就在这里**：详见 `docs/NCC_NetId_思路分析.md` 中的「根本原因」和「技术可行性评估」章节。
+
+### 修复方案：ClientDiagnosticPatches.cs 三步协作
+
+**文件**：`ClientDiagnosticPatches.cs`
+
+**核心思路**：利用 Harmony Patch 机制在关键方法间传递上下文信息，通过 ThreadLocal 在 Patch B → Patch C 间桥接：
+
+1. **Patch A**（`OnSyncPlayerReceived_Patch`）：客机收到 `SyncPlayerDataMessage` 时记录 senderId 和 msg.player.NetId，写入 `NCC_diag.log`
+2. **Patch B**（`WaitForSync_Patch.Prefix`）：遍历 `_syncData` 时检测 NetId 错配（key ≠ v.NetId），用 `ThreadLocal` 存储 `_pendingNCCSnapshot` 和 `_pendingNCCPlayerNetId`，设置 `_nccRollbackDetected=true`
+3. **Patch C**（`SyncWithSerializedPlayer_Patch.Prefix`）：
+   - 检测 `_nccRollbackDetected == true` → 进入 NCC 回滚上下文
+   - 用 `_pendingNCCPlayerNetId`（= msg.player.NetId = 副机真实 ID）通过 `RunState.GetPlayer()` 查找 Player（找到的是客机本地的正确 Player 对象）
+   - 直接调用 `localPlayer.SyncWithSerializedPlayer(nccSnapshot)`（NetId 匹配，不会抛异常）
+   - 返回 `false` 跳过原方法（避免游戏内部再次比较导致强退）
+   - 若无 NCC 上下文，则记录详细日志后继续执行原方法（游戏正常报错）
+
+**关键变量**（均为 `ThreadLocal`，避免线程安全问题）：
+```csharp
+private static readonly ThreadLocal<object> _pendingNCCSnapshot = new();
+private static readonly ThreadLocal<ulong> _pendingNCCPlayerNetId = new();
+private static readonly ThreadLocal<bool> _nccRollbackDetected = new();
+private static readonly ThreadLocal<bool> _prefixSkippedOriginal = new();
+```
+
+**部署**：
+- NCC DEBUG 版构建后，客机将 DLL/PCK 复制到客机 mods 目录并在设置中启用
+- 诊断日志输出到 `C:\Users\Administrator\AppData\Roaming\SlayTheSpire2\NCC_diag.log`
+- 日志标签：`[NCC-DIAG][SyncRecv]`、`[NCC-DIAG][WaitSync]`、`[NCC-DIAG][SyncPlayer]`、`[NCC-DIAG][Context]`
 
 ---
 

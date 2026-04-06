@@ -10,6 +10,7 @@
 
   "panel.title": "多人联机工具",
   "panel.subtitle": "存档 · 模板 · 备份工具",
+  "panel.warning": "⚠ 本工具仅限主页面使用，切勿游戏中途使用",
 
   "nav.menu": "菜单",
   "nav.save_select": "存档选择",
@@ -151,6 +152,14 @@
   "settings.default_path": "（默认）",
   "settings.about": "关于",
   "settings.version": "版本 {0}",
+  "settings.hotkey_section": "快捷键",
+  "settings.hotkey_label": "当前快捷键：",
+  "settings.hotkey_set": "设置",
+  "settings.hotkey_reset": "重置",
+  "settings.hotkey_unset": "未设置",
+  "settings.mobile_hint": "移动端可点击悬浮按钮打开工具",
+  "settings.open_panel": "多人工具",
+  "steam.id_unavailable": "无法获取（{platform}）",
 
   "error.load_save_failed": "加载存档失败",
   "error": "错误",

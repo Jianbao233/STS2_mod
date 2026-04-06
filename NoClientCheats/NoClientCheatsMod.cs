@@ -111,6 +111,9 @@ public static class NoClientCheatsMod
         // InputHandler 立即创建并常驻（热键始终监听）
         EnsureInputHandler();
 
+        // 客机诊断补丁初始化（注册 NCC 回滚处理器、清理过期注册）
+        ClientDiagnosticPatches.EnsureInitialized();
+
         GD.Print($"[NoClientCheats] Loaded. Block={BlockEnabled} Hide={HideFromModList} "
             + $"Notify={ShowNotification} Dur={NotificationDuration}s "
             + $"History={HistoryMaxRecords} key={GetHistoryKeyDisplayName()}");

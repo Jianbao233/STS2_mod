@@ -11,7 +11,7 @@ namespace MultiplayerTools
     /// </summary>
     internal static class Config
     {
-        public static string ToggleHotkey { get; private set; } = "F1";
+        public static string ToggleHotkey { get; internal set; } = "F1";
         /// <summary>UI language override: game | eng | zho</summary>
         public static string ModUiLanguage { get; internal set; } = "game";
         /// <summary>Font size step: 0 = default (smallest), 1-6 = progressively larger.</summary>

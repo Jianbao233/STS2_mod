@@ -4,6 +4,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Threading;
 using HarmonyLib;
 
 namespace NoClientCheats;
@@ -29,6 +30,14 @@ internal static class DeckSyncPatches
 
     // 诊断标志：确保 ChooseOption 参数类型只打印一次
     private static bool _chooseOptionParamsLogged = false;
+
+    // ─── NCC 回滚检测状态（线程本地存储） ────────────────────────────────
+    // 在 Finalizer Prefix 中于 patch 之前设置，在 CLIENT-APPLY-FALLBACK 中读取。
+    // 因为 Finalizer 的 NetId patch 在 CLIENT-APPLY-FALLBACK 之前执行，
+    // patch 后 receivedPlayer.NetId == senderId，无法通过比较检测 NCC 回滚。
+    private static readonly ThreadLocal<bool> _wasNCCRollback = new();
+    private static readonly ThreadLocal<ulong> _originalMsgPlayerNetId = new();
+    private static readonly ThreadLocal<ulong> _originalSenderId = new();
 
     // ─── Patch A: RestSiteSynchronizer.ChooseOption (Prefix) ──────────────────
     // 时机：玩家确认选项、选项执行之前，记录此刻的卡组快照
@@ -802,16 +811,25 @@ internal static class DeckSyncPatches
                         // 客机：SyncPlayerDataMessage 可能是主机发来的回滚包
                         // 判断：这条消息里的 senderId 与本机控制的 netId 相同？
                         ulong localId = TryGetLocalControllingNetId();
+                        DIAG($"[CLIENT-APPLY] ENTRY: localId={localId} senderId={senderId}");
                         if (localId != 0 && senderId == localId)
                         {
                             // 这是发给本机的回滚消息：用 receivedPlayer（来自消息内容）更新本机 Player
                             object live = _TryResolveLivePlayerByNetId(senderId);
+                            DIAG($"[CLIENT-APPLY] resolved live={live != null} (senderId={senderId})");
                             if (live == null)
                                 _lastRemotePlayerByNetId.TryGetValue(senderId, out live);
+                            DIAG($"[CLIENT-APPLY] after cache live={live != null}");
                             if (live != null)
                             {
                                 var applied = _TryApplySnapshotToLivePlayer(live, receivedPlayer);
                                 DIAG($"[CLIENT-APPLY] senderId={senderId} receivedDeck={GetDeckSummary(receivedPlayer)} applied={applied ?? "null"}");
+                            }
+                            else
+                            {
+                                DIAG($"[CLIENT-APPLY] FAILED: live player still null for senderId={senderId}, queueing deferred");
+                                lock (_pendingPlayerRefreshes)
+                                    _pendingPlayerRefreshes[senderId] = (senderId, receivedPlayer, __instance);
                             }
                         }
                         else if (localId == 0 && senderId != 0)
@@ -819,13 +837,75 @@ internal static class DeckSyncPatches
                             // 地图阶段 RunManager.State=null，TryGetLocalControllingNetId() 返回 0
                             // 用 senderId 本身匹配本机缓存的 Player（_lastRemotePlayerByNetId 可能存过本机对象）
                             object live = _TryResolveLivePlayerByNetId(senderId);
+                            DIAG($"[CLIENT-APPLY-FALLBACK] resolved live={live != null} (senderId={senderId})");
                             if (live == null)
                                 _lastRemotePlayerByNetId.TryGetValue(senderId, out live);
+                            DIAG($"[CLIENT-APPLY-FALLBACK] after cache live={live != null}");
+                            string applied = null;
                             if (live != null)
                             {
-                                var applied = _TryApplySnapshotToLivePlayer(live, receivedPlayer);
+                                applied = _TryApplySnapshotToLivePlayer(live, receivedPlayer);
                                 DIAG($"[CLIENT-APPLY-FALLBACK] senderId={senderId} receivedDeck={GetDeckSummary(receivedPlayer)} applied={applied ?? "null"}");
                             }
+
+                            // ── 关键修复：NCC 回滚特殊处理 ─────────────────────────────────
+                            // receivedNetId 在 Finalizer patch 后已被修正为 senderId，
+                            // 无法通过 receivedNetId != senderId 检测。
+                            // 使用 Finalizer Prefix 中设置的 ThreadLocal 标志。
+                            bool wasNCC = _wasNCCRollback?.Value == true;
+                            ulong origMsgPlayerNetId = _originalMsgPlayerNetId?.Value ?? 0;
+                            if (applied == null && wasNCC)
+                            {
+                                ulong origSenderId = _originalSenderId?.Value ?? 0;
+                                DIAG($"[CLIENT-APPLY-FALLBACK] ★ NCC ROLLBACK detected via ThreadLocal!");
+                                DIAG($"[CLIENT-APPLY-FALLBACK]   original: msgPlayer.NetId={origMsgPlayerNetId} senderId={origSenderId}");
+                                DIAG($"[CLIENT-APPLY-FALLBACK]   Trying to resolve live player by origMsgPlayerNetId={origMsgPlayerNetId}...");
+
+                                // 尝试通过原始 msgPlayer.NetId（客机自己的 NetId）解析本地 Player
+                                object liveByReceivedId = _TryResolveLivePlayerByNetId(origMsgPlayerNetId);
+                                DIAG($"[CLIENT-APPLY-FALLBACK]   resolved by origMsgPlayerNetId: {liveByReceivedId != null}");
+
+                                // 如果找不到，尝试从缓存中找（通过 clientNetId 存的 SerializablePlayer）
+                                if (liveByReceivedId == null)
+                                {
+                                    _lastRemotePlayerByNetId.TryGetValue(origMsgPlayerNetId, out liveByReceivedId);
+                                    DIAG($"[CLIENT-APPLY-FALLBACK]   after cache[origMsgPlayerNetId]: {liveByReceivedId != null}");
+                                }
+
+                                if (liveByReceivedId != null)
+                                {
+                                    // 找到了可能是 SerializablePlayer（缓存中）或 Player 实体
+                                    DIAG($"[CLIENT-APPLY-FALLBACK]   found object type={liveByReceivedId.GetType().Name}");
+
+                                    // 直接反射调用 Player.SyncWithSerializedPlayer
+                                    // 这是最可靠的同步方式
+                                    bool syncOk = _TrySyncPlayerWithSerializable(liveByReceivedId, receivedPlayer);
+                                    DIAG($"[CLIENT-APPLY-FALLBACK] ★ NCC SyncWithSerializable: {syncOk}");
+
+                                    if (syncOk)
+                                    {
+                                        applied = "NCC.SyncWithSerializable";
+                                    }
+                                }
+                                else
+                                {
+                                    DIAG($"[CLIENT-APPLY-FALLBACK]   still null — queuing deferred by clientNetId");
+                                    // 关键：使用 origMsgPlayerNetId（客机 NetId）作为 key
+                                    // 因为 ProcessDeferredPlayerRefresh 需要用它找到客机的 Player 实体
+                                    lock (_pendingPlayerRefreshes)
+                                        _pendingPlayerRefreshes[origMsgPlayerNetId] = (origMsgPlayerNetId, receivedPlayer, __instance);
+                                }
+                            }
+                            else if (applied == null)
+                            {
+                                DIAG($"[CLIENT-APPLY-FALLBACK] FAILED: live player still null for senderId={senderId}, queueing deferred");
+                                lock (_pendingPlayerRefreshes)
+                                    _pendingPlayerRefreshes[senderId] = (senderId, receivedPlayer, __instance);
+                            }
+                        }
+                        else
+                        {
+                            DIAG($"[CLIENT-APPLY] SKIPPED: localId={localId} senderId={senderId} (not our message)");
                         }
                         // 无论是否匹配，都写合法快照（客机正常同步时也需要推进 prev 状态）
                         lock (_lastSerializablePlayer) { _lastSerializablePlayer[senderId] = receivedPlayer; }
@@ -1200,11 +1280,15 @@ internal static class DeckSyncPatches
 
     /// <summary>
     /// 向副机发送回滚消息。
-    /// 优先广播（INetGameService.SendMessage&lt;T&gt;(T message) 无 peerId 参数），
-    /// 让游戏用 senderId=主机NetId 处理，客机 WaitForSync 正确同步。
+    /// 方向C核心：
+    ///   1. 在发送前注册 NetId 修正（NetIdFixTranspiler.RegisterFix）
+    ///      Transpiler 在序列化时会将 msg.player.NetId 从 targetNetId 修正为 senderId
+    ///   2. 发送后清除修正（NetIdFixTranspiler.ClearFix）
     /// </summary>
     private static void _SendRollback(object synchronizer, ulong targetNetId, object correctSnapshot)
     {
+        object msgPlayer = null;
+
         try
         {
             var netServiceField = AccessTools.Field(synchronizer.GetType(), "_netService");
@@ -1220,23 +1304,62 @@ internal static class DeckSyncPatches
             var msg = Activator.CreateInstance(msgType);
             _PopulateSyncPlayerDataMessage(msg, correctSnapshot, targetNetId);
 
-            // 方式 A（推荐）：无 peerId 参数的 SendMessage — senderId=主机NetId，广播给所有客户端
+            // 获取 msg.player 引用
+            var msgPlayerField = AccessTools.Field(msgType, "player");
+            msgPlayer = msgPlayerField?.GetValue(msg);
+
+            // 获取主机 NetId（这是正确的 senderId = 主机 NetId）
+            ulong hostNetId = 0;
+            try
+            {
+                var hostNetIdField = AccessTools.Field(netService.GetType(), "_netHost");
+                if (hostNetIdField != null)
+                {
+                    var netHost = hostNetIdField.GetValue(netService);
+                    var netIdGetter = netHost?.GetType().GetProperty("NetId",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    hostNetId = Convert.ToUInt64(netIdGetter?.GetValue(netHost) ?? 0UL);
+                }
+            }
+            catch { /* ignore */ }
+
+            // ── 方向C核心：在发送前注册修正 ─────────────────────────────────
+            // SerializablePlayerNetIdMismatchPatch 在收到此回滚消息时，
+            // 检测到 (msgPlayerNetId=targetNetId, senderId=hostNetId) 已注册，跳过 NetId 检查
+            // ─────────────────────────────────────────────────────────────
+            NetIdFixTranspiler.RegisterFix(targetNetId, hostNetId);
+
+            // ── 新增：通知客机注册 NCC 回滚标记 ───────────────────────────
+            // 在 finally 中不立即清除，而是延迟清除（给客机足够的时间收到并处理消息）
+            // 通过 ClientDiagnosticPatches.ClientSideRegisterNCCRollback(hostNetId, targetNetId)
+            // 让客机在收到消息后自己注册标记
+            // ─────────────────────────────────────────────────────────────
+
+            // 方式 A：广播（无 peerId 参数）→ senderId = 主机 NetId
             if (_TryBroadcastViaNoPeerSendMessage(netService, msg))
             {
-                GD.Print($"[NCC] Rollback BROADCAST (senderId=host, all peers receive correct deck)");
+                GD.Print($"[NCC] Rollback BROADCAST with NetId fix (senderId={hostNetId})");
                 return;
             }
 
-            // 方式 B（备选）：定向 SendMessage<T>(T msg, ulong peerId)
+            // 方式 B：定向 → senderId = 主机 NetId
             if (_TrySendMessageToPeer(netService, msg, targetNetId))
             {
-                GD.Print($"[NCC] Rollback sent to {targetNetId} (peer-directed — may cause NetId mismatch!)");
+                GD.Print($"[NCC] Rollback sent with NetId fix to {targetNetId} (senderId={hostNetId})");
                 return;
             }
 
             GD.PushError("[NCC] _SendRollback: no matching SendMessage on net service");
         }
-        catch (Exception ex) { GD.PushError($"[NCC] _SendRollback error: {ex}"); }
+        catch (Exception ex)
+        {
+            GD.PushError($"[NCC] _SendRollback error: {ex}");
+        }
+        finally
+        {
+            // 发送后清除修正
+            NetIdFixTranspiler.ClearFix(targetNetId);
+        }
     }
 
     /// <summary>
@@ -1337,12 +1460,24 @@ internal static class DeckSyncPatches
 
     private static object GetMemberValue(object target, string memberName)
     {
-        var prop = target.GetType().GetProperty(memberName,
+        if (target == null) return null;
+        var t = target.GetType();
+        // 1. Public property
+        var prop = t.GetProperty(memberName,
             BindingFlags.Public | BindingFlags.Instance);
         if (prop != null) return prop.GetValue(target);
-        var field = target.GetType().GetField(memberName,
+        // 2. Public field
+        var field = t.GetField(memberName,
             BindingFlags.Public | BindingFlags.Instance);
-        return field?.GetValue(target);
+        if (field != null) return field.GetValue(target);
+        // 3. Private field (including <Name>k__BackingField, _name)
+        var allFields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var f in allFields)
+        {
+            if (f.Name == memberName || f.Name == "_" + memberName || f.Name == "<" + memberName + ">k__BackingField")
+                return f.GetValue(target);
+        }
+        return null;
     }
 
     private static ulong GetPlayerNetId(object player)
@@ -1443,7 +1578,15 @@ internal static class DeckSyncPatches
     }
 
     private static object GetSyncMessagePlayer(object syncMessage)
-        => GetMemberValue(syncMessage, "player");
+    {
+        if (syncMessage == null) return null;
+        var result = GetMemberValue(syncMessage, "player");
+        if (result == null)
+            LogDiag("Finalizer", $"[PREFIX] GetSyncMessagePlayer returned NULL for {syncMessage.GetType().Name}");
+        else
+            LogDiag("Finalizer", $"[PREFIX] GetSyncMessagePlayer: player={result.GetType().Name} NetId={GetPlayerNetId(result)}");
+        return result;
+    }
 
     /// <summary>
     /// 从 canonicalCards 和 mutableCards 构建一个 SerializablePlayer 对象，
@@ -1833,6 +1976,57 @@ internal static class DeckSyncPatches
         }
         catch { /* fall through */ }
         return null;
+    }
+
+    /// <summary>
+    /// 尝试对 Player 实体调用 SyncWithSerializedPlayer。
+    /// 如果传入的是 SerializablePlayer 自身，会返回 false（需要在 Player 对象上调用）。
+    /// </summary>
+    private static bool _TrySyncPlayerWithSerializable(object playerEntity, object serializablePlayer)
+    {
+        if (playerEntity == null || serializablePlayer == null) return false;
+
+        try
+        {
+            var type = playerEntity.GetType();
+
+            // 如果传入的就是 SerializablePlayer，无法同步到自己
+            if (string.Equals(type.Name, "SerializablePlayer", StringComparison.Ordinal))
+                return false;
+
+            // 查找 SyncWithSerializedPlayer 方法
+            var spType = AccessTools.TypeByName(
+                "MegaCrit.Sts2.Core.Entities.Players.SerializablePlayer")
+                ?? AccessTools.TypeByName("SerializablePlayer");
+            if (spType == null) return false;
+
+            var syncMethod = AccessTools.Method(type, "SyncWithSerializedPlayer",
+                new[] { spType });
+            if (syncMethod != null)
+            {
+                syncMethod.Invoke(playerEntity, new[] { serializablePlayer });
+                return true;
+            }
+
+            // 备选：查找其他同步方法
+            foreach (var mName in new[] {
+                "RestoreFromSerializable", "RestoreStateFromSerializable",
+                "ApplySerializable", "SyncFromSerializable"
+            })
+            {
+                foreach (var m in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    if (m.Name != mName) continue;
+                    var ps = m.GetParameters();
+                    if (ps.Length != 1) continue;
+                    if (!ps[0].ParameterType.IsAssignableFrom(spType)) continue;
+                    m.Invoke(playerEntity, new[] { serializablePlayer });
+                    return true;
+                }
+            }
+        }
+        catch { /* 失败 */ }
+        return false;
     }
 
     /// <summary>当前 Run 是否处于联机（能拿到 NetService）。仅用于「客机本地」守卫，避免单机误拦。</summary>
@@ -3447,8 +3641,12 @@ internal static class DeckSyncPatches
             {
                 var t = AccessTools.TypeByName("MegaCrit.Sts2.Core.Multiplayer.CombatStateSynchronizer");
                 if (t == null) return null;
+                var syncMsgType = AccessTools.TypeByName(
+                    "MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SyncPlayerDataMessage")
+                    ?? AccessTools.TypeByName("SyncPlayerDataMessage");
+                if (syncMsgType == null) return null;
                 return AccessTools.Method(t, "OnSyncPlayerMessageReceived",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
+                    new[] { syncMsgType, typeof(ulong) });
             }
 
             // Finalizer：在原方法（写入 _syncData[senderId] = msg.player）执行之后运行
@@ -3462,6 +3660,10 @@ internal static class DeckSyncPatches
             {
                 if (syncMessage == null || __instance == null) return;
 
+                // ── 关键：在 patch 之前保存原始状态，供 CLIENT-APPLY-FALLBACK 使用 ──
+                // Finalizer 的 NetId patch 在 CLIENT-APPLY-FALLBACK 之前执行，
+                // patch 后 receivedPlayer.NetId == senderId，无法通过比较检测 NCC 回滚。
+                _wasNCCRollback.Value = false;
                 try
                 {
                     var msgType = syncMessage.GetType().FullName ?? "";
@@ -3471,15 +3673,30 @@ internal static class DeckSyncPatches
                     if (sp == null) return;
 
                     var spNetId = GetPlayerNetId(sp);
-                    // 关键：副机收到主机发来的作弊玩家回滚消息时，
-                    // senderId=主机NetId，但 msg.player.NetId=作弊玩家NetId
-                    // 在游戏写入 _syncData[senderId] 之前，强制修正 msg.player.NetId=senderId
-                    if (spNetId != 0 && spNetId != senderId)
+                    if (spNetId == 0 || spNetId == senderId) return; // 正常情况：不处理
+
+                    // ── NCC 回滚检测 ──────────────────────────────────────────
+                    // 客机端：IsRegisteredFix 永远返回 false（NCC主机才会注册）。
+                    // 只要检测到 NetId 不匹配且本机是客机，就认为是 NCC 回滚。
+                    // （正常消息不会出现 NetId 不匹配，出现的都是 NCC 回滚）
+                    // 主机端：必须通过 IsRegisteredFix 确认是 NCC 回滚。
+                    bool isNCCFix = NetIdFixTranspiler.IsRegisteredFix(spNetId, senderId);
+                    if (isNCCFix || NoClientCheatsMod.IsMultiplayerHost() == false)
                     {
-                        foreach (var name in new[] { "NetId", "net_id" })
-                            _SetMemberAny(sp, name, senderId);
-                        LogDiag("Finalizer", $"[PREFIX] Fixed NetId {spNetId}->{senderId} on received SerializablePlayer before _syncData write");
+                        _wasNCCRollback.Value = true;
+                        _originalMsgPlayerNetId.Value = spNetId;
+                        _originalSenderId.Value = senderId;
                     }
+
+                    if (!isNCCFix && NoClientCheatsMod.IsMultiplayerHost())
+                    {
+                        // 主机端且未注册：正常同步的 NetId 不一致，让游戏处理（会强退，正常行为）
+                        return;
+                    }
+
+                    foreach (var name in new[] { "NetId", "net_id", "_netId", "NetId" })
+                        _SetMemberAny(sp, name, senderId);
+                    LogDiag("Finalizer", $"[PREFIX] NCC Rollback: Fixed NetId {spNetId}->{senderId} on SerializablePlayer");
                 }
                 catch (Exception ex)
                 {

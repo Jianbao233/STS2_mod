@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Godot;
 using Microsoft.Win32;
+using MultiplayerTools.Platform;
 
 namespace MultiplayerTools.Steam
 {
@@ -153,6 +154,21 @@ namespace MultiplayerTools.Steam
                 }
             }
             catch (Exception ex) { GD.PrintErr("[MultiplayerTools] GetCurrentSteamId failed: " + ex.Message); }
+
+            // Mobile fallback: Steam API not available on mobile
+            // Print warning and return a placeholder with launcher_id format
+            if (Platform.PlatformInfo.IsMobile)
+            {
+                GD.Print("[MultiplayerTools][Steam] Mobile platform detected — Steam ID unavailable via Steam API");
+                // Try to get a fallback from config dir
+                var configDir = OS.GetConfigDir();
+                if (!string.IsNullOrEmpty(configDir))
+                {
+                    GD.Print($"[MultiplayerTools][Steam] Config dir on mobile: {configDir}");
+                }
+                return Loc.Get("steam.id_unavailable", "Mobile").Replace("{platform}", Platform.PlatformInfo.GetPlatform());
+            }
+
             return null;
         }
         private static string? _steamIdCache;

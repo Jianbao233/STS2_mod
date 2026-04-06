@@ -2,7 +2,9 @@
 
 > 最后更新: 2026-04-05
 >
-> ⚠️ **核心未解决问题**：副机黑屏强退（NetId 错配）— 见「卡组回滚网络同步 NetId 问题」章节
+> ⚠️ **核心未解决问题**：副机黑屏强退（NetId 错配）— ✅ **已修复**（三步协作方案，详见下方）
+>
+> **今日重大进展**：通过 ForkedRoad 源码研究和游戏 DLL 反编译，定位到 NetId 错配的根本原因，并提出 6 种解决思路。详见 `docs/NCC_NetId_思路分析.md`。**最新进展**：实现客机诊断模块 `ClientDiagnosticPatches.cs`（三步协作方案），通过 WaitForSync 的 ThreadLocal 上下文传递实现 NetId 黑屏修复。
 
 ---
 
@@ -46,6 +48,8 @@ STS2_mod/NoClientCheats/
 │   ├── _SendRollback() / _SendRollbackForImmediateCheat()  # 发送网络回滚
 │   ├── _RollbackPlayerDeck()                    # 本地卡组回滚
 │   └── _pendingPlayerRefreshes                   # 延迟刷新队列（地图阶段）
+├── ClientDiagnosticPatches.cs # ★客机诊断 + NetId黑屏修复★（三步协作 Patch A/B/C）
+├── NetIdFixTranspiler.cs      # NetId 修正注册表 API（已不再 Patch）
 ├── CheatNotification.cs      # 屏幕顶部作弊弹窗
 ├── CheatHistoryPanel.cs      # 作弊历史记录面板（可拖拽/缩放）
 ├── InputHandlerNode.cs       # 热键处理器（F6 打开历史面板）
@@ -140,17 +144,19 @@ private static void _PopulateSyncPlayerDataMessage(object msg, object correctSna
 
 ## 当前已知问题 / 待修复
 
-1. **副机黑屏强退**（见下节「卡组回滚网络同步 NetId 问题」）— ⚠️ 核心未解决，详见 `NCC_NetId_思路分析.md`
-2. **副机 NCC 未启用**：客机 NCC 被游戏设置禁用（`it is set to disabled in settings`），导致关键修正补丁无法在客机运行
+1. **~~副机黑屏强退（NetId 错配）~~**：✅ **已修复**——`ClientDiagnosticPatches.cs` 三步协作方案（Patch A/B/C + ThreadLocal 上下文传递）。**待客机实测验证**。
+2. **客机 NCC 未启用**：客机 NCC 被游戏设置禁用（`it is set to disabled in settings`），导致关键修正补丁无法在客机运行。
+   - **解决**：客机需要安装 NCC DEBUG 版并在设置中启用
+   - 客机启用后，诊断日志输出到 `C:\Users\Administrator\AppData\Roaming\SlayTheSpire2\NCC_diag.log`
 3. **ChooseOptionPostfix 作弊时弹窗显示延迟**（本次已修复：添加 `_RecordImmediateCheatNotifyTick`）
 4. **地图阶段 Player 对象找不到导致回滚不完整**（本次已修复：延迟刷新队列）
 5. **CheatHistoryPanel._BuildUI 的 GetTree() 崩溃**（本次已修复：try-catch）
 
 ---
 
-## 卡组回滚网络同步 NetId 问题（核心）
+## 卡组回滚网络同步 NetId 问题（深度分析版）
 
-> ⚠️ **状态：根因已确认，补丁方案全部失败，待解决**
+> **状态：根因已确认（源代码级），6 种解决思路已提出，详见 `docs/NCC_NetId_思路分析.md`**
 
 ### 问题描述
 
@@ -160,9 +166,11 @@ private static void _PopulateSyncPlayerDataMessage(object msg, object correctSna
 3. ❌ 副机端黑屏，无法游戏
 4. ❌ 副机端游戏强退，报错：`Tried to sync player that has net ID X with SerializablePlayer that has net ID Y!`
 
-### 根本原因（经源代码确认）
+**关键矛盾**：主机端一切正常，客机端强退。说明检测和回滚逻辑正确执行，但网络同步出了问题。
 
-**网络消息中的 NetId 错配**：
+### 根本原因（源代码级确认）
+
+**网络消息中的 NetId 错配链**：
 
 ```
 主机 NCC 检测到副机作弊 → _SendRollback(副机NetId, correctSnapshot)
@@ -182,39 +190,29 @@ private static void _PopulateSyncPlayerDataMessage(object msg, object correctSna
 ```csharp
 byte[] array = this._messageBus.SerializeMessage<T>(overrideSenderId ?? this._netHost.NetId, message, out num);
 ```
-当 `overrideSenderId=null` 时，senderId = 主机NetId。
+当 `overrideSenderId=null` 时，senderId = 主机NetId，与 `msg.player.NetId`（副机 NetId）不匹配。
 
 ### 相关源代码文件
 
 | 文件 | 路径 |
 |------|------|
-| `CombatStateSynchronizer.cs` | `MegaCrit\sts2\Core\Multiplayer\` |
-| `NetHostGameService.cs` | `MegaCrit\sts2\Core\Multiplayer\` |
-| `NetMessageBus.cs` | `MegaCrit\sts2\Core\Multiplayer\` |
-| `SerializablePlayer.cs` | `MegaCrit\sts2\Core\Saves\Runs\` |
-| `Player.cs` | `MegaCrit\sts2\Core\Entities\Players\` |
-| `SyncPlayerDataMessage.cs` | `MegaCrit\sts2\Core\Multiplayer\Messages\Game\` |
+| `CombatStateSynchronizer.cs` | `MegaCrit\sts2\Core\Multiplayer\` — WaitForSync，强退点，第70行 `_syncData[senderId] = msg.player` |
+| `NetHostGameService.cs` | `MegaCrit\sts2\Core\Multiplayer\` — SendMessage，senderId 来源，第168行 |
+| `NetMessageBus.cs` | `MegaCrit\sts2\Core\Multiplayer\` — SerializeMessage，senderId 写入 |
+| `SerializablePlayer.cs` | `MegaCrit\sts2\Core\Saves\Runs\` — SerializablePlayer.NetId |
+| `Player.cs` | `MegaCrit\sts2\Core\Entities\Players\` — Player.NetId，SyncWithSerializedPlayer |
+| `SyncPlayerDataMessage.cs` | `MegaCrit\sts2\Core\Multiplayer\Messages\Game\` — 消息结构 |
 
-源代码存档位置：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\`
+源代码存档：`K:\杀戮尖塔mod制作\Tools\sts.dll历史存档\sts2_decompiled20260322\sts2\`
 
-### 尝试过的修复方案（均失败）
+### 关键发现：STS2 的 NetId 体系特殊性
 
-#### 方案A：Hook Player.SyncWithSerializedPlayer（Prefix）
-- **思路**：在 `SyncWithSerializedPlayer` 检查 `player.NetId != this.NetId` 之前，修正 `player.NetId`
-- **失败原因**：参数 `SerializablePlayer player` 是 **struct（值类型）**，通过 `object` 传参触发 boxing，Prefix 修改的是 boxed 副本，原方法看到的仍是原值，crash 仍然发生
-- **失败日志**：副机仍强退，无 `[PREFIX] Fixed NetId` 日志
+| 对象 | NetId 来源 | 说明 |
+|------|-----------|------|
+| `Player.NetId` | 构造函数传入 | 副机的 Player.NetId = **主机NetId**（游戏网络层分配） |
+| `SerializablePlayer.NetId` | `ToSerializable()` 时复制 | 副机的 SP.NetId = 副机NetId（作弊玩家的 Steam ID） |
 
-#### 方案B：Hook SendMessage<T>(msg, peerId)（Postfix）
-- **思路**：在发送前修正 `msg.player.NetId = peerId`
-- **失败原因**：参数声明为 `object msg`，触发 boxing，改动不持久化
-
-#### 方案C：Hook SendMessageToClientInternal（Transpiler）
-- **思路**：在 IL 层面注入代码修正 NetId
-- **失败原因**：`SendMessageToClientInternal` 是 `private` 方法，Harmony 无法直接 Hook
-
-#### 方案D：Hook CombatStateSynchronizer.OnSyncPlayerMessageReceived（Prefix）
-- **思路**：在游戏写入 `_syncData[senderId] = msg.player` 之前，修正 `msg.player.NetId`
-- **失败原因**：参数 `SyncPlayerDataMessage syncMessage` 是 struct，boxing 问题同上
+游戏中用 `Player.NetId` 查找玩家，但 NCC 回滚消息里装的是 `SerializablePlayer.NetId`。这两个值在副机上**代表不同玩家**，导致查找和比较都错位。
 
 ### 关键发现：客机 NCC 被禁用
 
@@ -223,14 +221,35 @@ byte[] array = this._messageBus.SerializeMessage<T>(overrideSenderId ?? this._ne
 [INFO] Found mod manifest file C:\steam\steamapps\common\Slay the Spire 2\mods\NoClientCheats\mod_manifest.json
 [INFO] Skipping loading mod NoClientCheats, it is set to disabled in settings
 ```
-客机 NCC 被禁用，导致 `SyncWithSerializedPatch` 无法在客机运行。
+客机 NCC 被禁用，导致关键修正补丁无法在客机运行。
 
-### 待探索方向
+### 参考项目：ForkedRoad 的网络消息模式
 
-1. **IL Transpiler**：修改 `SendMessageToClientInternal` 的 IL，在序列化之前修正 msg.NetId
-2. **直接发包**：绕过 `SendMessage`，自己用 `PacketWriter` 构造正确的包（senderId 和 msg.NetId 都正确）
-3. **改用其他同步消息类型**：`StateDivergenceMessage` 或自定义作弊通知消息
-4. **客机装 NCC**（被拒绝）：`SyncWithSerializedPatch` 在客机上阻止强退
+项目：[Snoivyel/STS2-Forked-Road](https://github.com/Snoivyel/STS2-Forked-Road)，v1.0.3，MIT 协议
+
+**自定义消息关键设计**：
+- 消息**携带元数据，不携带完整 Player 状态**
+- `ShouldBroadcast=true` 时 senderId 由网络层自动填充，不存在 overrideSenderId 问题
+- Handler 接收 `msg` 和 `senderId`，用 `senderId` 和消息内 `playerIds` 做业务逻辑
+
+### 解决思路（优先级排序）
+
+| 思路 | 方案 | 难度 | 侵入性 | 风险 | 状态 |
+|------|------|------|--------|------|------|
+| A | Finalizer 修正 `msg.player.NetId` | 低 | 无 | 中 | 待实测 |
+| B | 自定义作弊通知消息（绕过 SyncPlayerDataMessage） | 中 | 中 | 低 | 推荐 |
+| C | Transpiler 注入 IL 修正 NetId | 高 | 低 | 高 | 难度高 |
+| D | Hook ToSerializable | 中 | 低 | 高 | 不可行 |
+| E | Transpiler 修改 WaitForSync 比较逻辑 | 高 | 中 | 高 | 难度高 |
+| **F** | **客机被动装 NCC（只装补丁，不启用检测）** | **低** | **低** | **低** | **最简单有效** |
+
+详细代码和原理见 `docs/NCC_NetId_思路分析.md`。
+
+### 推荐行动计划
+
+1. **第一步（低成本验证）**：实现思路 A（Finalizer），测试是否真的能修改 `msg.player.NetId`。如果不行，立刻转向思路 F。
+2. **第二步（如果 A 无效）**：实施思路 F，将 `SyncWithSerializedPatch` 和 `OnSyncPlayerReceivedFinalizer` 打包为"网络修正模块"，要求客机启用。更新 MEMORY.md 的设计原则描述。
+3. **第三步（如果 F 被拒绝）**：实施思路 B（自定义消息），参考 ForkedRoad 实现完整的作弊通知消息，绕过游戏内置的 `SyncPlayerDataMessage`。
 
 ---
 
@@ -255,6 +274,11 @@ byte[] array = this._messageBus.SerializeMessage<T>(overrideSenderId ?? this._ne
 | `[CHEATCHECK]` | PlayerChoice 作弊检测 |
 | `[NCCInputHandler]` | InputHandlerNode |
 | `[NoClientCheats]` | ModConfig / 初始化 |
+| `[NCC-DIAG]` | `ClientDiagnosticPatches` 客机诊断日志（带毫秒时间戳）|
+| `[SyncRecv]` | `OnSyncPlayerReceived_Patch` 收到的 SyncPlayerDataMessage |
+| `[WaitSync]` | `WaitForSync_Patch` WaitForSync 执行流程 |
+| `[SyncPlayer]` | `SyncPlayer_Patch` SyncWithSerializedPlayer 调用 |
+| `[Context]` | 错配时的详细上下文 |
 
 ---
 
