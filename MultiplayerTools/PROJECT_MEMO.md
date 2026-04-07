@@ -112,3 +112,28 @@ MultiplayerTools/
 - Godot API 版本：4.5.1-mono
 - 构建输出：`.godot/mono/temp/bin/Debug/MultiplayerTools.dll`
 - 自动部署：`K:\SteamLibrary\steamapps\common\Slay the Spire 2\mods\MultiplayerTools`
+
+---
+
+## 安卓端存档适配结论（2026-04-07）
+
+- 安卓端多人/进度存档根目录不能再假设为 `%APPDATA%\SlayTheSpire2\steam\{steamId}`
+- 实际应兼容游戏本体账户目录：`user://default/{localPlayerId}/[modded/]profileN/saves/`
+- 当前测试设备上，本地玩家 ID 为 `1`，对应实际目录：
+  - `files/default/1/profile1/saves/`
+  - `files/default/1/modded/profile1/saves/`
+- 安卓端 `current_run_mp.save` 与 PC 端格式一致；问题核心在于：
+  - 路径扫描必须支持 `steam` / `default` / `editor`
+  - 移动端当前身份不能依赖 Steam API，占位文本会导致目录推导失败
+
+## 发布打包注意事项（2026-04-07）
+
+- `build.ps1` 只负责构建并覆盖到游戏 `mods/MultiplayerTools/`，**不会自动刷新 `torelease/`**
+- 进行 GitHub Release 前，必须手动同步：
+  - `.godot/mono/temp/bin/Debug/MultiplayerTools.dll` → `torelease/MultiplayerTools.dll`
+  - `mod_manifest.json` → `torelease/mod_manifest.json`
+  - 生成 `torelease/last_build.txt`
+- `v0.2.0` 的正式发布包为：
+  - `release/MultiplayerTools-v0.2.0.zip`
+- 主仓库 GitHub Release：
+  - `https://github.com/Jianbao233/STS2_mod/releases/tag/v0.2.0`
