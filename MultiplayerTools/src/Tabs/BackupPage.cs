@@ -176,98 +176,88 @@ namespace MultiplayerTools.Tabs
         {
             try
             {
-                var roots = SaveManagerHelper.EnumerateSaveRoots();
-                var steamRoots = new List<string>();
-                foreach (var root in roots)
-                {
-                    var steamDir = Path.Combine(root, "steam");
-                    if (Directory.Exists(steamDir))
-                        steamRoots.Add(steamDir);
-                }
-                if (steamRoots.Count == 0) return;
-
                 var processedSavesDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                foreach (var steamDir in steamRoots)
+                foreach (var accountRoot in SaveManagerHelper.EnumerateAccountRoots())
                 {
-                    foreach (var steamFolder in Directory.GetDirectories(steamDir))
+                    string steamId = accountRoot.AccountId;
+                    string[] subPaths = new[]
                     {
-                        string steamId = Path.GetFileName(steamFolder);
-                        string[] subPaths = new[]
-                        {
-                            Path.Combine(steamFolder, "modded"),
-                            steamFolder
-                        };
+                        Path.Combine(accountRoot.AccountDir, "modded"),
+                        accountRoot.AccountDir
+                    };
 
-                        foreach (var subPath in subPaths)
-                        {
-                            if (!Directory.Exists(subPath)) continue;
+                    foreach (var subPath in subPaths)
+                    {
+                        if (!Directory.Exists(subPath)) continue;
 
-                            foreach (var profileDir in Directory.GetDirectories(subPath))
+                        foreach (var profileDir in Directory.GetDirectories(subPath))
+                        {
+                            if (!Path.GetFileName(profileDir).StartsWith("profile", StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            var savesDir = Path.Combine(profileDir, "saves");
+                            if (!Directory.Exists(savesDir)) continue;
+
+                            string resolvedDir;
+                            try { resolvedDir = Path.GetFullPath(savesDir); }
+                            catch { resolvedDir = savesDir; }
+                            if (!processedSavesDirs.Add(resolvedDir)) continue;
+
+                            string profileKey = Path.GetFileName(profileDir);
+                            if (subPath.EndsWith("modded", StringComparison.OrdinalIgnoreCase))
+                                profileKey = "modded/" + profileKey;
+
+                            // Scan .backup.* files in this saves dir
+                            foreach (var file in Directory.GetFiles(savesDir))
                             {
-                                var savesDir = Path.Combine(profileDir, "saves");
-                                if (!Directory.Exists(savesDir)) continue;
+                                string fname = Path.GetFileName(file);
+                                string? ts = null;
 
-                                string resolvedDir;
-                                try { resolvedDir = Path.GetFullPath(savesDir); }
-                                catch { resolvedDir = savesDir; }
-                                if (!processedSavesDirs.Add(resolvedDir)) continue;
+                                if (fname.StartsWith("current_run_mp.save.backup."))
+                                    ts = fname.Substring("current_run_mp.save.backup.".Length);
+                                else if (fname.StartsWith("current_run.save.backup."))
+                                    ts = fname.Substring("current_run.save.backup.".Length);
 
-                                string profileKey = Path.GetFileName(profileDir);
-                                if (subPath.EndsWith("modded", StringComparison.OrdinalIgnoreCase))
-                                    profileKey = "modded/" + profileKey;
+                                if (string.IsNullOrEmpty(ts) || ts.Length < 12) continue;
 
-                                // Scan .backup.* files in this saves dir
-                                foreach (var file in Directory.GetFiles(savesDir))
+                                // Determine main save path for restore
+                                var mainSave = Path.Combine(savesDir, "current_run_mp.save");
+                                if (!File.Exists(mainSave))
+                                    mainSave = Path.Combine(savesDir, "current_run.save");
+
+                                var fi = new FileInfo(file);
+                                long size = fi.Length;
+
+                                // Parse save time from backup file
+                                string saveTimeStr = "";
+                                try
                                 {
-                                    string fname = Path.GetFileName(file);
-                                    string? ts = null;
-
-                                    if (fname.StartsWith("current_run_mp.save.backup."))
-                                        ts = fname.Substring("current_run_mp.save.backup.".Length);
-                                    else if (fname.StartsWith("current_run.save.backup."))
-                                        ts = fname.Substring("current_run.save.backup.".Length);
-
-                                    if (string.IsNullOrEmpty(ts) || ts.Length < 12) continue;
-
-                                    // Determine main save path for restore
-                                    var mainSave = Path.Combine(savesDir, "current_run_mp.save");
-                                    if (!File.Exists(mainSave))
-                                        mainSave = Path.Combine(savesDir, "current_run.save");
-
-                                    var fi = new FileInfo(file);
-                                    long size = fi.Length;
-
-                                    // Parse save time from backup file
-                                    string saveTimeStr = "";
-                                    try
+                                    var data = SaveManagerHelper.ParseSaveFile(file);
+                                    if (data != null)
                                     {
-                                        var data = SaveManagerHelper.ParseSaveFile(file);
-                                        if (data != null)
+                                        if (data.TryGetValue("save_time", out var stVal) && stVal is long stUnix && stUnix > 0)
                                         {
-                                            if (data.TryGetValue("save_time", out var stVal) && stVal is long stUnix && stUnix > 0)
-                                            {
-                                                var dt = DateTimeOffset.FromUnixTimeSeconds(stUnix).LocalDateTime;
-                                                saveTimeStr = dt.ToString("MM-dd HH:mm");
-                                            }
+                                            var dt = DateTimeOffset.FromUnixTimeSeconds(stUnix).LocalDateTime;
+                                            saveTimeStr = dt.ToString("MM-dd HH:mm");
                                         }
                                     }
-                                    catch { }
-
-                                    _allBackups.Add(new GlobalBackupEntry
-                                    {
-                                        Path = file,       // single file
-                                        SteamId = steamId,
-                                        ProfileKey = $"{steamId}/{profileKey}",
-                                        Timestamp = ts,
-                                        SaveTimeStr = string.IsNullOrEmpty(saveTimeStr) ? fi.LastWriteTime.ToString("MM-dd HH:mm") : saveTimeStr,
-                                        PlayerCount = 0,
-                                        SizeBytes = size,
-                                        FileCount = 1,
-                                        IsLegacy = true,
-                                        RestoreTarget = mainSave
-                                    });
                                 }
+                                catch { }
+
+                                _allBackups.Add(new GlobalBackupEntry
+                                {
+                                    Path = file,       // single file
+                                    SteamId = steamId,
+                                    ProfileKey = $"{steamId}/{profileKey}",
+                                    Timestamp = ts,
+                                    SaveTimeStr = string.IsNullOrEmpty(saveTimeStr) ? fi.LastWriteTime.ToString("MM-dd HH:mm") : saveTimeStr,
+                                    PlayerCount = 0,
+                                    SizeBytes = size,
+                                    FileCount = 1,
+                                    IsLegacy = true,
+                                    RestoreTarget = mainSave
+                                });
                             }
                         }
                     }

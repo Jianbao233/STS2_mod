@@ -8,6 +8,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Godot;
+using MultiplayerTools.Platform;
 
 namespace MultiplayerTools.Core
 {
@@ -23,6 +24,7 @@ namespace MultiplayerTools.Core
     {
         /// <summary>Written next to copied saves so backups without Steam ID in the folder name still group correctly.</summary>
         internal const string BackupMetaFileName = "mp_backup_meta.json";
+        private static readonly string[] AccountPlatformDirs = { "steam", "default", "editor" };
 
         private static string GetRoamingSts2Dir()
         {
@@ -35,6 +37,24 @@ namespace MultiplayerTools.Core
             {
                 return "";
             }
+        }
+
+        internal static string GetPrimarySaveRoot()
+        {
+            string? envOverride = TryGetEnvSaveRoot();
+            if (!string.IsNullOrEmpty(envOverride))
+                return envOverride;
+
+            string godotDir = OS.GetUserDataDir().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string roaming = GetRoamingSts2Dir().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+            if (PlatformInfo.IsMobile && !string.IsNullOrEmpty(godotDir))
+                return godotDir;
+
+            if (!string.IsNullOrEmpty(roaming))
+                return roaming;
+
+            return godotDir;
         }
 
         private static string? TryGetEnvSaveRoot()
@@ -59,15 +79,75 @@ namespace MultiplayerTools.Core
             if (envOverride != null)
                 yield return envOverride;
 
-            // Priority: %APPDATA%\SlayTheSpire2  (matches Python v2 / Steam reality)
+            string godotDir = OS.GetUserDataDir().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             string roaming = GetRoamingSts2Dir();
+
+            if (PlatformInfo.IsMobile)
+            {
+                if (Directory.Exists(godotDir))
+                    yield return godotDir;
+                if (!string.Equals(godotDir, roaming, StringComparison.OrdinalIgnoreCase) && Directory.Exists(roaming))
+                    yield return roaming;
+                yield break;
+            }
+
+            // Priority: %APPDATA%\SlayTheSpire2  (matches Python v2 / Steam reality)
             if (Directory.Exists(roaming))
                 yield return roaming;
 
             // Godot's own user data dir (fallback for dev/testing)
-            string godotDir = OS.GetUserDataDir().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            if (!string.Equals(godotDir, roaming, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(godotDir, roaming, StringComparison.OrdinalIgnoreCase) && Directory.Exists(godotDir))
                 yield return godotDir;
+        }
+
+        internal static IEnumerable<SaveAccountRoot> EnumerateAccountRoots()
+        {
+            foreach (var root in EnumerateSaveRoots())
+            {
+                foreach (var platformDirName in AccountPlatformDirs)
+                {
+                    var platformDir = Path.Combine(root, platformDirName);
+                    if (!Directory.Exists(platformDir)) continue;
+
+                    foreach (var accountDir in Directory.GetDirectories(platformDir))
+                    {
+                        yield return new SaveAccountRoot
+                        {
+                            Root = root,
+                            PlatformDirName = platformDirName,
+                            AccountId = Path.GetFileName(accountDir),
+                            AccountDir = accountDir,
+                        };
+                    }
+                }
+            }
+        }
+
+        internal static bool TryParseSaveIdentity(string path, out string accountId, out string profileKey)
+        {
+            accountId = "";
+            profileKey = "";
+            try
+            {
+                var parts = path.Replace('\\', '/').Split('/');
+                int platformIdx = Array.FindIndex(parts, p => AccountPlatformDirs.Contains(p, StringComparer.OrdinalIgnoreCase));
+                if (platformIdx < 0 || platformIdx + 1 >= parts.Length)
+                    return false;
+
+                accountId = parts[platformIdx + 1];
+                var afterAccount = parts.Skip(platformIdx + 2).ToArray();
+                int savesIdx = Array.FindIndex(afterAccount, p => string.Equals(p, "saves", StringComparison.OrdinalIgnoreCase));
+                profileKey = savesIdx >= 0
+                    ? string.Join("/", afterAccount.Take(savesIdx))
+                    : string.Join("/", afterAccount);
+                return !string.IsNullOrEmpty(accountId) && !string.IsNullOrEmpty(profileKey);
+            }
+            catch
+            {
+                accountId = "";
+                profileKey = "";
+                return false;
+            }
         }
 
         /// <summary>
@@ -84,81 +164,75 @@ namespace MultiplayerTools.Core
             var results = new List<SaveProfile>();
             var seenSavePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var root in EnumerateSaveRoots())
+            foreach (var accountRoot in EnumerateAccountRoots())
             {
-                var steamDir = Path.Combine(root, "steam");
-                if (!Directory.Exists(steamDir)) continue;
-
-                foreach (var steamFolder in Directory.GetDirectories(steamDir))
+                // Scan both modded and non-modded sub-trees
+                string[] subPaths = new[]
                 {
-                    string steamId = Path.GetFileName(steamFolder);
+                    Path.Combine(accountRoot.AccountDir, "modded"),
+                    accountRoot.AccountDir
+                };
 
-                    // Scan both modded and non-modded sub-trees
-                    string[] subPaths = new[]
+                foreach (var subPath in subPaths)
+                {
+                    if (!Directory.Exists(subPath)) continue;
+
+                    foreach (var profileDir in Directory.GetDirectories(subPath))
                     {
-                        Path.Combine(steamFolder, "modded"),
-                        steamFolder
-                    };
+                        var profileName = Path.GetFileName(profileDir);
+                        if (!profileName.StartsWith("profile", StringComparison.OrdinalIgnoreCase)) continue;
 
-                    foreach (var subPath in subPaths)
-                    {
-                        if (!Directory.Exists(subPath)) continue;
+                        var savesDir = Path.Combine(profileDir, "saves");
 
-                        foreach (var profileDir in Directory.GetDirectories(subPath))
+                        // Resolve the savesDir path for deduplication
+                        string resolvedSavesDir;
+                        try { resolvedSavesDir = Path.GetFullPath(savesDir); }
+                        catch { resolvedSavesDir = savesDir; }
+                        if (!seenSavePaths.Add(resolvedSavesDir)) continue;
+
+                        // Build enriched profile
+                        var profile = new SaveProfile
                         {
-                            var profileName = Path.GetFileName(profileDir);
-                            var savesDir = Path.Combine(profileDir, "saves");
+                            SteamId = accountRoot.AccountId,
+                            ProfileName = profileName,
+                            ProfileDir = profileDir,
+                            SavesDir = Directory.Exists(savesDir) ? savesDir : "",
+                            IsModded = subPath.EndsWith("modded", StringComparison.OrdinalIgnoreCase),
+                        };
 
-                            // Resolve the savesDir path for deduplication
-                            string resolvedSavesDir;
-                            try { resolvedSavesDir = Path.GetFullPath(savesDir); }
-                            catch { resolvedSavesDir = savesDir; }
-                            if (!seenSavePaths.Add(resolvedSavesDir)) continue;
+                        if (Directory.Exists(savesDir))
+                        {
+                            profile.Saves = GetSavesInProfile(savesDir);
 
-                            // Build enriched profile
-                            var profile = new SaveProfile
+                            // Try to find current_run_mp.save (or current_run.save) for v2-style enrichment
+                            string[] candidates = new[]
                             {
-                                SteamId = steamId,
-                                ProfileName = profileName,
-                                ProfileDir = profileDir,
-                                SavesDir = Directory.Exists(savesDir) ? savesDir : "",
-                                IsModded = subPath.EndsWith("modded", StringComparison.OrdinalIgnoreCase),
+                                Path.Combine(savesDir, "current_run_mp.save"),
+                                Path.Combine(savesDir, "current_run.save"),
                             };
 
-                            if (Directory.Exists(savesDir))
+                            foreach (var cand in candidates)
                             {
-                                profile.Saves = GetSavesInProfile(savesDir);
+                                if (!File.Exists(cand)) continue;
+                                var data = ParseSaveFile(cand);
+                                if (data == null) continue;
 
-                                // Try to find current_run_mp.save (or current_run.save) for v2-style enrichment
-                                string[] candidates = new[]
-                                {
-                                    Path.Combine(savesDir, "current_run_mp.save"),
-                                    Path.Combine(savesDir, "current_run.save"),
-                                };
-
-                                foreach (var cand in candidates)
-                                {
-                                    if (!File.Exists(cand)) continue;
-                                    var data = ParseSaveFile(cand);
-                                    if (data == null) continue;
-
-                                    string moddedPrefix = profile.IsModded ? "modded/" : "";
-                                    profile.SavePath = cand;
-                                    profile.RelPath = $"{steamId}/{moddedPrefix}{profileName}/saves/{Path.GetFileName(cand)}";
-                                    profile.ProfileKey = $"{steamId}/{moddedPrefix}{profileName}";
-                                    profile.PlayerCount = GetList(data, "players").Count;
-                                    profile.ActIndex = GetInt(data, "current_act_index", 0);
-                                    profile.Ascension = GetInt(data, "ascension", 0);
-                                    profile.PlayersSummary = BuildPlayersSummary(GetList(data, "players"));
-                                    long stUnix = GetLong(data, "save_time", 0);
-                                    profile.SaveTime = stUnix > 0 ? DateTimeOffset.FromUnixTimeSeconds(stUnix).LocalDateTime : null;
-                                    profile.IsActive = GetInt(data, "run_time", 0) > 0;
-                                    break;
-                                }
+                                string moddedPrefix = profile.IsModded ? "modded/" : "";
+                                profile.SavePath = cand;
+                                profile.RelPath = $"{accountRoot.PlatformDirName}/{accountRoot.AccountId}/{moddedPrefix}{profileName}/saves/{Path.GetFileName(cand)}";
+                                profile.ProfileKey = $"{accountRoot.AccountId}/{moddedPrefix}{profileName}";
+                                profile.PlayerCount = GetList(data, "players").Count;
+                                profile.ActIndex = GetInt(data, "current_act_index", 0);
+                                profile.Ascension = GetInt(data, "ascension", 0);
+                                profile.PlayersSummary = BuildPlayersSummary(GetList(data, "players"));
+                                long stUnix = GetLong(data, "save_time", 0);
+                                profile.SaveTime = stUnix > 0 ? DateTimeOffset.FromUnixTimeSeconds(stUnix).LocalDateTime : null;
+                                profile.IsActive = GetInt(data, "run_time", 0) > 0;
+                                break;
                             }
-
-                            results.Add(profile);
                         }
+
+                        results.Add(profile);
                     }
                 }
             }
@@ -282,25 +356,30 @@ namespace MultiplayerTools.Core
 
             foreach (var root in EnumerateSaveRoots())
             {
-                string baseDir = Path.Combine(root, "steam", steamId);
-                IEnumerable<string> savesDirs;
-                if (profileSpecifier.Contains('/'))
-                    savesDirs = new[] { Path.Combine(baseDir, profileSpecifier, "saves") };
-                else
+                foreach (var platformDirName in AccountPlatformDirs)
                 {
-                    savesDirs = new[]
-                    {
-                        Path.Combine(baseDir, "modded", profileSpecifier, "saves"),
-                        Path.Combine(baseDir, profileSpecifier, "saves"),
-                    };
-                }
+                    string baseDir = Path.Combine(root, platformDirName, steamId);
+                    if (!Directory.Exists(baseDir)) continue;
 
-                foreach (var savesDir in savesDirs)
-                {
-                    foreach (var name in new[] { "current_run_mp.save", "current_run.save" })
+                    IEnumerable<string> savesDirs;
+                    if (profileSpecifier.Contains('/'))
+                        savesDirs = new[] { Path.Combine(baseDir, profileSpecifier, "saves") };
+                    else
                     {
-                        var p = Path.Combine(savesDir, name);
-                        if (File.Exists(p)) return p;
+                        savesDirs = new[]
+                        {
+                            Path.Combine(baseDir, "modded", profileSpecifier, "saves"),
+                            Path.Combine(baseDir, profileSpecifier, "saves"),
+                        };
+                    }
+
+                    foreach (var savesDir in savesDirs)
+                    {
+                        foreach (var name in new[] { "current_run_mp.save", "current_run.save" })
+                        {
+                            var p = Path.Combine(savesDir, name);
+                            if (File.Exists(p)) return p;
+                        }
                     }
                 }
             }
@@ -420,7 +499,7 @@ namespace MultiplayerTools.Core
                 string tsCompact = DateTime.Now.ToString("yyyyMMddHHmmss");
                 string safeProfile = profileName.Replace('\\', '+').Replace('/', '+');
                 if (string.IsNullOrEmpty(steamId)) steamId = "unknown";
-                var backupDir = Path.Combine(GetRoamingSts2Dir(), "backups", $"{steamId}_{safeProfile}_{tsCompact}");
+                var backupDir = Path.Combine(GetBackupRoot(), $"{steamId}_{safeProfile}_{tsCompact}");
                 Directory.CreateDirectory(backupDir);
 
                 foreach (var f in Directory.GetFiles(savesDir))
@@ -454,7 +533,7 @@ namespace MultiplayerTools.Core
         /// <summary>Get the backup root directory (%APPDATA%\SlayTheSpire2\backups).</summary>
         internal static string GetBackupRoot()
         {
-            return Path.Combine(GetRoamingSts2Dir(), "backups");
+            return Path.Combine(GetPrimarySaveRoot(), "backups");
         }
 
         /// <summary>
@@ -550,6 +629,14 @@ namespace MultiplayerTools.Core
             }
         }
 #nullable enable
+    }
+
+    internal sealed class SaveAccountRoot
+    {
+        internal string Root { get; set; } = "";
+        internal string PlatformDirName { get; set; } = "";
+        internal string AccountId { get; set; } = "";
+        internal string AccountDir { get; set; } = "";
     }
 
     /// <summary>

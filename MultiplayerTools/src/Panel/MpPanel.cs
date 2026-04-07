@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
+using MultiplayerTools.Core;
 using MultiplayerTools.Tabs;
 using MultiplayerTools.Panel;
 
@@ -63,6 +64,9 @@ namespace MultiplayerTools
 
         internal static void Toggle()
         {
+            if (!CanUseOnCurrentScreen())
+                return;
+
             if (_layer == null || !GodotObject.IsInstanceValid(_layer)) { Build(); return; }
             _layer.Visible = !_layer.Visible;
             if (_layer.Visible)
@@ -76,6 +80,9 @@ namespace MultiplayerTools
 
         internal static void Show()
         {
+            if (!CanUseOnCurrentScreen())
+                return;
+
             if (_layer == null || !GodotObject.IsInstanceValid(_layer)) { Build(); return; }
             Loc.Reload();
             RefreshChromeTexts();
@@ -87,6 +94,17 @@ namespace MultiplayerTools
         internal static void Hide()
         {
             if (_layer != null && GodotObject.IsInstanceValid(_layer)) _layer.Visible = false;
+        }
+
+        private static bool CanUseOnCurrentScreen()
+        {
+            if (MainMenuGuard.IsMainMenuHomeActive())
+                return true;
+
+            if (IsOpen)
+                Hide();
+
+            return false;
         }
 
         internal static void ClearChildren(Node parent)
@@ -385,7 +403,7 @@ namespace MultiplayerTools
 
             var authorLink = new LinkButton
             {
-                Text = "@ 我叫煎包",
+                Text = "Bilibili@我叫煎包",
                 Uri = "https://space.bilibili.com/234054413",
                 Underline = LinkButton.UnderlineMode.Always
             };

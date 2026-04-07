@@ -5,6 +5,6 @@ namespace MultiplayerTools
     /// </summary>
     internal static class ModInfo
     {
-        internal const string Version = "0.1.4";
+        internal const string Version = "0.2.0";
     }
 }

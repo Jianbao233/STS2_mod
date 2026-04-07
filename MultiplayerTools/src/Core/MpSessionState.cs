@@ -130,35 +130,15 @@ namespace MultiplayerTools
 
         private static void DeriveProfileKeys(string path)
         {
-            try
+            if (Core.SaveManagerHelper.TryParseSaveIdentity(path, out var accountId, out var profileKey))
             {
-                // Path format: .../steam/{steamId}/[modded/]profileN/saves/current_run_mp.save
-                // CurrentProfileKey must be only the profile folder segment(s), e.g. "modded/profile2"
-                // or "profile2" — NOT "saves" or the save filename (BackupCurrent / FindCurrentSave depend on this).
-                var parts = path.Replace('\\', '/').Split('/');
-                int steamIdx = Array.IndexOf(parts, "steam");
-                if (steamIdx >= 0 && steamIdx + 1 < parts.Length)
-                {
-                    CurrentSteamId = parts[steamIdx + 1];
-                    var afterSteam = parts.Skip(steamIdx + 2).ToArray();
-                    int savesIdx = Array.FindIndex(afterSteam, p =>
-                        string.Equals(p, "saves", StringComparison.OrdinalIgnoreCase));
-                    if (savesIdx >= 0)
-                        CurrentProfileKey = string.Join("/", afterSteam.Take(savesIdx));
-                    else
-                        CurrentProfileKey = string.Join("/", afterSteam);
-                }
-                else
-                {
-                    CurrentSteamId = "";
-                    CurrentProfileKey = "";
-                }
+                CurrentSteamId = accountId;
+                CurrentProfileKey = profileKey;
+                return;
             }
-            catch
-            {
-                CurrentSteamId = "";
-                CurrentProfileKey = "";
-            }
+
+            CurrentSteamId = "";
+            CurrentProfileKey = "";
         }
 
         /// <summary>Shorten Steam ID for display: first 5 + ... + last 4 chars.</summary>

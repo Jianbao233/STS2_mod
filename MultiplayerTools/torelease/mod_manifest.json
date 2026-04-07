@@ -1,9 +1,9 @@
 {
   "id": "MultiplayerTools",
   "pck_name": "MultiplayerTools",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "name": "MultiplayerTools / 多人联机工具",
-  "author": "bili@我叫煎包",
+  "author": "Bilibili@我叫煎包",
   "description": "MultiplayerTools - 多人联机存档管理 / 角色模板 / 备份工具。F1 呼出面板。\nMultiplayerTools - Multiplayer save management, character templates, and backup tools. Press F1 to open panel.",
   "has_pck": false,
   "has_dll": true,

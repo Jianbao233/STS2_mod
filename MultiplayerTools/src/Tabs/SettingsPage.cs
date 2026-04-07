@@ -80,7 +80,7 @@ namespace MultiplayerTools.Tabs
             AddInfoRow(container, "Steam", Steam.SteamIntegration.GetSteamInstallPath() ?? "Not found");
 
             // Author row with Bilibili link
-            AddLinkRow(container, "Author:", "Bilibili @ 我叫煎包", "https://space.bilibili.com/234054413");
+            AddLinkRow(container, "Author:", "Bilibili@我叫煎包", "https://space.bilibili.com/234054413");
 
             // ── Debug info ──────────────────────────────────────────────────
             if (Config.DebugMode)
@@ -179,7 +179,9 @@ namespace MultiplayerTools.Tabs
 
             var lbl = new Label
             {
-                Text = Loc.Get("settings.steam_id_label", "Your Steam ID:"),
+                Text = PlatformInfo.IsMobile
+                    ? Loc.Get("settings.player_id_label", "Your Player ID:")
+                    : Loc.Get("settings.steam_id_label", "Your Steam ID:"),
                 SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
                 CustomMinimumSize = new Vector2(130, 0)
             };
@@ -452,14 +454,12 @@ namespace MultiplayerTools.Tabs
 
         private static string GetAppDataPath()
         {
-            return System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\SlayTheSpire2";
+            return SaveManagerHelper.GetPrimarySaveRoot();
         }
 
         private static string GetSaveRootPath()
         {
-            var env = System.Environment.GetEnvironmentVariable("SLAY_THE_SPIRE2_APPDATA");
-            if (!string.IsNullOrEmpty(env)) return env;
-            return GetAppDataPath();
+            return SaveManagerHelper.GetPrimarySaveRoot();
         }
 
         private static string GetToolDir()

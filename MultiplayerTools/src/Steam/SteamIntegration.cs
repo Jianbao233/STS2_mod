@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Godot;
 using Microsoft.Win32;
 using MultiplayerTools.Platform;
+using MegaCrit.Sts2.Core.Platform;
 
 namespace MultiplayerTools.Steam
 {
@@ -156,17 +157,22 @@ namespace MultiplayerTools.Steam
             catch (Exception ex) { GD.PrintErr("[MultiplayerTools] GetCurrentSteamId failed: " + ex.Message); }
 
             // Mobile fallback: Steam API not available on mobile
-            // Print warning and return a placeholder with launcher_id format
             if (Platform.PlatformInfo.IsMobile)
             {
-                GD.Print("[MultiplayerTools][Steam] Mobile platform detected — Steam ID unavailable via Steam API");
-                // Try to get a fallback from config dir
-                var configDir = OS.GetConfigDir();
-                if (!string.IsNullOrEmpty(configDir))
+                try
                 {
-                    GD.Print($"[MultiplayerTools][Steam] Config dir on mobile: {configDir}");
+                    ulong localPlayerId = PlatformUtil.GetLocalPlayerId(PlatformUtil.PrimaryPlatform);
+                    if (localPlayerId > 0)
+                    {
+                        _steamIdCache = localPlayerId.ToString(CultureInfo.InvariantCulture);
+                        GD.Print($"[MultiplayerTools][Steam] Mobile fallback Player ID = {_steamIdCache}");
+                        return _steamIdCache;
+                    }
                 }
-                return Loc.Get("steam.id_unavailable", "Mobile").Replace("{platform}", Platform.PlatformInfo.GetPlatform());
+                catch (Exception ex)
+                {
+                    GD.PrintErr("[MultiplayerTools][Steam] Mobile fallback Player ID failed: " + ex.Message);
+                }
             }
 
             return null;

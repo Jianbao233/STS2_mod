@@ -1,5 +1,6 @@
 using Godot;
 using HarmonyLib;
+using MultiplayerTools.Core;
 using MultiplayerTools.Steam;
 using MultiplayerTools.UI;
 using MultiplayerTools.Platform;
@@ -108,6 +109,9 @@ namespace MultiplayerTools
         {
             if (@event is InputEventKey key && key.Pressed && key.Keycode == Key.F1)
             {
+                if (!MainMenuGuard.IsMainMenuHomeActive())
+                    return;
+
                 MpPanel.Toggle();
             }
             base._UnhandledInput(@event);

@@ -1,4 +1,5 @@
 using Godot;
+using MultiplayerTools.Core;
 using MultiplayerTools.Panel;
 using MultiplayerTools.Platform;
 
@@ -9,6 +10,7 @@ namespace MultiplayerTools.UI
     /// Top-center by default; long-press or move &gt; threshold then drag to reposition.
     /// Short release without drag toggles the panel.
     /// Hidden after scene change (leaving main menu / entering lobby or run).
+    /// Uses _Input + manual bounds check because _GuiInput is unreliable on root-level nodes.
     /// </summary>
     internal partial class MpFloatingButton : Control
     {
@@ -18,9 +20,7 @@ namespace MultiplayerTools.UI
         private Vector2 _dragStartGlobal;
         private Vector2 _pressStartGlobal;
         private float _pressTimer;
-
-        private bool _sceneChanged;
-        private Node? _menuParent;
+        private bool _mainMenuHomeActive;
 
         private const float LongPressThreshold = 0.3f;
         private const float TapMoveThreshold = 8f;
@@ -28,24 +28,29 @@ namespace MultiplayerTools.UI
         private float BtnW => PlatformInfo.IsMobile ? 140f : 120f;
         private float BtnH => PlatformInfo.IsMobile ? 56f : 48f;
 
+        /// <summary>
+        /// Screen-space rect of this button.
+        /// </summary>
+        private Rect2 BtnRect => new Rect2(GlobalPosition, new Vector2(BtnW, BtnH));
+
         public override void _Ready()
         {
             var w = BtnW;
             var h = BtnH;
             CustomMinimumSize = new Vector2(w, h);
             Size = new Vector2(w, h);
-            MouseFilter = MouseFilterEnum.Stop;
+            MouseFilter = MouseFilterEnum.Ignore;
             FocusMode = FocusModeEnum.None;
 
-            var root = GetTree()?.Root;
-            float rw = root?.Size.X ?? 1920f;
+            float rw = GetTree()?.Root?.Size.X ?? 1920f;
             GlobalPosition = new Vector2(rw * 0.5f - w * 0.5f, 20f);
 
             TooltipText = $"多人工具 (Hotkey: {Config.ToggleHotkey})";
 
             var bg = new PanelContainer();
             bg.SetAnchorsPreset(LayoutPreset.FullRect);
-            bg.OffsetLeft = bg.OffsetTop = bg.OffsetRight = bg.OffsetBottom = 0;
+            bg.SizeFlagsHorizontal = SizeFlags.Fill;
+            bg.SizeFlagsVertical = SizeFlags.Fill;
 
             var bgStyle = new StyleBoxFlat
             {
@@ -68,6 +73,7 @@ namespace MultiplayerTools.UI
             _label = new Label
             {
                 Text = Loc.Get("settings.open_panel", "多人工具"),
+                LayoutMode = 1,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -75,55 +81,58 @@ namespace MultiplayerTools.UI
             _label.AddThemeColorOverride("font_color", new Color(0.98f, 0.98f, 1f, 1f));
             margin.AddChild(_label);
 
-            GetTree()?.Connect("tree_changed", Callable.From(OnTreeChanged));
-        }
-
-        private void OnTreeChanged()
-        {
-            if (_menuParent != null && !GodotObject.IsInstanceValid(_menuParent))
-                _sceneChanged = true;
         }
 
         public override void _EnterTree()
         {
-            Visible = !MpPanel.IsOpen;
-            _sceneChanged = false;
-            _menuParent = GetParent();
+            _mainMenuHomeActive = MainMenuGuard.IsMainMenuHomeActive();
+            Visible = _mainMenuHomeActive && !MpPanel.IsOpen;
         }
 
         public override void _Process(double delta)
         {
-            if (Visible == MpPanel.IsOpen)
-                Visible = !MpPanel.IsOpen;
-
-            if (_sceneChanged)
+            bool isMainMenuHomeActive = MainMenuGuard.IsMainMenuHomeActive();
+            if (_mainMenuHomeActive != isMainMenuHomeActive)
             {
-                if (Visible)
-                    Visible = false;
-                return;
+                _mainMenuHomeActive = isMainMenuHomeActive;
+                GD.Print($"[MpFloatBtn] Main menu home active = {_mainMenuHomeActive}");
             }
+
+            if (!_mainMenuHomeActive)
+            {
+                CancelInteraction();
+                if (MpPanel.IsOpen)
+                    MpPanel.Hide();
+            }
+
+            bool shouldBeVisible = _mainMenuHomeActive && !MpPanel.IsOpen;
+            if (Visible != shouldBeVisible)
+                Visible = shouldBeVisible;
 
             if (_pressing && !_dragging)
                 _pressTimer += (float)delta;
         }
 
-        /// <summary>
-        /// GUI events only fire when the pointer is over this control (correct Size).
-        /// </summary>
-        public override void _GuiInput(InputEvent @event)
+        public override void _Input(InputEvent @event)
         {
-            if (_sceneChanged)
+            _mainMenuHomeActive = MainMenuGuard.IsMainMenuHomeActive();
+            if (!_mainMenuHomeActive)
                 return;
 
+            // ── Mouse press / release ──────────────────────────────────────
             if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
             {
                 if (mb.Pressed)
                 {
+                    if (!BtnRect.HasPoint(mb.GlobalPosition))
+                        return;
+
                     _pressing = true;
                     _dragging = false;
                     _pressTimer = 0f;
                     _pressStartGlobal = mb.GlobalPosition;
                     _dragStartGlobal = mb.GlobalPosition;
+                    GD.Print("[MpFloatBtn] Press");
                 }
                 else
                 {
@@ -135,16 +144,21 @@ namespace MultiplayerTools.UI
                     _pressTimer = 0f;
                     _dragging = false;
 
+                    GD.Print($"[MpFloatBtn] Release dist={moveDist:F1} wasDrag={wasDragging}");
                     if (!wasDragging && moveDist <= TapMoveThreshold)
                         MpPanel.Toggle();
                 }
                 return;
             }
 
+            // ── Screen touch press / release ─────────────────────────────────
             if (@event is InputEventScreenTouch st && st.Index == 0)
             {
                 if (st.Pressed)
                 {
+                    if (!BtnRect.HasPoint(st.Position))
+                        return;
+
                     _pressing = true;
                     _dragging = false;
                     _pressTimer = 0f;
@@ -167,12 +181,14 @@ namespace MultiplayerTools.UI
                 return;
             }
 
+            // ── Mouse drag ───────────────────────────────────────────────────
             if (_pressing && @event is InputEventMouseMotion mm)
             {
                 HandleDrag(mm.GlobalPosition);
                 return;
             }
 
+            // ── Touch drag ──────────────────────────────────────────────────
             if (_pressing && @event is InputEventScreenDrag sd)
             {
                 HandleDrag(sd.Position);
@@ -182,19 +198,29 @@ namespace MultiplayerTools.UI
         private void HandleDrag(Vector2 globalPos)
         {
             var diff = globalPos - _dragStartGlobal;
-            var rootSize = GetTree()?.Root?.Size ?? new Vector2(1920, 1080);
-            float w = BtnW;
-            float h = BtnH;
 
             if (!_dragging && (diff.Length() > TapMoveThreshold || _pressTimer >= LongPressThreshold))
+            {
                 _dragging = true;
+                GD.Print("[MpFloatBtn] Entering drag");
+            }
 
             if (_dragging)
             {
+                var rootSize = GetTree()?.Root?.Size ?? new Vector2(1920, 1080);
+                float w = BtnW;
+                float h = BtnH;
                 GlobalPosition = new Vector2(
                     Mathf.Clamp(globalPos.X - w * 0.5f, 0, rootSize.X - w),
                     Mathf.Clamp(globalPos.Y - h * 0.5f, 0, rootSize.Y - h));
             }
+        }
+
+        private void CancelInteraction()
+        {
+            _pressing = false;
+            _dragging = false;
+            _pressTimer = 0f;
         }
     }
 }
