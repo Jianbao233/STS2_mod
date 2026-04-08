@@ -17,12 +17,13 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 | **ControlPanel** | F7 控制面板：卡牌/药水/遗物/战斗快捷 | [README](ControlPanel/README.md) |
 | **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/VC_RICH_PING_README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ModListHider** | 联机时隐藏 Mod 列表 / 原版模式（欺骗服务端与原版玩家联机） | [README](ModListHider/README.md) · [Releases](https://github.com/Jianbao233/ModListHider/releases) |
+| **LoadOrderManager** | 手动调整 Mod 加载顺序（保存到 `settings.save`，下次启动生效） | [README](LoadOrderManager/README.md) · [Repo](https://github.com/Jianbao233/STS2-LoadOrderManager) · [Releases](https://github.com/Jianbao233/STS2-LoadOrderManager/releases) |
 
 ---
 
 ## Quick Install | 快速安装
 
-**Mod 类**（NoClientCheats、RichPing、RunHistoryAnalyzer）：
+**Mod 类**（NoClientCheats、RichPing、RunHistoryAnalyzer、LoadOrderManager）：
 
 1. 找到游戏目录：`Steam\steamapps\common\Slay the Spire 2`
 2. 在 `mods` 文件夹内创建对应 Mod 子目录（如 `mods\RunHistoryAnalyzer\`）
@@ -36,7 +37,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 
 | 项目 | 命令 | 依赖 |
 |------|------|------|
-| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer、ModListHider） | `cd 项目` → `.\build.ps1` | .NET 8（ModListHider 需 .NET 9）、Godot 4.5.1 Mono |
+| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer、ModListHider、LoadOrderManager） | `cd 项目` → `.\build.ps1` | .NET 8（ModListHider 需 .NET 9）、Godot 4.5.1 Mono |
 | MP_PlayerManager | `cd MP_PlayerManager` → `.\build_exe.bat` 或 `pyinstaller ... manage_players.py` | Python 3.8+、PyInstaller |
 | ~~MP_SavePlayerRemover~~ | ~~已废弃，使用 MP_PlayerManager~~ | ~~Python 3.8+、PyInstaller~~ |
 
