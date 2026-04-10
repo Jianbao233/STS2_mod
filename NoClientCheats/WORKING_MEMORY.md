@@ -1,10 +1,17 @@
 # NoClientCheats (NCC) 工作记忆 / 项目日志
 
-> 最后更新: 2026-04-05
+> 最后更新: 2026-04-08
 >
-> ⚠️ **核心未解决问题**：副机黑屏强退（NetId 错配）— ✅ **已修复**（三步协作方案，详见下方）
+> ⚠️ **当前待复测问题**：用户最新日志显示，除真实作弊外，还存在两条误报链：一条是**弱 `PlayerChoice` 重复进入两次**导致 `_choiceCallCount` 被错误累加；另一条是**新局初始化 / 角色切换 / Ascender's Bane 注入阶段**被通用 `add_cards` 规则误判。— ✅ **已加弱 `PlayerChoice` 去重 + startup baseline warmup，待双机实测**
 >
-> **今日重大进展**：通过 ForkedRoad 源码研究和游戏 DLL 反编译，定位到 NetId 错配的根本原因，并提出 6 种解决思路。详见 `docs/NCC_NetId_思路分析.md`。**最新进展**：实现客机诊断模块 `ClientDiagnosticPatches.cs`（三步协作方案），通过 WaitForSync 的 ThreadLocal 上下文传递实现 NetId 黑屏修复。
+> **今日重大进展（2026-04-07）**：
+> 1. 复查双端最新日志后确认，旧的 `Tried to sync player that has net ID ...` 已不再是主故障，新的黑屏根因是**NCC 回滚快照被同步到了错误的玩家对象**，在客机 `WaitForSync -> Player.SyncWithSerializedPlayer` 阶段触发 `Character changed for player ...`。已在 `ClientDiagnosticPatches.cs` 中改为：收到回滚包时登记“原始目标玩家 NetId”，并在 `SyncWithSerializedPlayer` 前按真实目标玩家重定向同步、跳过错误调用。
+> 2. 黑屏修复实测通过后，新的 act 过渡不同步根因也已锁定：主机先通过 `RewardSynchronizer.HandleRewardObtainedMessage` 把奖励卡加入远程玩家活体对象，但 NCC 仍拿奖励前的 `_lastSerializablePlayer / _lastSyncState` 比较下一条 `SyncReceived`，于是把合法 `10 -> 11` 误判为 `add_cards(count=1 allowed=0)`。已在 `DeckSyncPatches.cs` 新增 `RewardObtainedMessagePostfix`，在主机收到合法 `RewardObtainedMessage(Card)` 后立刻重新 `ToSerializable()` 并调用 `SyncReceivedPatch.SetBaselineFromSerializable()` 推进基线，同时把 `_preCheatSnapshot` 一并刷新。
+> 3. 最新一轮日志进一步确认：`RewardObtainedMessagePostfix` 在地图过渡阶段有时拿不到 `RunManager.State`，导致 live `Player` 解析失败，合法奖励仍可能漏刷基线；同时同一奖励消息会在短时间内重复进入。已继续在 `DeckSyncPatches.cs` 中加入 `(senderId, cardId, wasSkipped)` 短窗口去重，并在 live `Player` 为 null 时调用 `SyncReceivedPatch.AdvanceBaselineForRewardCardFallback()` 直接推进 `_lastSyncState / _lastSyncDeckSize` 的合法 `+1` 基线，专门消除这种“正常奖励后误弹窗”。
+> 4. 最新回归日志又把黑屏路径重新钉死：客机在 `ClientDiagnosticPatches.OnSyncPlayerMessageReceived.Prefix` 已看到 `senderId != msgPlayer.NetId`，但因为 `localDeck/msgDeck` 都返回 `null`，仍把消息视作“正常自身同步”，于是原版 `OnSyncPlayerMessageReceived` 把回滚快照写进了错误的 `_syncData[senderId=HostNetId]`。随后 `WaitForSync` 用这份 Ironclad 回滚快照去同步主机的 Necrobinder 玩家，再次触发 `Character changed for player ...`。已在 `ClientDiagnosticPatches.cs` 改成：`senderId != msgPlayer.NetId` 且命中本地玩家时，直接视为显式 NCC 回滚包，优先对本地玩家执行 `SyncWithSerializedPlayer` 并跳过原版方法；同时 `GetLocalPlayer()` 的解析补到 `State / CurrentRun / RunState`，减少地图阶段取不到本地玩家的概率。
+> 5. **host-only 最关键的新结论（2026-04-07 20:20）**：客机关闭 NCC 后，黑屏根因不是检测逻辑，而是**任何主机发往 vanilla 客机的 `SyncPlayerDataMessage` 回滚包都会被原版 `CombatStateSynchronizer` 按 `senderId=主机` 写进 `_syncData[Host]`，因此结构性不安全**。已在 `DeckSyncPatches.cs` 新增 `_TrySendRollbackToPeer()`，默认走 `host_only_no_client_capability`，即只保留主机侧 `_syncData / _lastSerializablePlayer` 权威回滚，不再默认发 wire rollback。
+> 6. **进一步源码排查结论**：原版 `NetHostGameService.SendMessageToClientInternal(..., overrideSenderId)` 虽然允许主机私下伪装 `senderId`，但现有 vanilla 消息里没有一条能完整覆盖“未装 NCC 客机本地玩家的任意卡组回滚”。`RewardObtainedMessage/GoldLostMessage` 之类最多能补加卡/改金币；`CardRemovedMessage`、`MerchantCardRemovalMessage`、`PaelsWingSacrificeMessage` 对本地玩家都会直接抛异常；`CombatStateSynchronizer.WaitForSync` 还会跳过 `LocalContext.IsMe(player)`。因此**当前更安全的默认策略已统一为 detect-only + 本地化/国际化提醒**，包括 `SyncReceived / PlayerChoice / ChooseOption(ui_exploit)` 三条 deck 检测链。
+> 7. **2026-04-08 13:55 新增修复**：最新日志显示，`OnReceivePlayerChoice` 在奖励/地图阶段会对同一个仅含 `indexes` 的弱 payload 重复调用两次，旧逻辑直接累加 `_choiceCallCount`，导致后续正常同步被误打成 `reward_multi_select(calls=2 delta=1)`；同时新局切角色时，旧角色起始基线与新角色 `starter + ASCENDERS_BANE` 的同步差也会被误报成 `add_cards(count=1 allowed=0)`。已在 `DeckSyncPatches.cs` 中加入 `_ShouldSkipDuplicateWeakPlayerChoice()`（2 秒内按签名去重弱 payload），并增加 `_startupSyncWarmupUntil` 预热窗口：首个同步 / 角色切换期间若没有明确 choice/option 上下文，则只接受同步并重建 `_preCheatSnapshot / _lastSerializablePlayer` 基线，不进入通用 deck 作弊判定；detect-only 首次命中后也会立刻刷新通知抑制并清空 choice tracking，避免旧状态在后续 `SyncReceived` 中反复弹窗。
 
 ---
 
@@ -23,7 +30,7 @@
 **NoClientCheats (NCC)** 是一个 Slay the Spire 2 联机模组，用于：
 1. **主机端检测**副机客户端作弊（卡组变化/transform 多选等）
 2. **第一时间弹出作弊警告**（即时在作弊发生帧）
-3. **回滚副机卡组**到作弊前状态（主机本地 + 网络通知客机）
+3. **在具备安全客机能力前，仅做检测与提醒**；deck 类作弊在 host-only 模式下不再做半回滚，以免把对局推入 `StateDivergence`
 4. **记录作弊历史**（历史面板 UI）
 
 ### 核心设计原则
@@ -40,15 +47,16 @@ STS2_mod/NoClientCheats/
 ├── NoClientCheatsMod.cs      # 主模块入口、全局状态、快照字典、作弊记录
 ├── DeckSyncPatches.cs        # ★核心作弊检测逻辑★
 │   ├── ChooseOptionPrefix / ChooseOptionPostfix   # 休息点/事件选项检测
+│   ├── RewardObtainedMessagePostfix               # 奖励牌同步后立即刷新 NCC 基线；地图阶段失败时回退到 +1 基线推进并做消息去重
 │   ├── PlayerChoiceReceivePatch                  # PlayerChoice 消息检测
 │   ├── SyncReceivedPatch                          # SyncReceived 同步消息检测
 │   ├── GameActionHook                            # GameAction 钩子
-│   ├── _ImmediateRollbackHostPlayer()            # 即时回滚主机玩家
+│   ├── _ImmediateRollbackHostPlayer()            # 即时回滚主机玩家（仅在未来具备安全客机回滚能力时启用）
 │   ├── _ForceResyncPlayer()                     # 强制同步 Player 对象
-│   ├── _SendRollback() / _SendRollbackForImmediateCheat()  # 发送网络回滚
+│   ├── _SendRollback() / _SendRollbackForImmediateCheat()  # 发送网络回滚（当前 host-only detect-only 默认不会走到）
 │   ├── _RollbackPlayerDeck()                    # 本地卡组回滚
 │   └── _pendingPlayerRefreshes                   # 延迟刷新队列（地图阶段）
-├── ClientDiagnosticPatches.cs # ★客机诊断 + NetId黑屏修复★（三步协作 Patch A/B/C）
+├── ClientDiagnosticPatches.cs # ★客机回滚重定向修复★（登记原始目标玩家 + 重定向 SyncWithSerializedPlayer）
 ├── NetIdFixTranspiler.cs      # NetId 修正注册表 API（已不再 Patch）
 ├── CheatNotification.cs      # 屏幕顶部作弊弹窗
 ├── CheatHistoryPanel.cs      # 作弊历史记录面板（可拖拽/缩放）
@@ -69,7 +77,7 @@ STS2_mod/NoClientCheats/
 | `_lastSerializablePlayer` | `Dictionary<ulong, object>` | 上一次 SyncReceived 的 SerializablePlayer |
 | `_lastSyncDeckSize` | `Dictionary<ulong, int>` | 上一次 Sync 收到的卡数（供 TransformCheck 兜底） |
 | `_choiceCallCount` | `Dictionary<ulong, int>` | PlayerChoice 被调用次数（多选时 > 1） |
-| `_immediateRollbackDone` | `Dictionary<ulong, long>` | 已触发即时回滚的时间戳（Tick） |
+| `_immediateRollbackDone` | `Dictionary<ulong, long>` | 已触发即时回滚的时间戳（Tick）；detect-only 路线下不再写入 |
 | `_immediateCheatNotifyTicks` | `Dictionary<ulong, long>` | 已弹窗时间戳（防重复弹） |
 | `_canonicalSerializablePlayer` | `Dictionary<ulong, object>` | canonicalCards 对应的完整 SerializablePlayer |
 | `_pendingPlayerRefreshes` | `Dictionary<ulong, (ulong playerId, object snapshot, object synchronizer)>` | 延迟刷新队列（地图阶段用） |
@@ -144,7 +152,7 @@ private static void _PopulateSyncPlayerDataMessage(object msg, object correctSna
 
 ## 当前已知问题 / 待修复
 
-1. **~~副机黑屏强退（NetId 错配）~~**：✅ **已修复**——`ClientDiagnosticPatches.cs` 三步协作方案（Patch A/B/C + ThreadLocal 上下文传递）。**待客机实测验证**。
+1. **副机黑屏强退（最新形态：`Character changed for player ...`）**：✅ **已修复代码**——`ClientDiagnosticPatches.cs` 现在会把 NCC 回滚快照与“原始目标玩家 NetId”绑定，并在 `Player.SyncWithSerializedPlayer` 前把同步重定向到正确玩家，避免把 Ironclad/其他角色快照错误同步给房主角色对象。**待客机实测验证**。
 2. **客机 NCC 未启用**：客机 NCC 被游戏设置禁用（`it is set to disabled in settings`），导致关键修正补丁无法在客机运行。
    - **解决**：客机需要安装 NCC DEBUG 版并在设置中启用
    - 客机启用后，诊断日志输出到 `C:\Users\Administrator\AppData\Roaming\SlayTheSpire2\NCC_diag.log`

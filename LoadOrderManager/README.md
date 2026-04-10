@@ -39,6 +39,14 @@ LoadOrderManager/
 
 ---
 
+## 排查日志
+
+- 本 mod 会写独立日志到：`user://LoadOrderManager/load_order_manager.log`
+- Windows + Steam 通常位于：`%APPDATA%\SlayTheSpire2\steam\<你的SteamId>\LoadOrderManager\load_order_manager.log`
+- 关键记录：读取到的当前顺序、Apply 保存结果、保存后顺序校验
+
+---
+
 ## i18n 外部文件
 
 语言文件目录：`i18n/*.lang`  

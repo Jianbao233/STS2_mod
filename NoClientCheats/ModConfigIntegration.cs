@@ -104,8 +104,8 @@ internal static class ModConfigIntegration
 
         list.Add(MakeHeader("Notification Popup", "拦截通知弹窗"));
         list.Add(MakeToggle("show_notification", "Show Popup", "显示弹窗",
-            "When blocked, show a red popup at the top of the screen.",
-            "作弊被拦截时，在屏幕顶部显示红色弹窗。",
+            "When a cheat is detected or blocked, show a red popup at the top of the screen.",
+            "检测到或拦截到作弊时，在屏幕顶部显示红色弹窗。",
             true, v => { try { NoClientCheatsMod.ShowNotification = Convert.ToBoolean(v); } catch { } }));
 
         list.Add(MakeHeader("Lobby Chat Broadcast", "大厅聊天广播"));

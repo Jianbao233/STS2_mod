@@ -18,11 +18,11 @@ public partial class CheatNotification : CanvasLayer
     float _processDelta;
     bool _hasScheduledCleanup;
 
-    /// <summary>显示一条临时拦截通知。格式：Steam名 | 角色 | 指令。</summary>
-    public static void Show(string senderName, string characterName, string cheatCommand)
+    /// <summary>显示一条临时通知。格式：Steam名 | 角色 | 指令。</summary>
+    public static void Show(string senderName, string characterName, string cheatCommand, bool wasBlocked)
     {
         if (_instance == null) return;
-        _instance._Enqueue(senderName, characterName ?? "", cheatCommand);
+        _instance._Enqueue(senderName, characterName ?? "", cheatCommand, wasBlocked);
     }
 
     public override void _Ready()
@@ -69,12 +69,13 @@ public partial class CheatNotification : CanvasLayer
         if (_visible.Count == 0) SetProcess(false);
     }
 
-    void _Enqueue(string senderName, string characterName, string cheatCommand)
+    void _Enqueue(string senderName, string characterName, string cheatCommand, bool wasBlocked)
     {
         if (_visible.Count >= MAX_VISIBLE) return;
 
         var displayChar = CheatLocHelper.GetCharacterDisplayName(characterName ?? "");
-        var displayCmd = CheatLocHelper.LocalizeCheatCommand(cheatCommand ?? "");
+        var displayCmd = CheatLocHelper.LocalizeCheatCommand(cheatCommand ?? "", compact: true);
+        var statusText = Localization.Tr(wasBlocked ? "notify_blocked" : "notify_detected");
 
         var screenW = (float)DisplayServer.WindowGetSize().X;
         int index = _visible.Count;
@@ -122,7 +123,7 @@ public partial class CheatNotification : CanvasLayer
         var mid = string.IsNullOrEmpty(displayChar) ? "" : $"  |  {Localization.Tr("label_role")}：{displayChar}  |  ";
         var label = new Label
         {
-            Text = $"{Localization.Tr("notify_blocked")}  {senderName}{mid}  {displayCmd}",
+            Text = $"{statusText}  {senderName}{mid}  {displayCmd}",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.Fill,
             VerticalAlignment = VerticalAlignment.Center

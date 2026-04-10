@@ -33,6 +33,7 @@ public partial class LoadOrderPanel : Control
     {
         BuildUiIfNeeded();
         Visible = true;
+        DebugLog.Info("OpenPanel called.");
         RefreshFromRuntime();
     }
 
@@ -162,6 +163,7 @@ public partial class LoadOrderPanel : Control
             _entries.Clear();
             RefreshListOnly();
             SetStatus(I18n.Tf("status_load_failed", error));
+            DebugLog.Error($"Refresh failed: {error}");
             return;
         }
 
@@ -175,6 +177,7 @@ public partial class LoadOrderPanel : Control
         }
 
         SetStatus(I18n.Tf("status_loaded", _entries.Count));
+        DebugLog.Info($"Loaded {_entries.Count} mods into panel.");
     }
 
     private void RefreshListOnly()
@@ -247,10 +250,12 @@ public partial class LoadOrderPanel : Control
         if (!LoadOrderRuntime.TrySaveOrderedEntries(_entries, out var error))
         {
             SetStatus(I18n.Tf("status_save_failed", error));
+            DebugLog.Error($"Apply failed: {error}");
             return;
         }
 
         SetStatus(I18n.T("status_saved"));
+        DebugLog.Info("Apply succeeded. Restart required for effect.");
     }
 
     private void SetStatus(string text)

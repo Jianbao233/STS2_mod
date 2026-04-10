@@ -15,8 +15,10 @@ public static class LoadOrderManagerMod
         if (_initialized) return;
         _initialized = true;
 
+        DebugLog.Info("Initialize called.");
+        DebugLog.Info($"Log file: {DebugLog.LogPath}");
         ApplyHarmonyPatches();
-        GD.Print("[LoadOrderManager] Loaded.");
+        DebugLog.Info("Loaded.");
     }
 
     internal static void ApplyHarmonyPatches()
@@ -28,11 +30,11 @@ public static class LoadOrderManagerMod
         {
             var harmony = new Harmony(ModId);
             harmony.PatchAll();
-            GD.Print("[LoadOrderManager] Harmony patches applied.");
+            DebugLog.Info("Harmony patches applied.");
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"[LoadOrderManager] Harmony patch failed: {ex}");
+            DebugLog.Error("Harmony patch failed.", ex);
         }
     }
 }

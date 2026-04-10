@@ -209,8 +209,8 @@ public static class NoClientCheatsMod
     }
 
     // ── 拦截记录 ────────────────────────────────────────────────────────
-    /// <summary>记录一次作弊拦截，触发通知弹窗（若开启）并写入历史。</summary>
-    public static void RecordCheat(ulong senderId, string senderName, string characterName, string cheatCommand, bool wasBlocked)
+    /// <summary>记录一次作弊事件，按需触发通知弹窗（若开启）并写入历史。</summary>
+    public static void RecordCheat(ulong senderId, string senderName, string characterName, string cheatCommand, bool wasBlocked, bool forceNotify = false)
     {
         var time = DateTime.Now.ToString("HH:mm:ss");
         var record = new CheatRecord(time, senderName, characterName ?? "", cheatCommand, senderId, wasBlocked);
@@ -222,8 +222,8 @@ public static class NoClientCheatsMod
                 _historyRecords.RemoveAt(0);
         }
 
-        if (wasBlocked && ShowNotification)
-            CheatNotification.Show(senderName, characterName ?? "", cheatCommand);
+        if (ShowNotification && (wasBlocked || forceNotify))
+            CheatNotification.Show(senderName, characterName ?? "", cheatCommand, wasBlocked);
 
         if (GodotObject.IsInstanceValid(_historyPanel))
             _historyPanel.CallDeferred("RefreshList");
@@ -563,11 +563,14 @@ internal static class LanConnectBridge
 
         try
         {
+            var displayCmd = CheatLocHelper.LocalizeCheatCommand(record.Command, compact: true);
             string msg;
             if (record.WasBlocked)
-                msg = $"{Tr("lobby_blocked")} {record.SenderName} {Tr("tried_use")} {record.Command}";
+                msg = $"{Tr("lobby_blocked")} {record.SenderName} {Tr("tried_use")} {displayCmd}";
+            else if (CheatLocHelper.IsDerivedDetectionCommand(record.Command))
+                msg = $"{Tr("lobby_detected")} {record.SenderName} {displayCmd}";
             else
-                msg = $"{Tr("lobby_logged")} {record.SenderName} {Tr("executed")} {record.Command}";
+                msg = $"{Tr("lobby_logged")} {record.SenderName} {Tr("executed")} {displayCmd}";
 
             // 消息最长60字符截断（大厅聊天限制）
             if (msg.Length > 60) msg = msg[..60];

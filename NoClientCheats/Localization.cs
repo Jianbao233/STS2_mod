@@ -35,13 +35,15 @@ internal static class Localization
             ["tooltip_show"] = ("Show history panel", "呼出历史面板"),
 
             // ── CheatNotification ─────────────────────────────────────────
-            ["notify_blocked"] = ("[CHEAT BLOCKED]", "[禁止作弊]"),
+            ["notify_blocked"] = ("[CHEAT BLOCKED]", "[作弊已拦截]"),
+            ["notify_detected"] = ("[CHEAT DETECTED]", "[检测到作弊]"),
             ["label_role"] = ("Role", "角色"),
             ["btn_history"] = ("View History  ->", "查看历史  ->"),
             ["tooltip_history"] = ("Open history panel", "呼出拦截历史面板"),
 
             // ── LanConnectBridge ─────────────────────────────────────────
             ["lobby_blocked"] = ("[CHEAT BLOCKED]", "[作弊拦截]"),
+            ["lobby_detected"] = ("[CHEAT DETECTED]", "[检测到作弊]"),
             ["lobby_logged"] = ("[CHEAT LOGGED]", "[作弊记录]"),
             ["tried_use"] = ("tried", "尝试使用"),
             ["executed"] = ("executed", "执行了"),
@@ -49,6 +51,27 @@ internal static class Localization
             // ── DeckSync ────────────────────────────────────────────────────
             ["deck_exploit"] = ("Deck Exploit", "卡组作弊"),
             ["deck_rollback"] = ("Deck Rollback", "卡组回滚"),
+            ["deck_detect_only"] = ("Observe only (no safe client rollback path)", "仅提醒（当前无安全的客机回滚通道）"),
+            ["deck_host_state_corrected"] = ("Host state corrected", "主机权威状态已修正"),
+            ["deck_prev_snapshot"] = ("Used pre-cheat snapshot", "使用作弊前快照"),
+            ["deck_last_snapshot"] = ("Used previous legal snapshot", "使用上一份合法快照"),
+            ["deck_missing_prev"] = ("Missing previous snapshot", "缺少前置快照"),
+            ["deck_missing_snapshot"] = ("Missing rollback snapshot", "缺少回滚快照"),
+            ["deck_sync_unready"] = ("Synchronizer not ready", "同步器未就绪"),
+            ["deck_deferred_refresh"] = ("Deferred host refresh queued", "已排队延迟刷新主机状态"),
+            ["deck_transform_multi_select"] = ("Transform multi-select ({0} picks)", "转化多选（{0} 次选择）"),
+            ["deck_reward_multi_select"] = ("Reward multi-select ({0} picks, +{1} card(s))", "奖励多选（{0} 次选择，+{1} 张卡）"),
+            ["deck_remove_multi_select"] = ("Remove multi-select ({0} picks, -{1} card(s))", "删牌多选（{0} 次选择，-{1} 张卡）"),
+            ["deck_multi_select_excess"] = ("Illegal multi-select ({0} picks, delta {1})", "非法多选（{0} 次选择，变化 {1}）"),
+            ["deck_reward_excess"] = ("Rewarded {0} extra card(s)", "超额获得奖励卡 {0} 张"),
+            ["deck_transform_delta0"] = ("Transform mismatch ({0} card(s) changed)", "转化结果异常（变动了 {0} 张卡）"),
+            ["deck_transform_cheat"] = ("Transform mismatch (+{0} / -{1})", "转化异常（多出 {0} 张 / 少了 {1} 张）"),
+            ["deck_reward_multi_cheat"] = ("Reward mismatch (+{0})", "奖励异常（多出 {0} 张）"),
+            ["deck_remove_multi_cheat"] = ("Removal mismatch (-{0})", "删牌异常（少了 {0} 张）"),
+            ["deck_add_cards_allowed"] = ("Added {0} extra card(s) (allowed {1})", "超额获得 {0} 张卡（允许 {1} 张）"),
+            ["deck_remove_excess_allowed"] = ("Removed {0} extra card(s) (allowed {1})", "超额删除 {0} 张卡（允许 {1} 张）"),
+            ["deck_upgrade_excess_allowed"] = ("Upgraded {0} extra card(s) (allowed {1})", "超额升级 {0} 张卡（允许 {1} 张）"),
+            ["deck_upgrade_undo"] = ("Undid {0} upgrade(s)", "回退了 {0} 次升级"),
             ["deck_upgrade_excess"] = ("Excess upgrade", "超额升级"),
             ["deck_remove_excess"] = ("Excess removal", "超额删除"),
             ["deck_transform_excess"] = ("Excess transform", "超额转化"),
@@ -56,12 +79,40 @@ internal static class Localization
 
             // ── UI 即时对比检测 ─────────────────────────────────────────────
             ["ui_exploit"] = ("UI Exploit", "UI 操作作弊"),
+            ["game_action_exploit"] = ("Game Action Exploit", "游戏动作作弊"),
             ["immediate_rollback"] = ("Immediate Rollback", "立即回滚"),
             ["remove_excess"] = ("Removed {0} extra card(s)", "超额删除了 {0} 张卡"),
             ["upgrade_excess"] = ("Upgraded {0} extra card(s)", "超额升级了 {0} 张卡"),
             ["add_excess"] = ("Added {0} extra card(s)", "超额添加了 {0} 张卡"),
             ["card_mismatch"] = ("Card identity mismatch", "卡牌身份不匹配"),
             ["no_pre_snapshot"] = ("No pre-snapshot (skipped)", "无预快照（已跳过）"),
+
+            // ── Console / generic command localization ────────────────────
+            ["cmd_gold"] = ("Gold {0}", "金币 {0}"),
+            ["cmd_relic"] = ("Relic: {0}", "遗物：{0}"),
+            ["cmd_card"] = ("Card: {0}", "卡牌：{0}"),
+            ["cmd_potion"] = ("Potion: {0}", "药水：{0}"),
+            ["cmd_power"] = ("Power: {0}", "能力：{0}"),
+            ["cmd_upgrade"] = ("Upgrade: {0}", "升级：{0}"),
+            ["cmd_remove_card"] = ("Remove Card: {0}", "删牌：{0}"),
+            ["cmd_damage"] = ("Damage {0}", "伤害 {0}"),
+            ["cmd_block"] = ("Block {0}", "格挡 {0}"),
+            ["cmd_heal"] = ("Heal {0}", "治疗 {0}"),
+            ["cmd_draw"] = ("Draw {0}", "抽牌 {0}"),
+            ["cmd_energy"] = ("Energy {0}", "能量 {0}"),
+            ["cmd_stars"] = ("Stars {0}", "星能 {0}"),
+            ["cmd_room"] = ("Room {0}", "房间 {0}"),
+            ["cmd_event"] = ("Event {0}", "事件 {0}"),
+            ["cmd_fight"] = ("Fight {0}", "战斗 {0}"),
+            ["cmd_act"] = ("Act {0}", "章节 {0}"),
+            ["cmd_travel"] = ("Travel {0}", "传送 {0}"),
+            ["cmd_ancient"] = ("Ancient {0}", "远古词条 {0}"),
+            ["cmd_afflict"] = ("Afflict {0}", "诅咒 {0}"),
+            ["cmd_enchant"] = ("Enchant {0}", "附魔 {0}"),
+            ["cmd_kill"] = ("Kill", "秒杀"),
+            ["cmd_win"] = ("Win", "直接胜利"),
+            ["cmd_godmode"] = ("Godmode", "无敌"),
+            ["cmd_unknown"] = ("Command: {0}", "指令：{0}"),
         };
     }
 
@@ -84,6 +135,11 @@ internal static class Localization
     public static string Trf(string key, string arg0, int arg1)
     {
         return string.Format(Tr(key), arg0, arg1);
+    }
+
+    public static string Trf(string key, params object[] args)
+    {
+        return string.Format(Tr(key), args);
     }
 
     static void EnsureLocManagerRefs()

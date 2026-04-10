@@ -270,30 +270,42 @@ internal static class DeckSyncPatches
                     if (!matches)
                     {
                         var cheatType = _DetectCheatType(preSnapshot, postSnapshot);
-                        NoClientCheatsMod.RecordCheat(
-                            playerNetId, safeName, null,
-                            $"ui_exploit:{cheatType}", true);
                         _RecordImmediateCheatNotifyTick(playerNetId);
+                        if (_ShouldSendWireRollback(playerNetId, out var rollbackCapabilityReason))
+                        {
+                            NoClientCheatsMod.RecordCheat(
+                                playerNetId, safeName, null,
+                                $"ui_exploit:{cheatType}", true);
 
-                        var diff = GetDeckDiff(preSnapshot, postSnapshot);
-                        GD.Print($"[NCC] IMMEDIATE exploit detected for {safeName} "
-                            + $"(netId={playerNetId}) at {optionName}: "
-                            + $"type={cheatType}\n{diff}");
+                            var diff = GetDeckDiff(preSnapshot, postSnapshot);
+                            GD.Print($"[NCC] IMMEDIATE exploit detected for {safeName} "
+                                + $"(netId={playerNetId}) at {optionName}: "
+                                + $"type={cheatType}\n{diff}");
 
-                        // 立即回滚：将卡组恢复到操作前状态（本地）
-                        DIAG($"[FULLTRACE] Triggering rollback for {safeName}");
-                        string rollbackResult = _RollbackPlayerDeck(player, preSnapshot);
-                        DIAG($"[FULLTRACE] Rollback result: {rollbackResult}");
+                            // 立即回滚：将卡组恢复到操作前状态（本地）
+                            DIAG($"[FULLTRACE] Triggering rollback for {safeName}");
+                            string rollbackResult = _RollbackPlayerDeck(player, preSnapshot);
+                            DIAG($"[FULLTRACE] Rollback result: {rollbackResult}");
 
-                        // 回滚后验证：重新获取 player 卡组，确认已恢复
-                        var afterRollbackDeck = GetSerializableDeck(player.GetType().GetMethod("ToSerializable", BindingFlags.Public | BindingFlags.Instance)?.Invoke(player, null));
-                        DIAG($"[FULLTRACE] After rollback player deck: {GetDeckSummary(afterRollbackDeck)}");
+                            // 回滚后验证：重新获取 player 卡组，确认已恢复
+                            var afterRollbackDeck = GetSerializableDeck(player.GetType().GetMethod("ToSerializable", BindingFlags.Public | BindingFlags.Instance)?.Invoke(player, null));
+                            DIAG($"[FULLTRACE] After rollback player deck: {GetDeckSummary(afterRollbackDeck)}");
 
-                        // ═══════════════════════════════════════════════════════════════
-                        // 【修复Bug】向客机发送网络修正消息，防止状态不同步导致黑屏
-                        // ChooseOption 作弊时，只做本地回滚不够，必须通知远程客机。
-                        // ═══════════════════════════════════════════════════════════════
-                        _SendRollbackForImmediateCheat(playerNetId, preSnapshot);
+                            // ═══════════════════════════════════════════════════════════════
+                            // 【修复Bug】向客机发送网络修正消息，防止状态不同步导致黑屏
+                            // ChooseOption 作弊时，只做本地回滚不够，必须通知远程客机。
+                            // ═══════════════════════════════════════════════════════════════
+                            _SendRollbackForImmediateCheat(playerNetId, preSnapshot);
+                        }
+                        else
+                        {
+                            NoClientCheatsMod.RecordCheat(
+                                playerNetId, safeName, null,
+                                $"ui_exploit:{cheatType}|observe:{rollbackCapabilityReason}", false, true);
+                            GD.Print($"[NCC] IMMEDIATE exploit detected for {safeName} "
+                                + $"(netId={playerNetId}) at {optionName}: "
+                                + $"type={cheatType} observe-only ({rollbackCapabilityReason})");
+                        }
                     }
                 }
                 else
@@ -345,6 +357,89 @@ internal static class DeckSyncPatches
         }
     }
 
+    // ─── Patch B: RewardSynchronizer.HandleRewardObtainedMessage ──────────────
+    // 时机：主机已经处理完远程玩家的奖励同步消息之后。
+    // 操作：若这是合法的得牌奖励，则立刻推进 NCC 的基线快照，
+    //      避免下一条 SyncReceived 仍拿“奖励前”卡组做比较而误判。
+    [HarmonyPatch]
+    private static class RewardObtainedMessagePostfix
+    {
+        static void DIAG(string msg) => LogDiag("RewardObtained", msg);
+
+        static MethodBase TargetMethod()
+        {
+            var t = AccessTools.TypeByName(
+                "MegaCrit.Sts2.Core.Multiplayer.Game.RewardSynchronizer"
+            );
+            var m = t?.GetMethod("HandleRewardObtainedMessage",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            DIAG($"TargetMethod: type={t?.FullName ?? "null"} method={m?.Name ?? "null"}");
+            return m;
+        }
+
+        static void Postfix(object message, ulong senderId)
+        {
+            try
+            {
+                if (!NoClientCheatsMod.IsMultiplayerHost()) return;
+                if (message == null || senderId == 0) return;
+
+                var rewardType = GetMemberValue(message, "rewardType")?.ToString();
+                bool wasSkipped = false;
+                var wasSkippedValue = GetMemberValue(message, "wasSkipped");
+                if (wasSkippedValue != null)
+                    wasSkipped = Convert.ToBoolean(wasSkippedValue);
+
+                if (!string.Equals(rewardType, "Card", StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                var cardModel = GetMemberValue(message, "cardModel");
+                var cardId = cardModel != null ? GetCardId(cardModel) : "?";
+                if (!_TryRegisterRecentRewardMessage(senderId, cardId, wasSkipped))
+                {
+                    DIAG($"Duplicate reward message ignored: senderId={senderId} rewardType={rewardType} card={cardId} skipped={wasSkipped}");
+                    return;
+                }
+
+                if (wasSkipped)
+                {
+                    DIAG($"Skip baseline refresh: senderId={senderId} rewardType={rewardType} card={cardId} skipped=true");
+                    return;
+                }
+
+                var livePlayer = _TryResolveLivePlayerByNetId(senderId);
+                if (livePlayer == null)
+                {
+                    bool fallbackAdvanced = SyncReceivedPatch.AdvanceBaselineForRewardCardFallback(senderId, cardId);
+                    DIAG($"Baseline refresh fallback: senderId={senderId} rewardType={rewardType} card={cardId} livePlayer=null advanced={fallbackAdvanced}");
+                    return;
+                }
+
+                var toSerializable = livePlayer.GetType().GetMethod("ToSerializable",
+                    BindingFlags.Public | BindingFlags.Instance);
+                if (toSerializable == null)
+                {
+                    DIAG($"Baseline refresh failed: senderId={senderId} rewardType={rewardType} card={cardId} ToSerializable=null");
+                    return;
+                }
+
+                var baselineSnapshot = toSerializable.Invoke(livePlayer, null);
+                if (baselineSnapshot == null)
+                {
+                    DIAG($"Baseline refresh failed: senderId={senderId} rewardType={rewardType} card={cardId} snapshot=null");
+                    return;
+                }
+
+                SyncReceivedPatch.SetBaselineFromSerializable(senderId, baselineSnapshot);
+                DIAG($"Baseline refreshed after reward: senderId={senderId} rewardType={rewardType} card={cardId} {GetDeckSummary(baselineSnapshot)}");
+            }
+            catch (Exception ex)
+            {
+                DIAG($"Postfix error: {ex.Message}");
+            }
+        }
+    }
+
     // ─── Patch C: CombatStateSynchronizer.OnSyncPlayerMessageReceived ───────────
     // 检测逻辑：
     //   存储上一次 SyncReceived 的 SerializablePlayer 作为基准（pre-event）
@@ -393,21 +488,57 @@ internal static class DeckSyncPatches
         }
 
         /// <summary>
-        /// 立即回滚后：把「上一轮」Serializable、Sync 基线、lastDeckSize 与合法快照对齐，
-        /// 避免后续 SyncReceived 用错 prevCards，并保证 _syncData 与活 Player 一致。
+        /// 将 NCC 的本地基线推进到当前合法快照。
+        /// 用于即时回滚后的重对齐，也用于 RewardObtainedMessage 这类“先改活体、后到 Sync”的合法路径。
         /// </summary>
         internal static void SetBaselineFromSerializable(ulong netId, object serializablePlayer)
         {
             if (serializablePlayer == null) return;
-            var deck = GetSerializableDeck(serializablePlayer);
+            var baselineSnapshot = TryCloneSerializableSnapshot(serializablePlayer)
+                ?? serializablePlayer;
+            var deck = GetSerializableDeck(baselineSnapshot);
             int n = deck?.Count ?? 0;
             int u = CountUpgraded(deck ?? Array.Empty<object>());
             lock (_lastSerializablePlayer)
-                _lastSerializablePlayer[netId] = serializablePlayer;
+                _lastSerializablePlayer[netId] = baselineSnapshot;
             lock (_lastSyncState)
                 _lastSyncState[netId] = (n, u, "", 0, 0);
             lock (_lastSyncDeckSize)
                 _lastSyncDeckSize[netId] = n;
+            lock (_preCheatSnapshot)
+                _preCheatSnapshot[netId] = baselineSnapshot;
+        }
+
+        /// <summary>
+        /// 奖励消息已确认合法，但地图阶段可能拿不到 live Player。
+        /// 此时至少推进卡数基线，避免下一条 SyncReceived 把合法奖励误判为 add_cards。
+        /// </summary>
+        internal static bool AdvanceBaselineForRewardCardFallback(ulong netId, string cardId)
+        {
+            int nextCardCount = 0;
+            bool advanced = false;
+
+            lock (_lastSyncState)
+            {
+                if (_lastSyncState.TryGetValue(netId, out var existing) && existing.cardCount > 0)
+                {
+                    nextCardCount = existing.cardCount + 1;
+                    _lastSyncState[netId] = (nextCardCount, existing.upgradedCount, "", 0, 0);
+                    advanced = true;
+                }
+            }
+
+            if (!advanced)
+            {
+                DIAG($"Reward fallback baseline skipped: senderId={netId} card={cardId} reason=no_existing_sync_state");
+                return false;
+            }
+
+            lock (_lastSyncDeckSize)
+                _lastSyncDeckSize[netId] = nextCardCount;
+
+            DIAG($"Reward fallback baseline advanced: senderId={netId} card={cardId} nextCards={nextCardCount}");
+            return true;
         }
 
         // 供外部调用：ChooseOptionPostfix 在此注册当前事件类型和允许的增量
@@ -506,6 +637,20 @@ internal static class DeckSyncPatches
                 if (prevSerializableSnapshot != null)
                     DIAG($"[FULLTRACE]   prevSerializable deck: {GetDeckSummary(prevSerializableSnapshot)}");
 
+                if (!hasPrev)
+                    _ArmStartupSyncWarmup(senderId, "first_sync");
+                string prevCharacterId = GetPlayerDisplayName(prevSerializableSnapshot);
+                bool startupWarmupActive = _HasStartupSyncWarmup(senderId);
+                bool characterChangedDuringBootstrap =
+                    !string.IsNullOrEmpty(prevCharacterId)
+                    && !string.IsNullOrEmpty(realName)
+                    && !string.Equals(prevCharacterId, realName, StringComparison.OrdinalIgnoreCase);
+                if (characterChangedDuringBootstrap)
+                {
+                    _ArmStartupSyncWarmup(senderId, $"character_changed:{prevCharacterId}->{realName}");
+                    startupWarmupActive = true;
+                }
+
                 // 记录当前卡组大小，供 OnReceivePlayerChoice 使用（transform 前快照）
                 lock (_lastSyncDeckSize) { _lastSyncDeckSize[senderId] = receivedCards; }
 
@@ -528,7 +673,12 @@ internal static class DeckSyncPatches
                 if (!NoClientCheatsMod.IsMultiplayerHost())
                     goto NccSyncDeckChecksDone_ClientSideApply;
 
-                if (hasPrev)
+                if (startupWarmupActive && string.IsNullOrEmpty(optionId))
+                {
+                    DIAG($"[FULLTRACE] Startup warmup active for {realName}: prevChar={prevCharacterId ?? "(null)"} currChar={realName ?? "(null)"} delta={cardDelta}/{upgradeDelta}");
+                }
+
+                if (hasPrev && !startupWarmupActive)
                 {
                     bool isRemoveEvent = optionId?.Contains("Remove", StringComparison.OrdinalIgnoreCase) == true ||
                                          optionId?.Contains("Scissors", StringComparison.OrdinalIgnoreCase) == true ||
@@ -610,6 +760,14 @@ internal static class DeckSyncPatches
                     lock (_lastSyncDeckSize)
                         _lastSyncDeckSize.TryGetValue(senderId, out preDeckSize);
                     DIAG($"[FULLTRACE] TransformCheck FIXED: using _lastSyncDeckSize={preDeckSize} as preDeck (choiceCalls={choiceCallCount})");
+                }
+
+                if (startupWarmupActive && string.IsNullOrEmpty(optionId) && choiceCallCount == 0)
+                {
+                    _ResetTransformTrackingAfterPlayerChoiceCheat(senderId, receivedCards);
+                    lock (_preCheatSnapshot) { _preCheatSnapshot[senderId] = receivedPlayer; }
+                    DIAG($"[FULLTRACE] Startup warmup accepted baseline for {realName}: {GetDeckSummary(receivedPlayer)}");
+                    return;
                 }
 
                 // 日志增强：打印检测决策树
@@ -924,6 +1082,26 @@ internal static class DeckSyncPatches
                 bool skipNotify = _HasRecentCheatNotify(senderId, receivedNetId);
                 DIAG($"CHEAT from {realName}: {cheatType}");
 
+                bool canEnforceRollback = _ShouldSendWireRollback(senderId, out var rollbackCapabilityReason);
+                if (!canEnforceRollback)
+                {
+                    DIAG($"[FULLTRACE] Detect-only mode for {realName}: reason={rollbackCapabilityReason}");
+                    if (!skipNotify)
+                    {
+                        _RecordImmediateCheatNotifyTick(senderId);
+                        NoClientCheatsMod.RecordCheat(senderId, realName, optionId, $"deck:{cheatType}|observe:{rollbackCapabilityReason}", false, true);
+                    }
+                    else
+                        DIAG($"[FULLTRACE] Skip duplicate RecordCheat in detect-only mode (already notified at choice)");
+                    if (!string.IsNullOrEmpty(cheatType) && (cheatType.Contains("multi_select", StringComparison.OrdinalIgnoreCase)
+                        || cheatType.Contains("transform_", StringComparison.OrdinalIgnoreCase)
+                        || cheatType.Contains("reward_", StringComparison.OrdinalIgnoreCase)
+                        || cheatType.Contains("remove_", StringComparison.OrdinalIgnoreCase)))
+                        _ResetTransformTrackingAfterPlayerChoiceCheat(senderId, receivedCards);
+                    lock (_lastSerializablePlayer) { _lastSerializablePlayer[senderId] = receivedPlayer; }
+                    return;
+                }
+
                 // 2) 使用 Postfix 开头抓取的 prevSerializableSnapshot（作弊前的合法 SerializablePlayer）
                 if (prevSerializableSnapshot == null)
                 {
@@ -968,22 +1146,16 @@ internal static class DeckSyncPatches
                     DIAG($"[FULLTRACE] Rollback: _syncData=null, skipping");
                 }
 
-                // 5) 向副机发送纠正消息（带冷却，避免同场景连发两条把客机打成黑屏）
-                bool wireSent = _TryConsumeWireRollbackSlot(senderId);
-                if (wireSent)
-                {
-                    DIAG($"[FULLTRACE] Rollback: sending SyncPlayerDataMessage to {senderId}");
-                    _SendRollback(__instance, senderId, syncDataCorrectSnapshot);
-                }
-                else
-                    DIAG($"[FULLTRACE] Rollback: skip wire SyncPlayerDataMessage to {senderId} (cooldown)");
+                // 5) host-only 模式下不再默认发线上的 SyncPlayerDataMessage 回滚。
+                //    原版客户端会按 senderId=主机 把该消息写进 _syncData[host]，这是黑屏根因。
+                bool wireSent = _TrySendRollbackToPeer(__instance, senderId, syncDataCorrectSnapshot, "SYNC");
 
                 _MarkRollbackSuppression(senderId, receivedNetId);
 
                 // 弹窗放在回滚与发网之后，文案带上回滚摘要（与 PlayerChoice 路径一致）
                 if (!skipNotify)
                 {
-                    string rbNote = wireSent ? "rollback:_syncData+wire" : "rollback:_syncData+wire_cooldown";
+                    string rbNote = wireSent ? "rollback:_syncData+wire" : "rollback:_syncData+host_only_no_wire";
                     NoClientCheatsMod.RecordCheat(senderId, realName, optionId, $"deck:{cheatType}|{rbNote}", true);
                 }
                 else
@@ -1392,16 +1564,8 @@ internal static class DeckSyncPatches
                 LogDiag("Rollback", $"[IMMRB-CHOOSE] _syncData[{playerNetId}] updated locally");
             }
 
-            // 3. 带冷却向客机发送修正消息
-            if (_TryConsumeWireRollbackSlot(playerNetId))
-            {
-                LogDiag("Rollback", $"[IMMRB-CHOOSE] sending SyncPlayerDataMessage to {playerNetId}");
-                _SendRollback(synchronizer, playerNetId, correctSnapshot);
-            }
-            else
-            {
-                LogDiag("Rollback", $"[IMMRB-CHOOSE] wire cooldown active, skip sending to {playerNetId}");
-            }
+            // 3. host-only 模式下停用危险的线上海量回滚包，只保留主机侧权威状态修正。
+            _TrySendRollbackToPeer(synchronizer, playerNetId, correctSnapshot, "IMMRB-CHOOSE");
 
             // 4. 更新快照字典，防止后续 SyncReceived 继续误判
             NoClientCheatsMod.SetExpectedDeckSnapshot(playerNetId, correctSnapshot);
@@ -1819,6 +1983,38 @@ internal static class DeckSyncPatches
         }
     }
 
+    /// <summary>
+    /// RewardObtainedMessage 在当前版本里会短时间重复进入一次以上。
+    /// 对同一 (senderId, cardId, wasSkipped) 做短窗口去重，避免合法奖励被重复推进基线。
+    /// </summary>
+    private static bool _TryRegisterRecentRewardMessage(ulong senderId, string cardId, bool wasSkipped, int dedupeMs = 1500)
+    {
+        var key = (senderId, cardId ?? "?", wasSkipped);
+        long now = DateTime.Now.Ticks;
+        long dedupeTicks = TimeSpan.FromMilliseconds(dedupeMs).Ticks;
+        long expireTicks = TimeSpan.FromMinutes(5).Ticks;
+
+        lock (_recentRewardMessageTicks)
+        {
+            if (_recentRewardMessageTicks.TryGetValue(key, out var prev)
+                && now - prev <= dedupeTicks)
+                return false;
+
+            _recentRewardMessageTicks[key] = now;
+
+            var staleKeys = new System.Collections.Generic.List<(ulong senderId, string cardId, bool wasSkipped)>();
+            foreach (var pair in _recentRewardMessageTicks)
+            {
+                if (now - pair.Value > expireTicks)
+                    staleKeys.Add(pair.Key);
+            }
+            foreach (var staleKey in staleKeys)
+                _recentRewardMessageTicks.Remove(staleKey);
+        }
+
+        return true;
+    }
+
     /// <summary>同一 peer 的 SyncPlayerDataMessage 回滚发送冷却，避免连续两条把客机打成黑屏。</summary>
     private static bool _TryConsumeWireRollbackSlot(ulong peerId, int cooldownMs = 3000)
     {
@@ -1831,6 +2027,43 @@ internal static class DeckSyncPatches
             _wireRollbackCooldown[peerId] = now;
             return true;
         }
+    }
+
+    /// <summary>
+    /// host-only 最终目标下，不能默认假设客机安装了 NCC 回滚接收补丁。
+    /// 原版客户端会按 senderId 而不是 msg.player.NetId 处理 SyncPlayerDataMessage，
+    /// 因此在没有显式客机能力握手前，线上回滚包必须默认关闭。
+    /// </summary>
+    private static bool _ShouldSendWireRollback(ulong peerId, out string reason)
+    {
+        reason = "host_only_no_client_capability";
+        return false;
+    }
+
+    /// <summary>统一处理线上回滚发送策略；当前默认仅保留主机侧权威回滚，不向 vanilla 客机发 SyncPlayerDataMessage。</summary>
+    private static bool _TrySendRollbackToPeer(object synchronizer, ulong peerId, object correctSnapshot, string contextTag)
+    {
+        if (synchronizer == null)
+        {
+            LogDiag("Rollback", $"[{contextTag}] skip wire rollback to {peerId}: synchronizer=null");
+            return false;
+        }
+
+        if (!_ShouldSendWireRollback(peerId, out var reason))
+        {
+            LogDiag("Rollback", $"[{contextTag}] skip wire rollback to {peerId}: {reason}");
+            return false;
+        }
+
+        if (!_TryConsumeWireRollbackSlot(peerId))
+        {
+            LogDiag("Rollback", $"[{contextTag}] wire cooldown active, skip sending to {peerId}");
+            return false;
+        }
+
+        LogDiag("Rollback", $"[{contextTag}] sending SyncPlayerDataMessage to {peerId}");
+        _SendRollback(synchronizer, peerId, correctSnapshot);
+        return true;
     }
 
     /// <summary>是否刚做过 PlayerChoice / 即时回滚（同时匹配 senderId 与 SerializablePlayer 上的 NetId）。窗口拉长避免进战斗后二次检测。</summary>
@@ -1868,6 +2101,29 @@ internal static class DeckSyncPatches
         }
     }
 
+    private static void _ArmStartupSyncWarmup(ulong senderId, string reason)
+    {
+        long untilTick = DateTime.Now.AddSeconds(20).Ticks;
+        lock (_startupSyncWarmupUntil)
+            _startupSyncWarmupUntil[senderId] = untilTick;
+        LogDiag("SyncState", $"[FULLTRACE] Startup warmup armed for {senderId}: reason={reason}");
+    }
+
+    private static bool _HasStartupSyncWarmup(ulong senderId)
+    {
+        lock (_startupSyncWarmupUntil)
+        {
+            if (!_startupSyncWarmupUntil.TryGetValue(senderId, out var untilTick))
+                return false;
+            if (DateTime.Now.Ticks > untilTick)
+            {
+                _startupSyncWarmupUntil.Remove(senderId);
+                return false;
+            }
+            return true;
+        }
+    }
+
     /// <summary>PlayerChoice 弹窗后写入时间戳；同时写入 SerializablePlayer.NetId 别名，避免 SyncReceived 用另一套 id 重复弹窗。</summary>
     private static void _RecordImmediateCheatNotifyTick(ulong senderId)
     {
@@ -1897,6 +2153,68 @@ internal static class DeckSyncPatches
             if (snapNet != 0 && snapNet != senderId)
                 _canonicalSerializablePlayer.Remove(snapNet);
         }
+    }
+
+    private static IList _GetChoiceResultList(object result, params string[] names)
+    {
+        if (result == null || names == null) return null;
+        foreach (var name in names)
+        {
+            var value = GetMemberValue(result, name);
+            if (value is IList list)
+                return list;
+        }
+        return null;
+    }
+
+    private static string _BuildChoiceListSignature(IList list)
+    {
+        if (list == null) return "null";
+        var parts = new System.Collections.Generic.List<string>();
+        int limit = Math.Min(list.Count, 6);
+        for (int i = 0; i < limit; i++)
+            parts.Add(list[i]?.ToString() ?? "null");
+        return $"{list.Count}[{string.Join(",", parts)}]";
+    }
+
+    private static bool _ShouldSkipDuplicateWeakPlayerChoice(ulong senderId, uint choiceId, object result)
+    {
+        if (result == null)
+            return false;
+
+        var canonicalCards = _GetChoiceResultList(result, "canonicalCards", "CanonicalCards", "_canonicalCards", "originalCards", "OriginalCards", "preCards", "PreCards", "originalDeck", "OriginalDeck", "preDeck", "PreDeck");
+        var deckCards = _GetChoiceResultList(result, "deckCards", "DeckCards", "_deckCards", "currentDeck", "CurrentDeck");
+        var mutableCards = _GetChoiceResultList(result, "mutableCards", "MutableCards", "_mutableCards", "upgradedCards", "UpgradedCards");
+        var indexes = _GetChoiceResultList(result, "indexes", "Indexes", "_indexes", "selectedIndexes", "SelectedIndexes", "chosenIndexes", "ChosenIndexes");
+
+        bool strongDeckPayload = (canonicalCards?.Count ?? 0) > 0
+            || (deckCards?.Count ?? 0) > 0
+            || (mutableCards?.Count ?? 0) > 0;
+        if (strongDeckPayload)
+            return false;
+
+        string signature = $"type={result.GetType().Name}|choice={choiceId}|canon={_BuildChoiceListSignature(canonicalCards)}|deck={_BuildChoiceListSignature(deckCards)}|mutable={_BuildChoiceListSignature(mutableCards)}|indexes={_BuildChoiceListSignature(indexes)}";
+        long nowTick = DateTime.Now.Ticks;
+        bool duplicate = false;
+
+        lock (_lastChoiceCall)
+        lock (_choiceTimestampByPlayer)
+        {
+            if (_lastChoiceCall.TryGetValue(senderId, out var prev)
+                && _choiceTimestampByPlayer.TryGetValue(senderId, out var prevTick)
+                && DateTime.Now.Ticks - prevTick <= TimeSpan.FromSeconds(2).Ticks
+                && string.Equals(prev.deckSummary, signature, StringComparison.Ordinal))
+            {
+                duplicate = true;
+            }
+
+            _lastChoiceCall[senderId] = (deckCards?.Count ?? canonicalCards?.Count ?? 0, signature, _BuildChoiceListSignature(mutableCards), _BuildChoiceListSignature(indexes), new System.Collections.Generic.List<string>());
+            _choiceTimestampByPlayer[senderId] = nowTick;
+        }
+
+        if (duplicate)
+            LogDiag("PlayerChoice", $"[POSTFIX] Weak PlayerChoice duplicate suppressed: senderId={senderId} choiceId={choiceId} sig={signature}");
+        return duplicate;
     }
 
     /// <summary>将 SerializableCard 转换为 CardModel（外层供回滚路径共用）。</summary>
@@ -2725,10 +3043,24 @@ internal static class DeckSyncPatches
         _choiceTimestampByPlayer = new();
 
     /// <summary>
+    /// 新局加载/角色切换后的短暂基线预热窗口。
+    /// 在这个窗口里，若没有明确的 choice/option 上下文，则只接受同步并重建基线，避免起始卡组/Ascender's Bane 被误判。
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<ulong, long>
+        _startupSyncWarmupUntil = new();
+
+    /// <summary>
     /// 记录"最近一次实际计入计数"的时间戳（per-player，用于 1ms 内重复触发去重）
     /// </summary>
     private static readonly System.Collections.Generic.Dictionary<ulong, long>
         _choiceCountedTimestamp = new();
+
+    /// <summary>
+    /// 最近处理过的奖励消息（用于去重，避免同一 RewardObtainedMessage 被重复推进基线）。
+    /// Key: (senderId, cardId, wasSkipped)
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<(ulong senderId, string cardId, bool wasSkipped), long>
+        _recentRewardMessageTicks = new();
 
     /// <summary>
     /// 最近一次在 OnReceivePlayerChoice 已立即提示作弊的时间（避免 SyncReceived 再弹一次）
@@ -3011,16 +3343,6 @@ internal static class DeckSyncPatches
 
                 DIAG($"[POSTFIX] playerId=senderId({senderId}) isRemote={isRemote} localId={localId}");
 
-                // 累加 choiceCallCount（无论本地远程都计数）
-                lock (_choiceCallCount)
-                {
-                    if (_choiceCallCount.TryGetValue(senderId, out int existingCount))
-                        _choiceCallCount[senderId] = existingCount + 1;
-                    else
-                        _choiceCallCount[senderId] = 1;
-                    DIAG($"[POSTFIX] choiceCallCount now={_choiceCallCount[senderId]}");
-                }
-
                 // 从 message.result 读取 NetPlayerChoiceResult
                 object result = null;
                 string[] resultNames = { "result", "Result", "_result", "playerChoiceResult", "netResult" };
@@ -3037,6 +3359,25 @@ internal static class DeckSyncPatches
                     DIAG($"[POSTFIX] NetPlayerChoiceResult not found in PlayerChoiceMessage, trying message type directly");
                     if (message.GetType().Name.Contains("ChoiceResult") || message.GetType().Name.Contains("Result"))
                         result = message;
+                }
+
+                if (!_ShouldSkipDuplicateWeakPlayerChoice(senderId, choiceId, result))
+                {
+                    lock (_choiceCallCount)
+                    {
+                        if (_choiceCallCount.TryGetValue(senderId, out int existingCount))
+                            _choiceCallCount[senderId] = existingCount + 1;
+                        else
+                            _choiceCallCount[senderId] = 1;
+                        DIAG($"[POSTFIX] choiceCallCount now={_choiceCallCount[senderId]}");
+                    }
+                }
+                else
+                {
+                    int existingCount = 0;
+                    lock (_choiceCallCount)
+                        _choiceCallCount.TryGetValue(senderId, out existingCount);
+                    DIAG($"[POSTFIX] choiceCallCount unchanged={existingCount} (weak duplicate)");
                 }
 
                 if (result != null)
@@ -3155,21 +3496,30 @@ internal static class DeckSyncPatches
                                                 : (delta > 0 ? $"reward_multi_select(calls={calls} gained={delta})" : $"remove_multi_select(calls={calls} removed={-delta})");
                                             DIAG($"[CHEATCHECK] DETECTED! CHEAT: {cheatType}");
 
-                                            var rollbackResult = _ImmediateRollbackHostPlayer(senderId, preDeckSize);
-
                                             try
                                             {
                                                 var safeName = _GetPlayerName(senderId) ?? $"#{senderId % 10000}";
-                                                NoClientCheatsMod.RecordCheat(senderId, safeName, null, $"deck:{cheatType}|{rollbackResult}", true);
-                                                GD.Print($"[NCC] PlayerChoice cheat detected for {safeName}: {cheatType} rollback={rollbackResult}");
                                                 _RecordImmediateCheatNotifyTick(senderId);
                                                 _ResetTransformTrackingAfterPlayerChoiceCheat(senderId, preDeckSize);
-                                                object preSnapWire = null;
-                                                lock (_preCheatSnapshot) _preCheatSnapshot.TryGetValue(senderId, out preSnapWire);
-                                                if (preSnapWire != null)
+
+                                                if (_ShouldSendWireRollback(senderId, out var rollbackCapabilityReason))
                                                 {
-                                                    var w = TryCloneSerializableSnapshot(preSnapWire) ?? preSnapWire;
-                                                    _SendRollbackForImmediateCheat(senderId, w);
+                                                    var rollbackResult = _ImmediateRollbackHostPlayer(senderId, preDeckSize);
+                                                    NoClientCheatsMod.RecordCheat(senderId, safeName, null, $"deck:{cheatType}|{rollbackResult}", true);
+                                                    GD.Print($"[NCC] PlayerChoice cheat detected for {safeName}: {cheatType} rollback={rollbackResult}");
+
+                                                    object preSnapWire = null;
+                                                    lock (_preCheatSnapshot) _preCheatSnapshot.TryGetValue(senderId, out preSnapWire);
+                                                    if (preSnapWire != null)
+                                                    {
+                                                        var w = TryCloneSerializableSnapshot(preSnapWire) ?? preSnapWire;
+                                                        _SendRollbackForImmediateCheat(senderId, w);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    NoClientCheatsMod.RecordCheat(senderId, safeName, null, $"deck:{cheatType}|observe:{rollbackCapabilityReason}", false, true);
+                                                    GD.Print($"[NCC] PlayerChoice cheat detected for {safeName}: {cheatType} observe-only ({rollbackCapabilityReason})");
                                                 }
                                             }
                                             catch (Exception ex) { DIAG($"[CHEATCHECK] RecordCheat error: {ex.Message}"); }
@@ -3185,20 +3535,29 @@ internal static class DeckSyncPatches
                                                 : $"remove_excess(deleted={-delta})";
                                             DIAG($"[CHEATCHECK] DETECTED! CHEAT: {cheatType}");
 
-                                            var rollbackResult = _ImmediateRollbackHostPlayer(senderId, preDeckSize);
-
                                             try
                                             {
                                                 var safeName = _GetPlayerName(senderId) ?? $"#{senderId % 10000}";
-                                                NoClientCheatsMod.RecordCheat(senderId, safeName, null, $"deck:{cheatType}|{rollbackResult}", true);
                                                 _RecordImmediateCheatNotifyTick(senderId);
                                                 _ResetTransformTrackingAfterPlayerChoiceCheat(senderId, preDeckSize);
-                                                object preSnapWire = null;
-                                                lock (_preCheatSnapshot) _preCheatSnapshot.TryGetValue(senderId, out preSnapWire);
-                                                if (preSnapWire != null)
+
+                                                if (_ShouldSendWireRollback(senderId, out var rollbackCapabilityReason))
                                                 {
-                                                    var w = TryCloneSerializableSnapshot(preSnapWire) ?? preSnapWire;
-                                                    _SendRollbackForImmediateCheat(senderId, w);
+                                                    var rollbackResult = _ImmediateRollbackHostPlayer(senderId, preDeckSize);
+                                                    NoClientCheatsMod.RecordCheat(senderId, safeName, null, $"deck:{cheatType}|{rollbackResult}", true);
+
+                                                    object preSnapWire = null;
+                                                    lock (_preCheatSnapshot) _preCheatSnapshot.TryGetValue(senderId, out preSnapWire);
+                                                    if (preSnapWire != null)
+                                                    {
+                                                        var w = TryCloneSerializableSnapshot(preSnapWire) ?? preSnapWire;
+                                                        _SendRollbackForImmediateCheat(senderId, w);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    NoClientCheatsMod.RecordCheat(senderId, safeName, null, $"deck:{cheatType}|observe:{rollbackCapabilityReason}", false, true);
+                                                    GD.Print($"[NCC] PlayerChoice cheat detected for {safeName}: {cheatType} observe-only ({rollbackCapabilityReason})");
                                                 }
                                             }
                                             catch { }
@@ -3735,8 +4094,8 @@ internal static class DeckSyncPatches
                                     var preSnapshot = BuildSerializableDeckSnapshot(p, preDeckSize);
                                     if (preSnapshot != null)
                                     {
-                                        DIAG($"[ROLLBACK] Sending rollback snapshot to {playerId}");
-                                        _SendRollback(synchronizer, playerId, preSnapshot);
+                                        DIAG($"[ROLLBACK] Preparing rollback snapshot for {playerId}");
+                                        _TrySendRollbackToPeer(synchronizer, playerId, preSnapshot, "CHOICE-LEGACY");
                                         // 同时更新本地 _syncData
                                         var syncDataField = AccessTools.Field(synchronizer.GetType(), "_syncData");
                                         var syncData = syncDataField?.GetValue(synchronizer) as IDictionary;
