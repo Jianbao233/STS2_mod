@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Godot;
 using HarmonyLib;
@@ -31,22 +30,17 @@ internal static class ClientDiagnosticPatches
     private static readonly Type _syncMsgType;
     private static readonly Type _serializablePlayerType;
     private static readonly Type _runManagerType;
-    private static readonly Type _localContextType;
 
     static ClientDiagnosticPatches()
     {
         _syncMsgType = AccessTools.TypeByName(
             "MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync.SyncPlayerDataMessage")
-            ?? AccessTools.TypeByName("MegaCrit.Sts2.Core.Multiplayer.Messages.Game.SyncPlayerDataMessage")
             ?? AccessTools.TypeByName("SyncPlayerDataMessage");
         _serializablePlayerType = AccessTools.TypeByName(
-            "MegaCrit.Sts2.Core.Saves.Runs.SerializablePlayer")
-            ?? AccessTools.TypeByName("MegaCrit.Sts2.Core.Entities.Players.SerializablePlayer")
+            "MegaCrit.Sts2.Core.Entities.Players.SerializablePlayer")
             ?? AccessTools.TypeByName("SerializablePlayer");
         _runManagerType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Runs.RunManager")
             ?? AccessTools.TypeByName("RunManager");
-        _localContextType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Context.LocalContext")
-            ?? AccessTools.TypeByName("LocalContext");
     }
 
     // ── 日志前缀常量 ──────────────────────────────────────────────────────
@@ -63,17 +57,6 @@ internal static class ClientDiagnosticPatches
     private static readonly ThreadLocal<object> _lastLocalDeckSnapshot = new();
     private static readonly ThreadLocal<bool> _nccRollbackApplied = new();
     private static readonly ThreadLocal<bool> _skipOriginalMethod = new();
-    private static readonly ThreadLocal<bool> _redirectInProgress = new();
-    private static readonly object _pendingRollbackLock = new();
-    private static readonly ConditionalWeakTable<object, PendingRollbackInfo> _pendingRollbackSnapshots = new();
-
-    private sealed class PendingRollbackInfo
-    {
-        public ulong SenderId;
-        public ulong TargetNetId;
-        public string SnapshotCharacterId;
-        public long RegisteredAtMs;
-    }
 
     /// <summary>
     /// 诊断补丁初始化入口。仅客机端运行。
@@ -123,44 +106,16 @@ internal static class ClientDiagnosticPatches
 
                 ulong msgPlayerNetId = GetPlayerNetIdFromMessage(syncMessage);
                 object sp = GetSerializablePlayerFromMessage(syncMessage);
-                bool explicitNccRollback = sp != null
-                    && senderId != 0
-                    && msgPlayerNetId != 0
-                    && msgPlayerNetId != senderId;
 
                 DIAG($"[SyncRecv] ★ RECEIVED senderId={senderId} msgPlayer.NetId={msgPlayerNetId}");
-
-                if (explicitNccRollback)
-                {
-                    RegisterPendingRollbackSnapshot(sp, senderId, msgPlayerNetId);
-                    DIAG($"[SyncRecv]   Registered NCC redirect snapshot: senderId={senderId} -> targetNetId={msgPlayerNetId}");
-                }
 
                 // ── 步骤1：获取本地 Player NetId ──────────────────────────
                 ulong localPlayerNetId = GetLocalPlayerNetId();
                 DIAG($"[SyncRecv]   localPlayer.NetId={localPlayerNetId}");
 
                 // ── 步骤2：检测是否是自身消息 ───────────────────────────
-                bool isOwnMessage = (localPlayerNetId != 0
-                    && (senderId == localPlayerNetId || msgPlayerNetId == localPlayerNetId));
+                bool isOwnMessage = (localPlayerNetId != 0 && senderId == localPlayerNetId);
                 DIAG($"[SyncRecv]   isOwnMessage={isOwnMessage}");
-
-                if (explicitNccRollback && isOwnMessage)
-                {
-                    DIAG("[SyncRecv]   senderId != msgPlayer.NetId — explicit NCC rollback packet.");
-
-                    bool applied = TryApplyNCCRollback(sp);
-                    _nccRollbackApplied.Value = applied;
-                    _skipOriginalMethod.Value = applied;
-
-                    if (applied)
-                    {
-                        DIAG("[SyncRecv] ★ Explicit NCC rollback applied before original method.");
-                        return false;
-                    }
-
-                    DIAG("[SyncRecv]   Explicit NCC rollback apply failed — falling through to original method as last resort.");
-                }
 
                 if (!isOwnMessage)
                 {
@@ -256,109 +211,6 @@ internal static class ClientDiagnosticPatches
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 补丁 B：Player.SyncWithSerializedPlayer
-    //
-    // 当 NCC 回滚快照因为 senderId 路由而即将同步到错误玩家时：
-    //   1. 识别该 SerializablePlayer 对象就是之前登记过的 NCC 回滚快照
-    //   2. 用登记的原始 targetNetId 找到真正应被同步的本地玩家
-    //   3. 临时把 snapshot.NetId 还原为 targetNetId
-    //   4. 直接对正确玩家执行同步，并跳过当前这次错误调用
-    // ═══════════════════════════════════════════════════════════════════════
-    [HarmonyPatch]
-    private static class SyncWithSerializedPlayer_Patch
-    {
-        static MethodBase TargetMethod()
-        {
-            var playerType = AccessTools.TypeByName("MegaCrit.Sts2.Core.Entities.Players.Player")
-                ?? AccessTools.TypeByName("Player");
-            if (playerType == null || _serializablePlayerType == null) return null;
-            return AccessTools.Method(playerType, "SyncWithSerializedPlayer",
-                new[] { _serializablePlayerType });
-        }
-
-        static bool Prefix(object __instance, object player)
-        {
-            if (__instance == null || player == null) return true;
-            if (NoClientCheatsMod.IsMultiplayerHost()) return true;
-            if (_redirectInProgress.Value) return true;
-
-            try
-            {
-                if (!TryGetPendingRollbackSnapshot(player, out var pending))
-                    return true;
-
-                ulong instanceNetId = GetPlayerNetIdFromEntity(__instance);
-                ulong snapshotNetId = GetPlayerNetIdFromSerializable(player);
-                string instanceCharacterId = GetPlayerCharacterId(__instance);
-                string snapshotCharacterId = GetSerializablePlayerCharacterId(player);
-
-                DIAG($"[SyncPlayer] Pending NCC redirect detected: "
-                    + $"instanceNetId={instanceNetId} snapshotNetId={snapshotNetId} "
-                    + $"targetNetId={pending.TargetNetId} instanceChar={instanceCharacterId ?? "null"} "
-                    + $"snapshotChar={snapshotCharacterId ?? "null"}");
-
-                if (instanceNetId == pending.TargetNetId)
-                {
-                    DIAG("[SyncPlayer] Snapshot already reached the correct player, clearing pending redirect.");
-                    ConsumePendingRollbackSnapshot(player);
-                    return true;
-                }
-
-                object targetPlayer = ResolvePlayerFromContext(__instance, pending.TargetNetId) ?? GetLocalPlayer();
-                ulong targetPlayerNetId = GetPlayerNetIdFromEntity(targetPlayer);
-                string targetCharacterId = GetPlayerCharacterId(targetPlayer);
-
-                DIAG($"[SyncPlayer] Resolved target player: exists={targetPlayer != null} "
-                    + $"targetPlayerNetId={targetPlayerNetId} targetChar={targetCharacterId ?? "null"}");
-
-                if (targetPlayer == null || targetPlayerNetId != pending.TargetNetId)
-                {
-                    DIAG("[SyncPlayer] Target player not found or NetId mismatch, leaving original sync path untouched.");
-                    return true;
-                }
-
-                if (!string.IsNullOrEmpty(snapshotCharacterId)
-                    && !string.IsNullOrEmpty(targetCharacterId)
-                    && !string.Equals(snapshotCharacterId, targetCharacterId, StringComparison.Ordinal))
-                {
-                    DIAG("[SyncPlayer] Snapshot character does not match resolved target player, skipping redirect.");
-                    return true;
-                }
-
-                SetSerializablePlayerNetId(player, pending.TargetNetId);
-                DIAG($"[SyncPlayer] Redirecting NCC rollback to targetNetId={pending.TargetNetId}.");
-
-                var syncMethod = AccessTools.Method(targetPlayer.GetType(), "SyncWithSerializedPlayer",
-                    new[] { _serializablePlayerType });
-                if (syncMethod == null)
-                {
-                    DIAG("[SyncPlayer] SyncWithSerializedPlayer method not found on resolved target player.");
-                    return true;
-                }
-
-                _redirectInProgress.Value = true;
-                try
-                {
-                    syncMethod.Invoke(targetPlayer, new[] { player });
-                }
-                finally
-                {
-                    _redirectInProgress.Value = false;
-                }
-
-                ConsumePendingRollbackSnapshot(player);
-                DIAG("[SyncPlayer] ★ NCC redirect succeeded, skipping original SyncWithSerializedPlayer.");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                DIAG($"[SyncPlayer] Redirect failed: {ex.GetType().Name}: {ex.Message}");
-                return true;
-            }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
     // 辅助方法
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -416,9 +268,6 @@ internal static class ClientDiagnosticPatches
     {
         try
         {
-            ulong localContextNetId = GetLocalContextNetId();
-            if (localContextNetId != 0) return localContextNetId;
-
             var rmInst = _runManagerType?.GetProperty("Instance",
                 BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
             if (rmInst == null) return 0;
@@ -452,35 +301,20 @@ internal static class ClientDiagnosticPatches
     {
         try
         {
-            ulong localContextNetId = GetLocalContextNetId();
             var rmInst = _runManagerType?.GetProperty("Instance",
                 BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
             if (rmInst == null) return null;
 
-            object runState = rmInst.GetType()
-                .GetProperty("State", BindingFlags.Public | BindingFlags.Instance)
-                ?.GetValue(rmInst);
-            runState ??= rmInst.GetType()
-                .GetProperty("CurrentRun", BindingFlags.Public | BindingFlags.Instance)
-                ?.GetValue(rmInst);
-            runState ??= rmInst.GetType()
+            var runState = rmInst.GetType()
                 .GetProperty("RunState", BindingFlags.Public | BindingFlags.Instance)
-                ?.GetValue(rmInst);
+                ?.GetValue(rmInst) as Godot.Node;
             if (runState == null) return null;
 
+            // 客机本地只有一个 Player
             var playersProp = runState.GetType().GetProperty("Players",
                 BindingFlags.Public | BindingFlags.Instance);
             var players = playersProp?.GetValue(runState) as IList;
             if (players == null || players.Count == 0) return null;
-
-            if (localContextNetId != 0)
-            {
-                foreach (var player in players)
-                {
-                    if (GetPlayerNetIdFromEntity(player) == localContextNetId)
-                        return player;
-                }
-            }
 
             return players[0];
         }
@@ -613,21 +447,6 @@ internal static class ClientDiagnosticPatches
         return 0;
     }
 
-    private static ulong GetLocalContextNetId()
-    {
-        try
-        {
-            var raw = _localContextType?.GetProperty("NetId",
-                BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
-            if (raw == null) return 0;
-            return Convert.ToUInt64(raw);
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
     private static ulong GetPlayerNetIdFromEntity(object entity)
     {
         if (entity == null) return 0;
@@ -638,102 +457,6 @@ internal static class ClientDiagnosticPatches
             try { return Convert.ToUInt64(val); } catch { }
         }
         return 0;
-    }
-
-    private static string GetSerializablePlayerCharacterId(object player)
-        => GetMemberValue(player, "CharacterId")?.ToString();
-
-    private static string GetPlayerCharacterId(object entity)
-    {
-        var character = GetMemberValue(entity, "Character");
-        return GetMemberValue(character, "Id")?.ToString();
-    }
-
-    private static void SetSerializablePlayerNetId(object player, ulong netId)
-    {
-        if (player == null || netId == 0) return;
-        foreach (var name in new[] { "NetId", "netId", "_netId", "NetworkId" })
-            SetMemberValue(player, name, netId);
-    }
-
-    private static object ResolvePlayerFromContext(object playerEntity, ulong netId)
-    {
-        if (playerEntity == null || netId == 0) return null;
-
-        try
-        {
-            var runState = GetMemberValue(playerEntity, "RunState");
-            if (runState != null)
-            {
-                var getPlayer = AccessTools.Method(runState.GetType(), "GetPlayer", new[] { typeof(ulong) });
-                var resolved = getPlayer?.Invoke(runState, new object[] { netId });
-                if (resolved != null) return resolved;
-
-                var players = GetMemberValue(runState, "Players") as IEnumerable;
-                if (players != null)
-                {
-                    foreach (var p in players)
-                    {
-                        if (GetPlayerNetIdFromEntity(p) == netId)
-                            return p;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DIAG($"[Utils] ResolvePlayerFromContext failed: {ex.Message}");
-        }
-
-        return null;
-    }
-
-    private static void RegisterPendingRollbackSnapshot(object snapshot, ulong senderId, ulong targetNetId)
-    {
-        if (snapshot == null || senderId == 0 || targetNetId == 0) return;
-
-        var info = new PendingRollbackInfo
-        {
-            SenderId = senderId,
-            TargetNetId = targetNetId,
-            SnapshotCharacterId = GetSerializablePlayerCharacterId(snapshot),
-            RegisteredAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        };
-
-        lock (_pendingRollbackLock)
-        {
-            _pendingRollbackSnapshots.Remove(snapshot);
-            _pendingRollbackSnapshots.Add(snapshot, info);
-        }
-    }
-
-    private static bool TryGetPendingRollbackSnapshot(object snapshot, out PendingRollbackInfo info)
-    {
-        info = null;
-        if (snapshot == null) return false;
-
-        lock (_pendingRollbackLock)
-        {
-            if (!_pendingRollbackSnapshots.TryGetValue(snapshot, out info))
-                return false;
-        }
-
-        long ageMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - info.RegisteredAtMs;
-        if (ageMs > 30000)
-        {
-            ConsumePendingRollbackSnapshot(snapshot);
-            info = null;
-            return false;
-        }
-
-        return true;
-    }
-
-    private static void ConsumePendingRollbackSnapshot(object snapshot)
-    {
-        if (snapshot == null) return;
-        lock (_pendingRollbackLock)
-            _pendingRollbackSnapshots.Remove(snapshot);
     }
 
     private static object GetMemberValue(object target, string memberName)
@@ -754,38 +477,5 @@ internal static class ClientDiagnosticPatches
                 return f.GetValue(target);
         }
         return null;
-    }
-
-    private static bool SetMemberValue(object target, string memberName, object value)
-    {
-        if (target == null) return false;
-        var t = target.GetType();
-        var prop = t.GetProperty(memberName,
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        if (prop != null && prop.CanWrite)
-        {
-            prop.SetValue(target, value);
-            return true;
-        }
-
-        var field = t.GetField(memberName,
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        if (field != null)
-        {
-            field.SetValue(target, value);
-            return true;
-        }
-
-        foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-        {
-            if (f.Name == memberName || f.Name == "_" + memberName
-                || f.Name == "<" + memberName + ">k__BackingField")
-            {
-                f.SetValue(target, value);
-                return true;
-            }
-        }
-
-        return false;
     }
 }

@@ -27,7 +27,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 
 1. 找到游戏目录：`Steam\steamapps\common\Slay the Spire 2`
 2. 在 `mods` 文件夹内创建对应 Mod 子目录（如 `mods\RunHistoryAnalyzer\`）
-3. 从 [Releases](https://github.com/Jianbao233/STS2_mod/releases) 下载 zip，解压到 `mods` 内
+3. 从对应项目的 GitHub Releases 下载 zip，解压到 `mods` 内（`LoadOrderManager` 使用其分仓库发布页）
 
 **工具类**（~~MP_SavePlayerRemover~~ → 已废弃，使用 MP_PlayerManager）：解压到任意位置，双击 exe 运行，无需放入游戏目录。
 
