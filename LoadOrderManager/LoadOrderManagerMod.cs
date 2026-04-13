@@ -17,6 +17,7 @@ public static class LoadOrderManagerMod
 
         DebugLog.Info("Initialize called.");
         DebugLog.Info($"Log file: {DebugLog.LogPath}");
+        LoadOrderRuntime.LogDiagnosticsOnStartup();
         ApplyHarmonyPatches();
         DebugLog.Info("Loaded.");
     }
