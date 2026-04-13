@@ -47,19 +47,23 @@ namespace MultiplayerTools.Core
 
                 string oldSteamId = player.TryGetValue("net_id", out var nidOld) ? nidOld?.ToString() ?? "" : "";
 
-                player["net_id"] = NetIdToSaveValue(newSteamId);
-
-                // Clear map history stats for this player
-                if (data.TryGetValue("map_point_history", out var mph) && mph is List<object> history)
+                for (int i = 0; i < players.Count; i++)
                 {
-                    foreach (var node in EnumerateMapHistoryNodes(history))
+                    if (i == playerIndex) continue;
+                    if (players[i] is Dictionary<string, object> other &&
+                        other.TryGetValue("net_id", out var existingId) &&
+                        SteamIdsMatchDigits(existingId, newSteamId))
                     {
-                        if (!node.TryGetValue("player_stats", out var psObj) || psObj is not List<object> stats)
-                            continue;
-                        if (playerIndex < stats.Count)
-                            stats[playerIndex] = MakeDefaultPlayerStats();
+                        return OperationResult.Fail($"Steam ID {newSteamId} already exists in this save");
                     }
                 }
+
+                object newNetIdValue = NetIdToSaveValue(newSteamId);
+                player["net_id"] = newNetIdValue;
+
+                // Keep history stats intact; only remap identity references.
+                RemapPlayerIdInMapHistory(data, oldSteamId, newNetIdValue);
+                TryRemapPlayerIdInMapDrawings(data, oldSteamId, newNetIdValue);
 
                 if (!SaveSave(savePath, data))
                     return OperationResult.Fail("Failed to write save file");
@@ -137,14 +141,74 @@ namespace MultiplayerTools.Core
         private static bool SaveSave(string path, Dictionary<string, object> data) =>
             SaveManagerHelper.WriteSaveFile(path, data);
 
-        private static Dictionary<string, object> MakeDefaultPlayerStats()
+        private static void RemapPlayerIdInMapHistory(Dictionary<string, object> data, string oldSteamId, object newNetIdValue)
         {
-            return new Dictionary<string, object>
+            if (string.IsNullOrEmpty(oldSteamId)) return;
+            if (!data.TryGetValue("map_point_history", out var mph) || mph is not List<object> history)
+                return;
+
+            foreach (var node in EnumerateMapHistoryNodes(history))
             {
-                ["gold"] = 0,
-                ["purchased_map_nodes"] = new List<object>(),
-                ["red_purchased_map_nodes"] = new List<object>()
-            };
+                if (!node.TryGetValue("player_stats", out var psObj) || psObj is not List<object> stats)
+                    continue;
+
+                foreach (var stat in stats)
+                {
+                    if (stat is not Dictionary<string, object> statDict) continue;
+                    if (!statDict.TryGetValue("player_id", out var playerId)) continue;
+                    if (!SteamIdsMatchDigits(playerId, oldSteamId)) continue;
+                    statDict["player_id"] = newNetIdValue;
+                }
+            }
+        }
+
+        private static void TryRemapPlayerIdInMapDrawings(Dictionary<string, object> data, string oldSteamId, object newNetIdValue)
+        {
+            if (string.IsNullOrEmpty(oldSteamId)) return;
+            if (!data.TryGetValue("map_drawings", out var mdObj)) return;
+            var b64 = mdObj?.ToString();
+            if (string.IsNullOrEmpty(b64)) return;
+
+            try
+            {
+                byte[] raw = Convert.FromBase64String(b64.Trim());
+                if (raw.Length >= 2 && raw[0] == 0x1f && raw[1] == 0x8b)
+                {
+                    using var ms = new MemoryStream(raw);
+                    using var gz = new GZipStream(ms, CompressionMode.Decompress);
+                    using var outMs = new MemoryStream();
+                    gz.CopyTo(outMs);
+                    raw = outMs.ToArray();
+                }
+
+                string text = System.Text.Encoding.UTF8.GetString(raw);
+                var root = JsonNode.Parse(text);
+                if (root is not JsonObject jo) return;
+                if (jo["drawings"] is not JsonArray drawings) return;
+
+                string newId = newNetIdValue.ToString() ?? "";
+                if (string.IsNullOrEmpty(newId)) return;
+
+                foreach (var item in drawings)
+                {
+                    if (item is not JsonObject d || d["player_id"] is null)
+                        continue;
+                    if (!string.Equals(d["player_id"]!.ToString(), oldSteamId, StringComparison.Ordinal))
+                        continue;
+                    d["player_id"] = newId;
+                }
+
+                var drawOpts = new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+                byte[] payload = System.Text.Encoding.UTF8.GetBytes(jo.ToJsonString(drawOpts));
+                using var outGz = new MemoryStream();
+                using (var gz = new GZipStream(outGz, CompressionLevel.SmallestSize, leaveOpen: true))
+                    gz.Write(payload, 0, payload.Length);
+                data["map_drawings"] = Convert.ToBase64String(outGz.ToArray());
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr("[MultiplayerTools] TryRemapPlayerIdInMapDrawings: " + ex.Message);
+            }
         }
 
         /// <summary>Add a new player by copying a source player (full copy, full HP, no potions).
@@ -299,7 +363,7 @@ namespace MultiplayerTools.Core
             }
         }
 
-        /// <summary>Remove a player at index. Removes from players[], cleans map_history and grab bags.
+        /// <summary>Remove a player at index. Removes from players[], cleans map_history and map_drawings.
         /// Player 0 (host) is protected.</summary>
         internal static OperationResult RemovePlayerFull(int playerIndex, string savePath)
         {
@@ -327,33 +391,7 @@ namespace MultiplayerTools.Core
                     removedChar = rd.TryGetValue("character_id", out var rcid) ? rcid?.ToString() ?? "?" : "?";
                 }
 
-                // 1. Clean relic_grab_bag for all remaining players
-                foreach (var p in players)
-                {
-                    if (p is not Dictionary<string, object> pd) continue;
-                    if (pd.TryGetValue("relic_grab_bag", out var bagObj) && bagObj is Dictionary<string, object> bag)
-                    {
-                        if (bag.TryGetValue("relic_id_lists", out var listsObj) && listsObj is Dictionary<string, object> lists)
-                        {
-                            foreach (var key in new[] { "common", "uncommon", "rare", "shop" })
-                                if (lists.TryGetValue(key, out var lst) && lst is List<object> l)
-                                    l.Clear();
-                        }
-                    }
-                }
-
-                // 2. Clean shared_relic_grab_bag
-                if (data.TryGetValue("shared_relic_grab_bag", out var sharedObj) && sharedObj is Dictionary<string, object> shared)
-                {
-                    if (shared.TryGetValue("relic_id_lists", out var listsObj) && listsObj is Dictionary<string, object> lists)
-                    {
-                        foreach (var key in new[] { "common", "uncommon", "rare", "shop", "event", "ancient" })
-                            if (lists.TryGetValue(key, out var lst) && lst is List<object> l)
-                                l.Clear();
-                    }
-                }
-
-                // 3. Clean map_point_history player_stats
+                // 1. Clean map_point_history player_stats
                 if (data.TryGetValue("map_point_history", out var mph) && mph is List<object> history)
                 {
                     foreach (var node in EnumerateMapHistoryNodes(history))
@@ -366,7 +404,7 @@ namespace MultiplayerTools.Core
                     }
                 }
 
-                // 4. map_drawings
+                // 2. map_drawings
                 object? removedNetRaw = removed is Dictionary<string, object> rdNet && rdNet.TryGetValue("net_id", out var rnr) ? rnr : null;
                 TryRemovePlayerFromMapDrawings(data, removedNetRaw);
 
