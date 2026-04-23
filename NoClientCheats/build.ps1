@@ -66,13 +66,13 @@ function Copy-ModPayload([string]$TargetDir) {
 New-Item -ItemType Directory -Path $ModsOutput -Force | Out-Null
 Copy-ModPayload -TargetDir $ModsOutput
 $buildStamp = Get-Date -Format "yyyy-MM-dd HH:mm"
-Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v1.3.1 $buildStamp" -Encoding UTF8
+Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v1.3.2 $buildStamp" -Encoding UTF8
 
 # ── 同时复制到 torelease（发布专用，每次构建都是全新快照）─────────────
 $ToReleaseDir = Join-Path $ProjectRoot "torelease"
 New-Item -ItemType Directory -Path $ToReleaseDir -Force | Out-Null
 Copy-ModPayload -TargetDir $ToReleaseDir
-Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v1.3.1 $buildStamp" -Encoding UTF8
+Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v1.3.2 $buildStamp" -Encoding UTF8
 
 if ($DependencyDlls.Count -gt 0) {
     Write-Host "         Included dependencies: $($DependencyDlls.Name -join ', ')"

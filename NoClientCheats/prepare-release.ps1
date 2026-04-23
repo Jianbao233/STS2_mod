@@ -6,7 +6,7 @@
 #     2) torelease\                   (this script uses this)
 #   This ensures release packages always contain freshly-built files.
 param(
-    [string]$Version = "1.3.1"
+    [string]$Version = "1.3.2"
 )
 $ErrorActionPreference = "Stop"
 $ProjectRoot = $PSScriptRoot

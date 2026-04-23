@@ -19,6 +19,7 @@ namespace NoClientCheats;
 ///    同步消息时，对比快照与收到的卡组，不一致则强制回滚。
 /// 3. RunState.PushRoom Prefix：进入新房间前清空快照，防止残留数据干扰。
 /// </summary>
+#if false // 回滚与火堆卡组检测链路已弃用：保留历史实现，仅供追溯。
 [HarmonyPatch]
 internal static class DeckSyncPatches
 {
@@ -3792,4 +3793,19 @@ internal static class DeckSyncPatches
 
     private static readonly System.Collections.Generic.Dictionary<ulong, long>
         _syncCheckTimestamps = new();
+}
+#endif
+
+// 回滚模块桩实现（无 HarmonyPatch），避免被自动 PatchAll 注入。
+internal static class DeckSyncPatches
+{
+    internal static object PendingPlayerRefreshLock { get; } = new();
+
+    internal static System.Collections.Generic.Dictionary<ulong, (ulong playerId, object snapshot, object synchronizer)>
+        PendingPlayerRefreshes { get; } = new();
+
+    internal static void ProcessDeferredPlayerRefresh(ulong playerId, object snapshot, object synchronizer)
+    {
+        // 回滚链路已弃用，保留接口以兼容旧调用点。
+    }
 }

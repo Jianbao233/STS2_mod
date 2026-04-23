@@ -96,7 +96,17 @@ gh release create v1.2.0 --title "No Client Cheats v1.2.0" --notes "..."   # 上
 
 ## Changelog / 更新日志
 
-### v1.2.0（待发布）
+### v1.3.2（2026-04-23）
+
+- 优化拦截链路稳定性与跨端兼容性
+- 清理弃用模块与冗余补丁，降低联机误干扰风险
+
+### v1.3.1（2026-04-23）
+
+- 修复手机端（PE）在部分版本上 `TargetMethod` 解析失败导致拦截失效的问题
+- 增强 `ActionQueueSynchronizer` 目标方法匹配与反射兜底兼容性
+
+### v1.2.0（2026-03-26）
 
 - **新增大厅聊天广播**：作弊拦截时可通过 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 大厅聊天向房间内所有玩家广播通知
 - 新增配置项 `Broadcast to Lobby Chat`：作弊拦截广播开关（默认关闭）

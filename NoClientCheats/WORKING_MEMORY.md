@@ -2,9 +2,27 @@
 
 > 最后更新: 2026-04-23
 >
-> ⚠️ **核心未解决问题**：副机黑屏强退（NetId 错配）— ✅ **已修复**（三步协作方案，详见下方）
+> ⚠️ **当前策略变更**：卡组回滚链路（`DeckSyncPatches` / `ClientDiagnosticPatches`）已弃用并默认禁用，仅保留作弊检测与提醒。
 >
 > **今日重大进展**：通过 ForkedRoad 源码研究和游戏 DLL 反编译，定位到 NetId 错配的根本原因，并提出 6 种解决思路。详见 `docs/NCC_NetId_思路分析.md`。**最新进展**：实现客机诊断模块 `ClientDiagnosticPatches.cs`（三步协作方案），通过 WaitForSync 的 ThreadLocal 上下文传递实现 NetId 黑屏修复。
+
+## 2026-04-23 新增记录（回滚模块弃用）
+
+- 背景：在“放弃卡组回滚”决策后，仍出现正常流程误报与偶发黑屏。
+- 改动：`NoClientCheatsMod.ApplyHarmonyPatches()` 改为逐类型注入 Harmony 补丁，并在 `EnableDeckRollbackModule=false` 时跳过
+- `DeckSyncPatches` 全部补丁类型
+- `ClientDiagnosticPatches` 全部补丁类型
+- 同时 `ProcessPendingPlayerRefreshes()` 在回滚模块关闭时直接返回，`EnsureInitialized()` 不再调用 `ClientDiagnosticPatches.EnsureInitialized()`。
+- 结果：保留基础反作弊拦截与弹窗逻辑，移除不稳定回滚路径对正常局的影响。
+
+## 2026-04-23 新增记录（硬停用：编译期注释）
+
+- 问题复盘：仅靠运行时“跳过补丁注入”不足以阻断游戏侧自动 `Harmony.PatchAll`。
+- 已执行硬停用：
+- `DeckSyncPatches.cs` 全量历史实现包裹进 `#if false`，不参与编译。
+- `ClientDiagnosticPatches.cs` 全量历史实现包裹进 `#if false`，不参与编译。
+- 新增同名桩类（无 `HarmonyPatch`）：仅保留 `NoClientCheatsMod` 依赖的最小接口，避免编译报错。
+- 效果：回滚链路与火堆相关卡组检测链路在程序集层面不可注入，自动/手动 PatchAll 均不会再启用这些逻辑。
 
 ## 2026-04-18 新增记录（Android 依赖修复）
 
@@ -42,8 +60,7 @@
 **NoClientCheats (NCC)** 是一个 Slay the Spire 2 联机模组，用于：
 1. **主机端检测**副机客户端作弊（卡组变化/transform 多选等）
 2. **第一时间弹出作弊警告**（即时在作弊发生帧）
-3. **回滚副机卡组**到作弊前状态（主机本地 + 网络通知客机）
-4. **记录作弊历史**（历史面板 UI）
+3. **记录作弊历史**（历史面板 UI）
 
 ### 核心设计原则
 - **仅在主机端执行**检测和回滚逻辑；客机不应运行 NCC 的检测逻辑

@@ -1,3 +1,14 @@
+## v1.3.2（2026-04-23）
+
+### 优化 / Improvements
+
+- 优化主机端作弊拦截链路稳定性与跨端兼容性
+- 清理弃用模块与冗余补丁，降低联机流程误干扰风险
+- Improved host-side interception stability and cross-platform compatibility
+- Removed deprecated modules and redundant patches to reduce multiplayer-side interference risk
+
+---
+
 ## v1.3.1（2026-04-23）
 
 ### 修复 / Fixed
@@ -10,44 +21,17 @@
 
 ---
 
-## v1.3.0（2026-04-01）
-
-### 新增：卡组状态回滚检测
-
-- **被动式作弊检测**：主机在休息点/事件执行后记录卡组快照，收到客机同步时对比，不一致则强制回滚
-- **覆盖场景**：篝火升级/烹饪、所有涉及卡牌选择的遗物获得事件、活动事件（Trial、ZenWeaver 等）
-- **不覆盖**：战斗中的卡牌操作（EntropyPower、TriBoomerang 等遗物效果）
-- 回滚机制：向作弊客机定向发送 `SyncPlayerDataMessage`（正确卡组状态），游戏自动重建
-
-### 技术细节
-
-- 新增 `DeckSyncPatches.cs`：含 3 个 Harmony Patch（`ChooseOption` Postfix / `OnSyncPlayerMessageReceived` Prefix / `GoToMapNode` Prefix）
-- 新增 `NoClientCheatsMod` 辅助方法：`SetExpectedDeckSnapshot` / `GetAndClearExpectedDeckSnapshot` / `ClearAllDeckSnapshots` / `IsMultiplayerHost`
-
----
-
 ## v1.2.0（2026-03-26）
 
-### 新增：大厅聊天广播
+### 新增 / Added
 
-- **作弊拦截实时广播**：安装了 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 时，作弊拦截/记录会向房间内所有玩家发送房间聊天消息（格式：`[作弊拦截] 玩家名 尝试使用 指令`）
-- 新增配置项 `Broadcast to Lobby Chat`（默认关闭）：控制是否向大厅房间聊天广播
-- 新增 `LanConnectBridge` 桥接类：通过反射调用 `Sts2LanConnect.LanConnectLobbyRuntime`，零编译期依赖
+- 新增大厅聊天广播（可选）：作弊拦截时可通过 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 向房间内玩家广播通知
+- 新增配置项 `Broadcast to Lobby Chat`（默认关闭）
+- 新增 `LanConnectBridge` 反射桥接，零编译期依赖
 
-### 修复：大厅聊天广播静默失败
-
-- **修复根因**：大厅 MOD 中 `SendRoomChatMessageAsync`/`HasActiveRoomSession`/`Instance` 均为 `internal`，跨程序集反射需用 `BindingFlags.NonPublic`（原代码只用 `Public`，反射恒返回 `null`，广播静默跳过）
-- 增加详细日志：桥接未就绪、反射未找到、未在大厅房间等情况均打印日志
-
-### 依赖
+### 依赖 / Dependencies
 
 - Slay the Spire 2（Steam 正式版）
 - ModConfig（推荐，用于游戏内配置）
-- Harmony（游戏内置，无需额外安装）
-- STS2 LAN Connect（可选，[项目地址](https://github.com/emptylower/STS2-Game-Lobby)，大厅聊天广播功能需要）
-
-### 安装说明
-
-1. 解压 `NoClientCheats-v1.3.0.zip` 到游戏 `mods/` 目录
-2. 解压后目录结构：`mods/NoClientCheats/NoClientCheats.dll` + `mods/NoClientCheats/mod_manifest.json`
-3. 仅房主需安装；客机无需安装
+- Harmony（游戏内置）
+- STS2 LAN Connect（可选）

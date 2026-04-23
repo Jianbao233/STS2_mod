@@ -6,6 +6,10 @@
 > **最新更新 (2026-04-18)**：Android 端启动报错定位到依赖缺失：`Could not load file or assembly 'Iced, Version=1.21.0.0'`（触发点：`Harmony.PatchAll -> ClientDiagnosticPatches`）。已改为随模组打包运行时依赖：`0Harmony.dll`、`Iced.dll`、`NoClientCheats.deps.json`、`NoClientCheats.runtimeconfig.json`。发布包 `NoClientCheats-v1.3.0.zip` 已包含上述文件并推送手机覆盖测试。
 >
 > **最新更新 (2026-04-23)**：手机最新日志显示 NCC 失效主因已切换为“方法适配失败”而非依赖缺失：`ClientCheatBlockPrefix.TargetMethod()` 返回 `null`，导致 `PatchAll` 中断。已修复 `ClientCheatBlockPatch.cs`：`TargetMethod` 改为 `public/nonpublic + 方法名 + 参数形状(?, ulong)` 双通道匹配，并增强 `message/action/cmd` 反射兜底（支持 `action/Action`、`cmd/Cmd`，含 `NonPublic`）。新版 `NoClientCheats-v1.3.0.zip` 已重新打包并推送手机 `/sdcard/Download/NoClientCheats-v1.3.0.zip`（2026-04-23 19:57）。
+>
+> **最新更新 (2026-04-23)**：卡组回滚模块进入弃用状态。为避免正常流程误报与黑屏，`NoClientCheatsMod.ApplyHarmonyPatches()` 已改为按类型逐个注入并跳过 `DeckSyncPatches*`、`ClientDiagnosticPatches*`；`ProcessPendingPlayerRefreshes()` 与 `EnsureInitialized()` 也在回滚模块关闭时直接短路，不再初始化/处理回滚链路。
+>
+> **最新更新 (2026-04-23)**：为彻底规避“自动 `Harmony.PatchAll` 先于 NCC 自定义补丁逻辑执行”导致回滚补丁仍被注入的问题，已将 `DeckSyncPatches.cs` 与 `ClientDiagnosticPatches.cs` 的完整历史实现改为 `#if false` 编译期注释，并新增无 `HarmonyPatch` 的桩类保留旧接口（`PendingPlayerRefresh*` / `EnsureInitialized`）。这样即使自动 PatchAll 扫描程序集，也不会再注入回滚与火堆卡组检测链路。
 
 ---
 

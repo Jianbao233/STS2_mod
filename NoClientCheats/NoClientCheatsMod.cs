@@ -14,6 +14,11 @@ namespace NoClientCheats;
 public static class NoClientCheatsMod
 {
     public const string ModId = "NoClientCheats";
+    /// <summary>
+    /// 卡组回滚模块（DeckSync + ClientDiagnostic）已弃用。
+    /// 保留源码，运行时不再注入对应 Harmony 补丁，避免正常流程误报/黑屏。
+    /// </summary>
+    internal static bool EnableDeckRollbackModule = false;
 
     // ── 配置项（运行时值，由 ModConfig 或默认值控制）──────────────────────
     internal static bool BlockEnabled = true;
@@ -75,6 +80,7 @@ public static class NoClientCheatsMod
     /// </summary>
     public static void ProcessPendingPlayerRefreshes()
     {
+        if (!EnableDeckRollbackModule) return;
         if (_pendingRefreshChecked) return;
         _pendingRefreshChecked = true;
         Callable.From(_DoProcessPendingPlayerRefreshes).CallDeferred();
@@ -111,8 +117,9 @@ public static class NoClientCheatsMod
         // InputHandler 立即创建并常驻（热键始终监听）
         EnsureInputHandler();
 
-        // 客机诊断补丁初始化（注册 NCC 回滚处理器、清理过期注册）
-        ClientDiagnosticPatches.EnsureInitialized();
+        // 客机回滚诊断模块已弃用，仅在显式启用回滚模块时初始化。
+        if (EnableDeckRollbackModule)
+            ClientDiagnosticPatches.EnsureInitialized();
 
         GD.Print($"[NoClientCheats] Loaded. Block={BlockEnabled} Hide={HideFromModList} "
             + $"Notify={ShowNotification} Dur={NotificationDuration}s "
@@ -165,14 +172,40 @@ public static class NoClientCheatsMod
         try
         {
             var harmony = new Harmony(ModId);
-            harmony.PatchAll();
-            // PatchAll / TargetMethod 在模组加载线程执行，禁止此处调用 GD.Print（会触发「不可在加载线程运行」）
-            ThreadSafeLog("[NoClientCheats] Harmony patches applied.");
+            int patchedCount = 0;
+            int skippedRollbackCount = 0;
+
+            foreach (var type in AccessTools.GetTypesFromAssembly(Assembly.GetExecutingAssembly()))
+            {
+                if (type == null) continue;
+                if (!Attribute.IsDefined(type, typeof(HarmonyPatch), true)) continue;
+
+                if (!EnableDeckRollbackModule && _IsDeckRollbackPatchType(type))
+                {
+                    skippedRollbackCount++;
+                    continue;
+                }
+
+                harmony.CreateClassProcessor(type).Patch();
+                patchedCount++;
+            }
+
+            // Patch 注册可能发生在加载线程，统一走线程安全日志。
+            ThreadSafeLog($"[NoClientCheats] Harmony patches applied. patched={patchedCount}, skippedRollback={skippedRollbackCount}");
         }
         catch (System.Exception e)
         {
             ThreadSafeLog($"[NoClientCheats] Harmony patch failed: {e}");
         }
+    }
+
+    private static bool _IsDeckRollbackPatchType(Type type)
+    {
+        var fullName = type.FullName ?? string.Empty;
+        return fullName == "NoClientCheats.DeckSyncPatches"
+            || fullName.StartsWith("NoClientCheats.DeckSyncPatches+", StringComparison.Ordinal)
+            || fullName == "NoClientCheats.ClientDiagnosticPatches"
+            || fullName.StartsWith("NoClientCheats.ClientDiagnosticPatches+", StringComparison.Ordinal);
     }
 
     /// <summary>

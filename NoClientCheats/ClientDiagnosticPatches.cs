@@ -23,6 +23,7 @@ namespace NoClientCheats;
 ///   3. 若不同 → 主机回滚消息 → 直接同步后 return false 跳过原方法
 ///   4. 若相同 → 自身正常同步 → 继续执行原方法
 /// </summary>
+#if false // 客机回滚诊断链路已弃用：保留历史实现，仅供追溯。
 [HarmonyPatch]
 internal static class ClientDiagnosticPatches
 {
@@ -477,5 +478,15 @@ internal static class ClientDiagnosticPatches
                 return f.GetValue(target);
         }
         return null;
+    }
+}
+#endif
+
+// 客机回滚诊断桩实现（无 HarmonyPatch），避免被自动 PatchAll 注入。
+internal static class ClientDiagnosticPatches
+{
+    internal static void EnsureInitialized()
+    {
+        // 回滚链路已弃用，保留接口以兼容旧调用点。
     }
 }
