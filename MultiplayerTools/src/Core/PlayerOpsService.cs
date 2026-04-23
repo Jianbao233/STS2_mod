@@ -63,7 +63,6 @@ namespace MultiplayerTools.Core
 
                 // Keep history stats intact; only remap identity references.
                 RemapPlayerIdInMapHistory(data, oldSteamId, newNetIdValue);
-                TryRemapPlayerIdInMapDrawings(data, oldSteamId, newNetIdValue);
 
                 if (!SaveSave(savePath, data))
                     return OperationResult.Fail("Failed to write save file");
@@ -350,6 +349,8 @@ namespace MultiplayerTools.Core
                 data["players"] = players;
 
                 InjectPlayerIntoMapHistory(data, newPlayer);
+                // map_drawings may be binary on newer saves; do not parse. Fresh add keeps drawings blank.
+                data["map_drawings"] = "";
 
                 if (!SaveSave(savePath, data))
                     return OperationResult.Fail("Failed to write save file");
@@ -405,8 +406,8 @@ namespace MultiplayerTools.Core
                 }
 
                 // 2. map_drawings
-                object? removedNetRaw = removed is Dictionary<string, object> rdNet && rdNet.TryGetValue("net_id", out var rnr) ? rnr : null;
-                TryRemovePlayerFromMapDrawings(data, removedNetRaw);
+                // Do not parse/transform drawings payload. Remove the whole field on player deletion.
+                RemoveMapDrawingsField(data);
 
                 var writeOk = SaveSave(savePath, data);
 
@@ -436,6 +437,12 @@ namespace MultiplayerTools.Core
         {
             if (a == null || string.IsNullOrEmpty(b)) return false;
             return string.Equals(a.ToString(), b, StringComparison.Ordinal);
+        }
+
+        private static void RemoveMapDrawingsField(Dictionary<string, object> data)
+        {
+            if (data.ContainsKey("map_drawings"))
+                data.Remove("map_drawings");
         }
 
         /// <summary>v2 <c>core.remove_player</c> step 4: strip drawings for removed <c>player_id</c>.</summary>
