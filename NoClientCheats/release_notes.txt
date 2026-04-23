@@ -1,3 +1,15 @@
+## v1.3.1（2026-04-23）
+
+### 修复 / Fixed
+
+- 修复最新版本手机端（PE）作弊拦截失效：`ClientCheatBlockPrefix.TargetMethod()` 在部分版本返回 `null`，导致 Harmony 关键补丁未生效
+- 适配 `ActionQueueSynchronizer` 方法可见性与签名变化：`TargetMethod` 改为 `Public/NonPublic + 参数形状(?, ulong)` 双通道匹配
+- 增强反射兜底：`message.action/Action` 与 `cmd/Cmd` 字段名差异均可识别，提升跨版本稳定性
+- Fixed anti-cheat interception failure on the latest mobile (PE) build caused by `TargetMethod()` resolving to null
+- Added robust method resolution for `ActionQueueSynchronizer` visibility/signature drift and stronger reflection fallbacks for `action/cmd` naming differences
+
+---
+
 ## v1.3.0（2026-04-01）
 
 ### 新增：卡组状态回滚检测

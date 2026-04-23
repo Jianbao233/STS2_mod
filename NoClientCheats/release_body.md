@@ -1,33 +1,25 @@
-## 禁止客机作弊 v1.2.0
+## 禁止客机作弊 / No Client Cheats v1.3.1
 
-### 新增
+### 本次更新 / What's New
 
-- **大厅聊天广播**：作弊拦截时通过 [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby) 向房间内所有玩家发送聊天消息（如 `[作弊拦截] 玩家名 尝试使用 指令`），默认关闭
-- 新增 `LanConnectBridge` 桥接类：反射调用大厅 MOD 的 `LanConnectLobbyRuntime`，零编译期依赖
+- 修复最新版本手机端（PE）作弊拦截失效的 BUG：`ClientCheatBlockPrefix.TargetMethod()` 返回 `null` 时，关键 Harmony 补丁未挂上
+- 适配 `ActionQueueSynchronizer` 方法变更：`TargetMethod` 改为 `Public/NonPublic + 参数形状(?, ulong)` 双通道匹配
+- 增强反射兜底，兼容 `message.action/Action` 与 `cmd/Cmd` 命名差异，提高跨版本稳定性
+- Fixed anti-cheat interception failure on the latest mobile (PE) build caused by `TargetMethod()` resolving to `null`
+- Added robust method resolution for `ActionQueueSynchronizer` visibility/signature drift and stronger reflection fallbacks for `action/cmd` field naming differences
 
-### 修复
+### 核心功能 / Core Features
 
-- **大厅聊天广播静默失败**：大厅 MOD 中 `SendRoomChatMessageAsync`/`HasActiveRoomSession`/`Instance` 均为 `internal`，反射须使用 `BindingFlags.NonPublic`（之前只用 `Public` 导致反射恒返回 `null`，广播静默跳过）
-- 增加详细调试日志（`godot.log` 中出现 `[NoClientCheats] LanConnect: ...`）
-
-### 功能
-
-| 功能 | 说明 |
+| 功能 / Feature | 说明 / Description |
 |------|------|
-| Block Client Cheats | 禁止客机作弊指令（房主安装，客机无需安装） |
-| 大厅聊天广播 | 通过 STS2 LAN Connect 向房间聊天广播作弊拦截（需安装大厅 MOD） |
-| F6 呼出历史面板 | 可拖拽/可调整大小的作弊拦截历史记录 |
-| ModConfig | 游戏内配置所有选项 |
+| Block Client Cheats | 禁止客机作弊指令（房主安装，客机无需安装） / Block client cheat console commands (host-only install) |
+| Deck Rollback | 检测到异常卡组变化时，主机强制回滚客机卡组 / Force rollback on suspicious deck changes |
+| History Panel (F6) | 可拖拽/可缩放作弊记录面板 / Draggable and resizable cheat history panel |
+| ModConfig | 游戏内配置所有选项 / In-game configuration support |
 
-### 依赖
+### 依赖 / Dependencies
 
-- Slay the Spire 2（Steam 正式版）
-- ModConfig（推荐）
-- Harmony（游戏内置）
-- STS2 LAN Connect（可选，[项目地址](https://github.com/emptylower/STS2-Game-Lobby)）
-
-### 致谢
-
-- [STS2 LAN Connect](https://github.com/emptylower/STS2-Game-Lobby)
-- sts2-heybox-support（小黑盒官方支持）
-- 皮一下就很凡 @ B站（ModConfig / DamageMeter 作者）
+- Slay the Spire 2（Steam 正式版） / Slay the Spire 2
+- ModConfig（推荐） / Recommended
+- Harmony（游戏内置） / Built-in
+- STS2 LAN Connect（可选） / Optional: [STS2-Game-Lobby](https://github.com/emptylower/STS2-Game-Lobby)

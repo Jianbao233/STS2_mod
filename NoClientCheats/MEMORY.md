@@ -2,7 +2,10 @@
 
 > 本文件为 NoClientCheats 项目的专属记忆，每次新对话开始时请先阅读本文。
 >
-> **今日重大发现 (2026-04-05)**：通过游戏 DLL 反编译 + ForkedRoad 源码研究，确认了副机黑屏强退的根因——`SyncPlayerDataMessage` 中 `senderId`（=主机NetId）与 `msg.player.NetId`（=副机NetId）在副机端错配，导致 `SyncWithSerializedPlayer` 断言失败。6 种解决思路已提出，详见 `docs/NCC_NetId_思路分析.md`。**最新方案（2026-04-05，已构建成功）**：通过 `ClientDiagnosticPatches.cs` 的三步协作——Patch A 记录接收、Patch B 存储 NCC 回滚上下文（ThreadLocal）、Patch C 用正确 NetId 执行同步并跳过原方法——实现黑屏修复。**下一步**：客机安装 DEBUG 版 NCC 并在设置中启用，收集诊断日志验证效果。
+>
+> **最新更新 (2026-04-18)**：Android 端启动报错定位到依赖缺失：`Could not load file or assembly 'Iced, Version=1.21.0.0'`（触发点：`Harmony.PatchAll -> ClientDiagnosticPatches`）。已改为随模组打包运行时依赖：`0Harmony.dll`、`Iced.dll`、`NoClientCheats.deps.json`、`NoClientCheats.runtimeconfig.json`。发布包 `NoClientCheats-v1.3.0.zip` 已包含上述文件并推送手机覆盖测试。
+>
+> **最新更新 (2026-04-23)**：手机最新日志显示 NCC 失效主因已切换为“方法适配失败”而非依赖缺失：`ClientCheatBlockPrefix.TargetMethod()` 返回 `null`，导致 `PatchAll` 中断。已修复 `ClientCheatBlockPatch.cs`：`TargetMethod` 改为 `public/nonpublic + 方法名 + 参数形状(?, ulong)` 双通道匹配，并增强 `message/action/cmd` 反射兜底（支持 `action/Action`、`cmd/Cmd`，含 `NonPublic`）。新版 `NoClientCheats-v1.3.0.zip` 已重新打包并推送手机 `/sdcard/Download/NoClientCheats-v1.3.0.zip`（2026-04-23 19:57）。
 
 ---
 
@@ -13,7 +16,7 @@
 | **路径** | `K:\杀戮尖塔mod制作\STS2_mod\NoClientCheats\` |
 | **目标** | 多人联机时禁止客机（非房主）使用控制台作弊指令 |
 | **部署** | 仅房主需安装，客机无需安装 |
-| **依赖** | ModConfig（游戏内配置）、Harmony（游戏内置） |
+| **依赖** | ModConfig（游戏内配置）、Harmony（随模组打包 0Harmony.dll）、Iced（1.21.0，随模组打包） |
 | **仓库** | `https://github.com/Jianbao233/STS2_mod` |
 | **联机大厅仓库** | `https://github.com/emptylower/STS2-Game-Lobby`（STS2 LAN Connect） |
 

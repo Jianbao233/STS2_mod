@@ -36,22 +36,51 @@ while (-not (Test-Path "NoClientCheats.pck") -and $wait -lt 60) { Start-Sleep -S
 if (-not (Test-Path "NoClientCheats.pck")) { Write-Error "PCK export failed"; exit 1 }
 Write-Host "[2/3] PCK export done"
 
-$DllSrc = ".godot\mono\temp\bin\Debug\NoClientCheats.dll"
+$BuildOutput = Join-Path $ProjectRoot ".godot\mono\temp\bin\Debug"
+$DllSrc = Join-Path $BuildOutput "NoClientCheats.dll"
 if (-not (Test-Path $DllSrc)) { Write-Error "NoClientCheats.dll not found"; exit 1 }
+
+$ExcludedDependencyDlls = @("NoClientCheats.dll", "GodotSharp.dll", "GodotSharpEditor.dll")
+$DependencyDlls = Get-ChildItem -Path $BuildOutput -Filter "*.dll" -File |
+    Where-Object { $ExcludedDependencyDlls -notcontains $_.Name }
+$DependencyMetaFiles = @("NoClientCheats.deps.json", "NoClientCheats.runtimeconfig.json") |
+    ForEach-Object { Join-Path $BuildOutput $_ } |
+    Where-Object { Test-Path $_ }
+
+function Copy-ModPayload([string]$TargetDir) {
+    New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+    Copy-Item $DllSrc -Destination (Join-Path $TargetDir "NoClientCheats.dll") -Force
+    Copy-Item "NoClientCheats.pck" -Destination (Join-Path $TargetDir "NoClientCheats.pck") -Force
+    if (Test-Path "mod_manifest.json") {
+        Copy-Item "mod_manifest.json" -Destination (Join-Path $TargetDir "mod_manifest.json") -Force
+    }
+    foreach ($dep in $DependencyDlls) {
+        Copy-Item $dep.FullName -Destination (Join-Path $TargetDir $dep.Name) -Force
+    }
+    foreach ($meta in $DependencyMetaFiles) {
+        $metaName = [System.IO.Path]::GetFileName($meta)
+        Copy-Item $meta -Destination (Join-Path $TargetDir $metaName) -Force
+    }
+}
+
 New-Item -ItemType Directory -Path $ModsOutput -Force | Out-Null
-Copy-Item $DllSrc -Destination (Join-Path $ModsOutput "NoClientCheats.dll") -Force
-Copy-Item "NoClientCheats.pck" -Destination (Join-Path $ModsOutput "NoClientCheats.pck") -Force
+Copy-ModPayload -TargetDir $ModsOutput
 $buildStamp = Get-Date -Format "yyyy-MM-dd HH:mm"
-Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v1.3.0 $buildStamp" -Encoding UTF8
-if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ModsOutput "mod_manifest.json") -Force }
+Set-Content -Path (Join-Path $ModsOutput "last_build.txt") -Value "v1.3.1 $buildStamp" -Encoding UTF8
 
 # ── 同时复制到 torelease（发布专用，每次构建都是全新快照）─────────────
 $ToReleaseDir = Join-Path $ProjectRoot "torelease"
 New-Item -ItemType Directory -Path $ToReleaseDir -Force | Out-Null
-Copy-Item $DllSrc -Destination (Join-Path $ToReleaseDir "NoClientCheats.dll") -Force
-Copy-Item "NoClientCheats.pck" -Destination (Join-Path $ToReleaseDir "NoClientCheats.pck") -Force
-Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v1.3.0 $buildStamp" -Encoding UTF8
-if (Test-Path "mod_manifest.json") { Copy-Item "mod_manifest.json" -Destination (Join-Path $ToReleaseDir "mod_manifest.json") -Force }
+Copy-ModPayload -TargetDir $ToReleaseDir
+Set-Content -Path (Join-Path $ToReleaseDir "last_build.txt") -Value "v1.3.1 $buildStamp" -Encoding UTF8
+
+if ($DependencyDlls.Count -gt 0) {
+    Write-Host "         Included dependencies: $($DependencyDlls.Name -join ', ')"
+}
+if ($DependencyMetaFiles.Count -gt 0) {
+    $metaNames = $DependencyMetaFiles | ForEach-Object { [System.IO.Path]::GetFileName($_) }
+    Write-Host "         Included metadata: $($metaNames -join ', ')"
+}
 
 Write-Host "[3/3] Copied to $ModsOutput"
 Write-Host "         Also snapshot → $ToReleaseDir (for release packaging)"

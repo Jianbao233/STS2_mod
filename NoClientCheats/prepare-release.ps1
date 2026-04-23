@@ -6,7 +6,7 @@
 #     2) torelease\                   (this script uses this)
 #   This ensures release packages always contain freshly-built files.
 param(
-    [string]$Version = "1.2.0"
+    [string]$Version = "1.3.1"
 )
 $ErrorActionPreference = "Stop"
 $ProjectRoot = $PSScriptRoot
@@ -35,12 +35,9 @@ if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
 
 $TempDir = Join-Path $env:TEMP "NoClientCheats-release-$(Get-Random)"
 New-Item -ItemType Directory -Path (Join-Path $TempDir "NoClientCheats") -Force | Out-Null
-# Copy from torelease (freshly built snapshot), NOT from game mods folder
-Copy-Item (Join-Path $ToReleaseDir "NoClientCheats.dll")   -Destination (Join-Path $TempDir "NoClientCheats")
-Copy-Item (Join-Path $ToReleaseDir "NoClientCheats.pck")   -Destination (Join-Path $TempDir "NoClientCheats")
-Copy-Item (Join-Path $ToReleaseDir "mod_manifest.json")    -Destination (Join-Path $TempDir "NoClientCheats")
-if (Test-Path (Join-Path $ToReleaseDir "last_build.txt")) {
-    Copy-Item (Join-Path $ToReleaseDir "last_build.txt")   -Destination (Join-Path $TempDir "NoClientCheats")
+# Copy full torelease payload (base files + runtime dependencies)
+Get-ChildItem -Path $ToReleaseDir -File | ForEach-Object {
+    Copy-Item $_.FullName -Destination (Join-Path $TempDir "NoClientCheats") -Force
 }
 
 Compress-Archive -Path (Join-Path $TempDir "NoClientCheats") -DestinationPath $ZipPath

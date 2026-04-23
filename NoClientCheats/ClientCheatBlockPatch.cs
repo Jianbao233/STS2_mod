@@ -43,10 +43,33 @@ internal static class ClientCheatBlockPrefix
             }
         }
 
-        var method = t?.GetMethod("HandleRequestEnqueueActionMessage",
-            BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo method = null;
+        if (t != null)
+        {
+            // 首选：严格匹配 HandleRequestEnqueueActionMessage(?, ulong)
+            method = t.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m =>
+                {
+                    if (!string.Equals(m.Name, "HandleRequestEnqueueActionMessage", StringComparison.Ordinal))
+                        return false;
+                    var p = m.GetParameters();
+                    return p.Length == 2 && p[1].ParameterType == typeof(ulong);
+                });
 
-        Godot.GD.Print($"[NCC|DIAG] HandleRequestEnqueueActionMessage target: type={t?.FullName ?? "null"} method={method?.Name ?? "null"}");
+            // 兜底：方法名可能微调，按形状匹配 Handle*Enqueue*Action*(?, ulong)
+            method ??= t.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(m =>
+                {
+                    if (!m.Name.Contains("Handle", StringComparison.Ordinal)
+                        || !m.Name.Contains("Enqueue", StringComparison.Ordinal)
+                        || !m.Name.Contains("Action", StringComparison.Ordinal))
+                        return false;
+                    var p = m.GetParameters();
+                    return p.Length == 2 && p[1].ParameterType == typeof(ulong);
+                });
+        }
+
+        Godot.GD.Print($"[NCC|DIAG] HandleRequestEnqueueActionMessage target: type={t?.FullName ?? "null"} method={method?.Name ?? "null"} sig={method?.ToString() ?? "null"}");
 
         return method;
     }
@@ -65,8 +88,11 @@ internal static class ClientCheatBlockPrefix
 
         object action = null;
         var t = message.GetType();
-        action ??= t.GetProperty("action", BindingFlags.Public | BindingFlags.Instance)?.GetValue(message);
-        action ??= t.GetField("action", BindingFlags.Public | BindingFlags.Instance)?.GetValue(message);
+        const BindingFlags inst = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        action ??= t.GetProperty("action", inst)?.GetValue(message);
+        action ??= t.GetProperty("Action", inst)?.GetValue(message);
+        action ??= t.GetField("action", inst)?.GetValue(message);
+        action ??= t.GetField("Action", inst)?.GetValue(message);
         DIAG($"action type={action?.GetType().Name ?? "null"}");
 
         if (action == null) return true;
@@ -83,8 +109,9 @@ internal static class ClientCheatBlockPrefix
 
         if (action.GetType().Name != "NetConsoleCmdGameAction") return true;
 
-        var cmdField = action.GetType().GetField("cmd", BindingFlags.Public | BindingFlags.Instance);
-        var cmd = cmdField?.GetValue(action) as string;
+        var cmdField = action.GetType().GetField("cmd", inst) ?? action.GetType().GetField("Cmd", inst);
+        var cmdProp = action.GetType().GetProperty("cmd", inst) ?? action.GetType().GetProperty("Cmd", inst);
+        var cmd = cmdField?.GetValue(action) as string ?? cmdProp?.GetValue(action) as string;
         DIAG($"cmd={cmd ?? "null"}");
         if (string.IsNullOrWhiteSpace(cmd)) return true;
 

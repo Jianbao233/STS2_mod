@@ -1,10 +1,29 @@
 # NoClientCheats (NCC) 工作记忆 / 项目日志
 
-> 最后更新: 2026-04-05
+> 最后更新: 2026-04-23
 >
 > ⚠️ **核心未解决问题**：副机黑屏强退（NetId 错配）— ✅ **已修复**（三步协作方案，详见下方）
 >
 > **今日重大进展**：通过 ForkedRoad 源码研究和游戏 DLL 反编译，定位到 NetId 错配的根本原因，并提出 6 种解决思路。详见 `docs/NCC_NetId_思路分析.md`。**最新进展**：实现客机诊断模块 `ClientDiagnosticPatches.cs`（三步协作方案），通过 WaitForSync 的 ThreadLocal 上下文传递实现 NetId 黑屏修复。
+
+## 2026-04-18 新增记录（Android 依赖修复）
+
+- 现象：手机端主界面加载时报错，`Harmony.PatchAll` 阶段抛 `FileNotFoundException: Iced, Version=1.21.0.0`，导致 `ClientDiagnosticPatches` 类型初始化失败。
+- 根因：release 包仅包含 `NoClientCheats.dll/pck/manifest`，未附带 Harmony 运行时链路需要的依赖。
+- 已完成改动：
+- `NoClientCheats.csproj` 新增 `PackageReference Include=\"Iced\" Version=\"1.21.0\"`。
+- `build.ps1` 改为从 `.godot/mono/temp/bin/Debug` 复制依赖 DLL 与元数据到 `mods\NoClientCheats` 和 `torelease`。
+- `prepare-release.ps1` 改为从 `torelease` 全量打包，确保依赖不会漏进 zip。
+- 本次 release 内容已确认包含：`0Harmony.dll`、`Iced.dll`、`NoClientCheats.deps.json`、`NoClientCheats.runtimeconfig.json`。
+
+## 2026-04-23 新增记录（PE 方法适配修复）
+
+- 现象：手机最新日志中 NCC 虽加载，但 `PatchAll` 报错导致核心拦截补丁未生效：`ClientCheatBlockPrefix.TargetMethod() returned null`。
+- 根因：`ClientCheatBlockPatch.cs` 仅用 `BindingFlags.NonPublic | Instance` 查找 `HandleRequestEnqueueActionMessage`，当前 PE 版本方法可见性/签名匹配发生变化，返回 `null`。
+- 已完成改动：
+- `TargetMethod` 改为按 `public/nonpublic + 方法名 + 参数形状(?, ulong)` 查找，并增加按名称片段的二级兜底。
+- `Prefix` 内对 `message.action/cmd` 的反射读取改为 `Public|NonPublic`，并兼容 `action/Action`、`cmd/Cmd`。
+- 验证结果：本地编译与完整构建成功，已生成并推送新版 `NoClientCheats-v1.3.0.zip` 到手机 `/sdcard/Download/NoClientCheats-v1.3.0.zip`（时间戳 2026-04-23 19:57）。
 
 ---
 
