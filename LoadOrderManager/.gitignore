@@ -1,8 +1,0 @@
-.godot/
-torelease/
-bin/
-obj/
-.vs/
-*.user
-*.suo
-*.tmp

@@ -4,12 +4,20 @@
 *.import
 project.godot.lock
 
+# Repository boundaries: independent repos live under this workspace but are not tracked by STS2_mod
+/ModListHider/
+/LoadOrderManager/
+/PVP_ParallelTurn/
+
+# Local release/history archives
+torelease/
+toRelease/
+
 # Build output
 release/
 .publish/
 releases/
 *.zip
-!ModListHider/toRelease/*.zip
 dist/
 
 # IDE
@@ -24,3 +32,9 @@ __pycache__/
 *.pyo
 build/
 *.egg-info/
+
+# Temporary planning workspace
+ErrorPopupHintPlan_0.103.2/
+
+# Deprecated local-only project (do not upload)
+/MP_SaveSlotsNative/

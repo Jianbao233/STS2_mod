@@ -16,8 +16,11 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 | **RunHistoryAnalyzer** | 历史记录异常检测：守恒定律+来源追溯，检测作弊 | [README](RunHistoryAnalyzer/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ControlPanel** | F7 控制面板：卡牌/药水/遗物/战斗快捷 | [README](ControlPanel/README.md) |
 | **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/VC_RICH_PING_README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
-| **ModListHider** | 联机时隐藏 Mod 列表 / 原版模式（欺骗服务端与原版玩家联机） | [README](ModListHider/README.md) · [Releases](https://github.com/Jianbao233/ModListHider/releases) |
-| **LoadOrderManager** | 手动调整 Mod 加载顺序（保存到 `settings.save`，下次启动生效） | [README](LoadOrderManager/README.md) · [Repo](https://github.com/Jianbao233/STS2-LoadOrderManager) · [Releases](https://github.com/Jianbao233/STS2-LoadOrderManager/releases) |
+| **ModListHider** | 联机时隐藏 Mod 列表 / 原版模式；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/ModListHider) · [Releases](https://github.com/Jianbao233/ModListHider/releases) |
+| **LoadOrderManager** | 手动调整 Mod 加载顺序；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/STS2-LoadOrderManager) · [Releases](https://github.com/Jianbao233/STS2-LoadOrderManager/releases) |
+| **PVP_ParallelTurn** | 双人 PVP 并行回合同步实验；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/sts2-parallel-turn-pvp) |
+
+主仓库继续保存未迁移小 mod 源码；`ModListHider`、`LoadOrderManager`、`PVP_ParallelTurn` 位于本地工作区内，但由各自独立仓库管理，`STS2_mod` 主仓只在根 README/MEMORY 中保留跳转说明。
 
 ---
 
@@ -37,7 +40,8 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 
 | 项目 | 命令 | 依赖 |
 |------|------|------|
-| Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer、ModListHider、LoadOrderManager） | `cd 项目` → `.\build.ps1` | .NET 8（ModListHider 需 .NET 9）、Godot 4.5.1 Mono |
+| 主仓内 Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
+| 独立仓 Mod（ModListHider、LoadOrderManager、PVP_ParallelTurn） | 到对应独立仓库执行构建脚本 | 以独立仓库 README 为准 |
 | MP_PlayerManager | `cd MP_PlayerManager` → `.\build_exe.bat` 或 `pyinstaller ... manage_players.py` | Python 3.8+、PyInstaller |
 | ~~MP_SavePlayerRemover~~ | ~~已废弃，使用 MP_PlayerManager~~ | ~~Python 3.8+、PyInstaller~~ |
 

@@ -29,6 +29,21 @@
 | **ControlPanel** | `ControlPanel\` | F7 控制面板：卡牌/药水/遗物/战斗快捷（参考实现） |
 | **MP_PlayerManager** | `MP_PlayerManager\` | 多人玩家管理（v1 归档；v2 FreeLoadout 扩展，开发中） |
 | **MP_SavePlayerRemover** | `MP_SavePlayerRemover\` | 多人存档玩家移除工具（已废弃） |
+| **ModListHider** | `ModListHider\` | 独立仓库；主仓忽略目录，只在根 README/MEMORY 记录跳转 |
+| **LoadOrderManager** | `LoadOrderManager\` | 独立仓库；主仓忽略目录，只在根 README/MEMORY 记录跳转 |
+| **PVP_ParallelTurn** | `PVP_ParallelTurn\` | 独立仓库；主仓忽略目录，只在根 README/MEMORY 记录跳转 |
+
+---
+
+## 三项独立仓迁移记录（2026-06-12）
+
+- `ModListHider` 源码以独立仓库 `https://github.com/Jianbao233/ModListHider` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\ModListHider`。
+- `LoadOrderManager` 源码以独立仓库 `https://github.com/Jianbao233/STS2-LoadOrderManager` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\LoadOrderManager`。
+- `PVP_ParallelTurn` / `ParallelTurnPvp` 源码以独立仓库 `https://github.com/Jianbao233/sts2-parallel-turn-pvp` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\PVP_ParallelTurn`。
+- `STS2_mod` 主仓继续保存未迁移小 mod 源码；上述三项在主仓 `.gitignore` 中按整目录忽略。
+- 不使用 submodule，不保留 gitlink，不在三项目录内提交主仓跳转 README；主仓只在根 `README.md` 和本文件记录跳转说明。
+- `toRelease/`、`torelease/` 是本地历史版本与发布包存档，保留在本地，不提交到 GitHub。
+- `K:\Dev` 是外部/他人仓库克隆区，不作为本人 STS2 Mod 的保存和开发位置；除非用户要求比对外部仓库，否则不要进入。
 
 ---
 
