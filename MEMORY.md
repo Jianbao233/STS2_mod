@@ -32,6 +32,7 @@
 | **ModListHider** | `ModListHider\` | 独立仓库；主仓忽略目录，只在根 README/MEMORY 记录跳转 |
 | **LoadOrderManager** | `LoadOrderManager\` | 独立仓库；主仓忽略目录，只在根 README/MEMORY 记录跳转 |
 | **PVP_ParallelTurn** | `PVP_ParallelTurn\` | 独立仓库；主仓忽略目录，只在根 README/MEMORY 记录跳转 |
+| **RefreshShop** | `RefreshShop\` | 独立仓库；商店免费无限刷新，只刷新本地玩家商店卡牌/遗物 |
 
 ---
 
@@ -40,7 +41,8 @@
 - `ModListHider` 源码以独立仓库 `https://github.com/Jianbao233/ModListHider` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\ModListHider`。
 - `LoadOrderManager` 源码以独立仓库 `https://github.com/Jianbao233/STS2-LoadOrderManager` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\LoadOrderManager`。
 - `PVP_ParallelTurn` / `ParallelTurnPvp` 源码以独立仓库 `https://github.com/Jianbao233/sts2-parallel-turn-pvp` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\PVP_ParallelTurn`。
-- `STS2_mod` 主仓继续保存未迁移小 mod 源码；上述三项在主仓 `.gitignore` 中按整目录忽略。
+- `RefreshShop` 源码以独立仓库 `https://github.com/Jianbao233/RefreshShop` 为准；本地开发路径：`K:\杀戮尖塔mod制作\STS2_mod\RefreshShop`。定位：商店免费无限刷新，只刷新本地玩家自己的商店卡牌/遗物，入口复用删卡服务金币图标。
+- `STS2_mod` 主仓继续保存未迁移小 mod 源码；上述四项在主仓 `.gitignore` 中按整目录忽略。
 - 不使用 submodule，不保留 gitlink，不在三项目录内提交主仓跳转 README；主仓只在根 `README.md` 和本文件记录跳转说明。
 - `toRelease/`、`torelease/` 是本地历史版本与发布包存档，保留在本地，不提交到 GitHub。
 - `K:\Dev` 是外部/他人仓库克隆区，不作为本人 STS2 Mod 的保存和开发位置；除非用户要求比对外部仓库，否则不要进入。
