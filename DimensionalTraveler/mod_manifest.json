@@ -1,0 +1,15 @@
+{
+  "id": "DimensionalTraveler",
+  "pck_name": "DimensionalTraveler",
+  "name": "次元旅人",
+  "author": "@Bilibili我叫煎包",
+  "description": "以炼金原理、药剂背包和单目标调度为核心的协作角色。",
+  "version": "0.1.0",
+  "has_pck": true,
+  "has_dll": true,
+  "affects_gameplay": true,
+  "dependencies": [
+    { "id": "STS2-RitsuLib" }
+  ],
+  "min_game_version": "0.108.0"
+}

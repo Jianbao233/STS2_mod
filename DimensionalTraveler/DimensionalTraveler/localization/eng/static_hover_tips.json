@@ -1,0 +1,11 @@
+{
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_VITALITY.title": "Vitality Principle",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_VITALITY.description": "A basic alchemical principle used for recovery, protection, and rescue formulas. Retained only for the current combat.",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_VOLATILITY.title": "Volatility Principle",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_VOLATILITY.description": "A basic alchemical principle used for efficiency, routing, and burst formulas. Retained only for the current combat.",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CORRUPTION.title": "Corruption Principle",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CORRUPTION.description": "A basic alchemical principle used for offense, erosion, and weakening formulas. Retained only for the current combat.",
+  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.title": "Potion Backpack",
+  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.description": "Stores brewed potions that have not yet been retrieved during this combat.",
+  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "The Potion Backpack is empty."
+}

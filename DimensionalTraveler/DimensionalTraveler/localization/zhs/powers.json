@@ -1,0 +1,5 @@
+{
+  "DIMENSIONAL_TRAVELER_POWER_NEXT_DAMAGE_REDUCTION_POWER.title": "缓冲护盾",
+  "DIMENSIONAL_TRAVELER_POWER_NEXT_DAMAGE_REDUCTION_POWER.description": "下一次受到的攻击伤害降低。",
+  "DIMENSIONAL_TRAVELER_POWER_NEXT_DAMAGE_REDUCTION_POWER.smartDescription": "下一次受到的攻击伤害降低[blue]{Amount}%[/blue]。"
+}

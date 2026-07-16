@@ -1,0 +1,18 @@
+{
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.title": "The Dimensional Traveler",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.titleObject": "the Dimensional Traveler",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.description": "A wandering apothecary who crosses worlds. Combines three alchemical principles to brew potions for a changing battlefield.",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.pronounObject": "them",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.possessiveAdjective": "their",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.pronounPossessive": "theirs",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.pronounSubject": "they",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.cardsModifierTitle": "Dimensional Traveler Cards",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.cardsModifierDescription": "Dimensional Traveler cards will now appear in rewards and shops.",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.eventDeathPrevention": "This journey cannot end here.",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.bestiaryQuote": "Identify the principle before deciding the dose.",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.goldMonologue": "[sine]Coinage varies less between worlds than expected...[/sine]",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.aromaPrinciple": "[sine][teal]Everything follows a principle.[/teal][/sine]",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.banter.alive.endTurnPing": "Ready.",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.banter.dead.endTurnPing": "...",
+  "DIMENSIONAL_TRAVELER_CHARACTER_TRAVELER.unlockText": "The Dimensional Traveler is available from the start."
+}

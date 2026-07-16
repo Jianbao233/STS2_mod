@@ -1,0 +1,5 @@
+{
+  "DIMENSIONAL_TRAVELER_POWER_NEXT_DAMAGE_REDUCTION_POWER.title": "Buffering Shield",
+  "DIMENSIONAL_TRAVELER_POWER_NEXT_DAMAGE_REDUCTION_POWER.description": "The next incoming Attack deals less damage.",
+  "DIMENSIONAL_TRAVELER_POWER_NEXT_DAMAGE_REDUCTION_POWER.smartDescription": "The next incoming Attack deals [blue]{Amount}%[/blue] less damage."
+}
