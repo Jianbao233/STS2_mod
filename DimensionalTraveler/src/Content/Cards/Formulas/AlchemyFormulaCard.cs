@@ -16,7 +16,7 @@ public interface IAlchemyFormulaCard
 public abstract class AlchemyFormulaCard(
     PotionFamily family,
     params (string ResourceId, int Amount)[] costs)
-    : ModCardTemplate(1, CardType.Skill, CardRarity.Basic, TargetType.Self), IAlchemyFormulaCard
+    : ModCardTemplate(1, CardType.Skill, CardRarity.Common, TargetType.Self), IAlchemyFormulaCard
 {
     public PotionFamily PotionFamily { get; } = family;
 

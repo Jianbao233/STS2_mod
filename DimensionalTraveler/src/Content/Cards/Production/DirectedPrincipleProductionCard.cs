@@ -9,7 +9,7 @@ using DimensionalTraveler.Resources;
 namespace DimensionalTraveler.Content.Cards.Production;
 
 public abstract class DirectedPrincipleProductionCard(SecondaryResourceDefinition principle)
-    : ModCardTemplate(1, CardType.Skill, CardRarity.Basic, TargetType.Self)
+    : ModCardTemplate(1, CardType.Skill, CardRarity.Common, TargetType.Self)
 {
     protected override IEnumerable<DynamicVar> CanonicalVars => [new DynamicVar("Gain", 2m)];
 

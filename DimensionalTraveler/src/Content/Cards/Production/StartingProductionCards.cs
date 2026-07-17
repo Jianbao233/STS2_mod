@@ -45,7 +45,7 @@ public sealed class BalancedProduction : ModCardTemplate
 
     public override string? CustomPortraitPath => CardModel.MissingPortraitPath;
 
-    public BalancedProduction() : base(1, CardType.Skill, CardRarity.Basic, TargetType.Self)
+    public BalancedProduction() : base(1, CardType.Skill, CardRarity.Common, TargetType.Self)
     {
     }
 

@@ -1,7 +1,9 @@
+using Godot;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib;
 using STS2RitsuLib.Combat.SecondaryResources;
+using STS2RitsuLib.Scaffolding.Godot.NodeAttachments;
 using DimensionalTraveler.Bootstrap;
 using DimensionalTraveler.Characters;
 
@@ -12,6 +14,33 @@ public static class AlchemyPrinciples
     public const string VitalityLocalId = "vitality";
     public const string VolatilityLocalId = "volatility";
     public const string CorruptionLocalId = "corruption";
+
+    public const string VitalityIconPath =
+        "res://images/atlases/ui_atlas.sprites/card/energy_silent.tres";
+
+    public const string VolatilityIconPath =
+        "res://images/atlases/ui_atlas.sprites/card/energy_defect.tres";
+
+    public const string CorruptionIconPath =
+        "res://images/atlases/ui_atlas.sprites/card/energy_ironclad.tres";
+
+    private static readonly SecondaryResourceCounterStyle CombatCounterStyle =
+        SecondaryResourceCounterStyle.Default with
+        {
+            CounterSize = new(54f, 54f),
+            IconSize = new(52f, 52f),
+            FontSize = 30,
+            RowSeparation = 10,
+            IconStyle = SecondaryResourceIconStyle.Default with
+            {
+                Size = new(52f, 52f),
+                HoverTip = SecondaryResourceHoverTipStyle.Default with
+                {
+                    ResolveGlobalPosition = ResolveCombatHoverTipPosition,
+                },
+            },
+            GainFeedback = SecondaryResourceCounterGainFeedback.StarCounterLike,
+        };
 
     public static SecondaryResourceDefinition Vitality { get; private set; } = null!;
 
@@ -27,14 +56,15 @@ public static class AlchemyPrinciples
             return;
 
         var registry = RitsuLibFramework.GetSecondaryResourceRegistry(Entry.ModId);
-        Vitality = RegisterPrinciple(registry, VitalityLocalId);
-        Volatility = RegisterPrinciple(registry, VolatilityLocalId);
-        Corruption = RegisterPrinciple(registry, CorruptionLocalId);
+        Vitality = RegisterPrinciple(registry, VitalityLocalId, VitalityIconPath);
+        Volatility = RegisterPrinciple(registry, VolatilityLocalId, VolatilityIconPath);
+        Corruption = RegisterPrinciple(registry, CorruptionLocalId, CorruptionIconPath);
         All = [Vitality, Volatility, Corruption];
 
         registry.AlwaysShowInCombatUiForCharacter<Traveler>(VitalityLocalId);
         registry.AlwaysShowInCombatUiForCharacter<Traveler>(VolatilityLocalId);
         registry.AlwaysShowInCombatUiForCharacter<Traveler>(CorruptionLocalId);
+        RegisterCombatUi(registry);
     }
 
     public static int Get(Player player, SecondaryResourceDefinition principle) =>
@@ -60,10 +90,63 @@ public static class AlchemyPrinciples
 
     private static SecondaryResourceDefinition RegisterPrinciple(
         ModSecondaryResourceRegistry registry,
-        string localId) =>
+        string localId,
+        string iconPath) =>
         registry.Register(localId, new SecondaryResourceDefinition(
             defaultAmount: 0,
             baseMaxAmount: null,
             turnStartPolicy: SecondaryResourceTurnStartPolicy.None,
-            persistencePolicy: SecondaryResourcePersistencePolicy.Combat));
+            persistencePolicy: SecondaryResourcePersistencePolicy.Combat,
+            smallIconPath: iconPath,
+            largeIconPath: iconPath));
+
+    private static void RegisterCombatUi(ModSecondaryResourceRegistry registry)
+    {
+        registry.RegisterCombatUi(
+            "alchemy_principles_counter_row",
+            _ => CreateCombatCounterRow(),
+            context => context.Node.Refresh(
+                context.Player,
+                All.Where(context.VisibleDefinitions.Contains).ToArray()),
+            new NodeAttachmentOptions
+            {
+                Name = "DimensionalTravelerAlchemyPrinciples",
+                DuplicatePolicy = NodeAttachmentDuplicatePolicy.ReuseExistingByName,
+            });
+    }
+
+    private static Vector2 ResolveCombatHoverTipPosition(SecondaryResourceHoverTipPlacementContext context)
+    {
+        const float margin = 20f;
+        var ownerRect = context.Owner.GetGlobalRect();
+        var tipSize = context.TipSet.Size;
+        if (tipSize.X < 1f || tipSize.Y < 1f)
+            tipSize = context.TipSet.GetCombinedMinimumSize();
+
+        var viewportSize = context.Owner.GetViewportRect().Size;
+        var centeredX = ownerRect.Position.X + ownerRect.Size.X * 0.5f - tipSize.X * 0.5f;
+        var maxX = Math.Max(margin, viewportSize.X - tipSize.X - margin);
+        return new(
+            Mathf.Clamp(centeredX, margin, maxX),
+            Math.Max(margin, ownerRect.Position.Y - tipSize.Y - margin));
+    }
+
+    private static NSecondaryResourceCounterRow CreateCombatCounterRow()
+    {
+        var row = new NSecondaryResourceCounterRow
+        {
+            Name = "DimensionalTravelerAlchemyPrinciples",
+            AnchorLeft = 0f,
+            AnchorTop = 1f,
+            AnchorRight = 0f,
+            AnchorBottom = 1f,
+            OffsetLeft = 42f,
+            OffsetTop = -346f,
+            OffsetRight = 246f,
+            OffsetBottom = -292f,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        row.Configure(CombatCounterStyle);
+        return row;
+    }
 }
