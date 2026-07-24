@@ -14,6 +14,9 @@ public static class AlchemyPrinciples
     public const string VitalityLocalId = "vitality";
     public const string VolatilityLocalId = "volatility";
     public const string CorruptionLocalId = "corruption";
+    public const string CatalysisLocalId = "catalysis";
+    public const string DiffusionLocalId = "diffusion";
+    public const string EchoLocalId = "echo";
 
     public const string VitalityIconPath =
         "res://images/atlases/ui_atlas.sprites/card/energy_silent.tres";
@@ -48,6 +51,16 @@ public static class AlchemyPrinciples
 
     public static SecondaryResourceDefinition Corruption { get; private set; } = null!;
 
+    public static SecondaryResourceDefinition Catalysis { get; private set; } = null!;
+
+    public static SecondaryResourceDefinition Diffusion { get; private set; } = null!;
+
+    public static SecondaryResourceDefinition Echo { get; private set; } = null!;
+
+    public static IReadOnlyList<SecondaryResourceDefinition> Basic { get; private set; } = [];
+
+    public static IReadOnlyList<SecondaryResourceDefinition> Special { get; private set; } = [];
+
     public static IReadOnlyList<SecondaryResourceDefinition> All { get; private set; } = [];
 
     public static void Register()
@@ -56,14 +69,22 @@ public static class AlchemyPrinciples
             return;
 
         var registry = RitsuLibFramework.GetSecondaryResourceRegistry(Entry.ModId);
-        Vitality = RegisterPrinciple(registry, VitalityLocalId, VitalityIconPath);
-        Volatility = RegisterPrinciple(registry, VolatilityLocalId, VolatilityIconPath);
-        Corruption = RegisterPrinciple(registry, CorruptionLocalId, CorruptionIconPath);
-        All = [Vitality, Volatility, Corruption];
+        Vitality = RegisterPrinciple(registry, VitalityLocalId, VitalityIconPath, maxAmount: null);
+        Volatility = RegisterPrinciple(registry, VolatilityLocalId, VolatilityIconPath, maxAmount: null);
+        Corruption = RegisterPrinciple(registry, CorruptionLocalId, CorruptionIconPath, maxAmount: null);
+        Catalysis = RegisterPrinciple(registry, CatalysisLocalId, VitalityIconPath, maxAmount: 3);
+        Diffusion = RegisterPrinciple(registry, DiffusionLocalId, VolatilityIconPath, maxAmount: 3);
+        Echo = RegisterPrinciple(registry, EchoLocalId, CorruptionIconPath, maxAmount: 3);
+        Basic = [Vitality, Volatility, Corruption];
+        Special = [Catalysis, Diffusion, Echo];
+        All = [.. Basic, .. Special];
 
         registry.AlwaysShowInCombatUiForCharacter<Traveler>(VitalityLocalId);
         registry.AlwaysShowInCombatUiForCharacter<Traveler>(VolatilityLocalId);
         registry.AlwaysShowInCombatUiForCharacter<Traveler>(CorruptionLocalId);
+        registry.AlwaysShowInCombatUiForCharacter<Traveler>(CatalysisLocalId);
+        registry.AlwaysShowInCombatUiForCharacter<Traveler>(DiffusionLocalId);
+        registry.AlwaysShowInCombatUiForCharacter<Traveler>(EchoLocalId);
         RegisterCombatUi(registry);
     }
 
@@ -91,10 +112,11 @@ public static class AlchemyPrinciples
     private static SecondaryResourceDefinition RegisterPrinciple(
         ModSecondaryResourceRegistry registry,
         string localId,
-        string iconPath) =>
+        string iconPath,
+        int? maxAmount) =>
         registry.Register(localId, new SecondaryResourceDefinition(
             defaultAmount: 0,
-            baseMaxAmount: null,
+            baseMaxAmount: maxAmount,
             turnStartPolicy: SecondaryResourceTurnStartPolicy.None,
             persistencePolicy: SecondaryResourcePersistencePolicy.Combat,
             smallIconPath: iconPath,

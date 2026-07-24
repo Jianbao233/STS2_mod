@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib.Interop.AutoRegistration;
 using STS2RitsuLib.Scaffolding.Content;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Content.Pools;
 
 namespace DimensionalTraveler.Content.Cards.System;
@@ -24,6 +25,9 @@ public sealed class PotionSatchel : ModCardTemplate, IAlchemyBackpackCapacityPro
 
     public int Capacity => IsUpgraded ? 4 : 3;
 
+    public PotionQuality MaximumQuality =>
+        IsUpgraded ? PotionQuality.Masterpiece : PotionQuality.Refined;
+
     protected override bool IsPlayable =>
         BackpackFlow.CanStart(BackpackTransition.Retrieve, Owner, this);
 
@@ -39,6 +43,6 @@ public sealed class PotionSatchel : ModCardTemplate, IAlchemyBackpackCapacityPro
             this,
             SelectionScreenPrompt);
 
-    protected override (PileType, CardPilePosition) GetResultPileTypeAndPositionForCardPlay() =>
-        (PileType.Hand, CardPilePosition.Bottom);
+    protected override CardLocation GetResultLocationForCardPlay() =>
+        new(Owner, PileType.Hand, CardPilePosition.Bottom);
 }

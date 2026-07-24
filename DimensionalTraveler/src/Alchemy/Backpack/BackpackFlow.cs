@@ -15,6 +15,7 @@ public enum BackpackTransition
     Retrieve,
     Purify,
     Sublimate,
+    Masterpiece,
 }
 
 public enum BackpackFlowPhase
@@ -32,36 +33,64 @@ public readonly record struct BackpackFlowResult(
 public static class BackpackFlow
 {
     private sealed record TransitionSpec(
-        Func<Player, CardModel, IReadOnlyList<AlchemyPotionCard>> GetCandidates,
-        Func<Player, CardModel, AlchemyPotionCard, bool> CanCommit,
+        Func<Player, CardModel, bool, IReadOnlyList<AlchemyPotionCard>> GetCandidates,
+        Func<Player, CardModel, AlchemyPotionCard, bool, bool> CanCommit,
         Func<CardModel, AlchemyPotionCard, Task<bool>> Commit);
 
     private static readonly IReadOnlyDictionary<BackpackTransition, TransitionSpec> Transitions =
         new Dictionary<BackpackTransition, TransitionSpec>
         {
             [BackpackTransition.Retrieve] = new(
-                GetRetrievalCandidates,
-                CanRetrieve,
+                static (player, source, _) => GetRetrievalCandidates(player, source),
+                static (player, source, potion, _) => CanRetrieve(player, source, potion),
                 Retrieve),
             [BackpackTransition.Purify] = new(
-                static (player, _) => AlchemyBackpack.GetPurificationCandidates(player),
-                static (player, _, potion) =>
+                static (player, _, requireAffordable) => AlchemyBackpack.GetPotions(player)
+                    .Where(potion =>
+                        !potion.IsUpgraded
+                        && (!requireAffordable
+                            || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 1)))
+                    .ToArray(),
+                static (player, _, potion, requireAffordable) =>
                     potion.Pile?.Type == AlchemyBackpack.PileType
                     && !potion.IsUpgraded
-                    && Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 1),
-                static (source, potion) => AlchemyBackpack.Purify(potion, source)),
+                    && (!requireAffordable
+                        || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 1)),
+                static (_, potion) => AlchemyBackpack.CommitPurification(potion)),
             [BackpackTransition.Sublimate] = new(
-                static (player, _) => AlchemyBackpack.GetSublimationCandidates(player),
-                static (player, _, potion) =>
+                static (player, _, requireAffordable) => AlchemyBackpack.GetPotions(player)
+                    .Where(potion =>
+                        potion.Quality == PotionQuality.Normal
+                        && (!requireAffordable
+                            || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 2)))
+                    .ToArray(),
+                static (player, _, potion, requireAffordable) =>
                     potion.Pile?.Type == AlchemyBackpack.PileType
                     && potion.Quality == PotionQuality.Normal
-                    && Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 2),
-                static async (source, potion) =>
-                    await AlchemyBackpack.Sublimate(potion, source) is not null),
+                    && (!requireAffordable
+                        || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 2)),
+                static (_, potion) => AlchemyBackpack.CommitSublimation(potion)),
+            [BackpackTransition.Masterpiece] = new(
+                static (player, _, requireAffordable) => AlchemyBackpack.GetPotions(player)
+                    .Where(potion =>
+                        potion.Quality == PotionQuality.Refined
+                        && (!requireAffordable
+                            || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 4)))
+                    .ToArray(),
+                static (player, _, potion, requireAffordable) =>
+                    potion.Pile?.Type == AlchemyBackpack.PileType
+                    && potion.Quality == PotionQuality.Refined
+                    && (!requireAffordable
+                        || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 4)),
+                static (_, potion) => AlchemyBackpack.CommitMasterpiece(potion)),
         };
 
-    public static bool CanStart(BackpackTransition transition, Player player, CardModel source) =>
-        Resolve(transition).GetCandidates(player, source).Count > 0;
+    public static bool CanStart(
+        BackpackTransition transition,
+        Player player,
+        CardModel source,
+        bool requireAffordable = false) =>
+        Resolve(transition).GetCandidates(player, source, requireAffordable).Count > 0;
 
     public static async Task<BackpackFlowResult> Execute(
         BackpackTransition transition,
@@ -70,29 +99,59 @@ public static class BackpackFlow
         CardModel source,
         LocString selectionPrompt)
     {
-        var spec = Resolve(transition);
-        var candidates = spec.GetCandidates(player, source);
-        if (candidates.Count == 0)
+        var selected = await Select(
+            transition,
+            choiceContext,
+            player,
+            source,
+            selectionPrompt,
+            requireAffordable: false);
+        if (selected is null)
             return new BackpackFlowResult(BackpackFlowPhase.NoCandidates);
 
-        var selected = (await CardSelectCmd.FromSimpleGrid(
+        if (!CanCommit(transition, player, source, selected, requireAffordable: false))
+            return new BackpackFlowResult(BackpackFlowPhase.SelectionInvalidated, selected);
+
+        var committed = await CommitPaid(transition, source, selected);
+        return new BackpackFlowResult(
+            committed ? BackpackFlowPhase.Committed : BackpackFlowPhase.SelectionInvalidated,
+            selected);
+    }
+
+    public static async Task<AlchemyPotionCard?> Select(
+        BackpackTransition transition,
+        PlayerChoiceContext choiceContext,
+        Player player,
+        CardModel source,
+        LocString selectionPrompt,
+        bool requireAffordable)
+    {
+        var candidates = Resolve(transition).GetCandidates(player, source, requireAffordable);
+        if (candidates.Count == 0)
+            return null;
+
+        return (await CardSelectCmd.FromSimpleGrid(
                 choiceContext,
                 candidates.Cast<CardModel>().ToArray(),
                 player,
                 new CardSelectorPrefs(selectionPrompt, 1)))
             .OfType<AlchemyPotionCard>()
             .FirstOrDefault();
-        if (selected is null)
-            return new BackpackFlowResult(BackpackFlowPhase.SelectionCanceled);
-
-        if (!spec.CanCommit(player, source, selected))
-            return new BackpackFlowResult(BackpackFlowPhase.SelectionInvalidated, selected);
-
-        var committed = await spec.Commit(source, selected);
-        return new BackpackFlowResult(
-            committed ? BackpackFlowPhase.Committed : BackpackFlowPhase.SelectionInvalidated,
-            selected);
     }
+
+    public static bool CanCommit(
+        BackpackTransition transition,
+        Player player,
+        CardModel source,
+        AlchemyPotionCard potion,
+        bool requireAffordable) =>
+        Resolve(transition).CanCommit(player, source, potion, requireAffordable);
+
+    public static Task<bool> CommitPaid(
+        BackpackTransition transition,
+        CardModel source,
+        AlchemyPotionCard potion) =>
+        Resolve(transition).Commit(source, potion);
 
     private static TransitionSpec Resolve(BackpackTransition transition) =>
         Transitions.TryGetValue(transition, out var spec)

@@ -5,7 +5,15 @@
   "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_VOLATILITY.description": "用于效率、调度与爆发配方的基础炼金原理。仅在当前战斗中保留。",
   "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CORRUPTION.title": "腐化原理",
   "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CORRUPTION.description": "用于攻击、侵蚀与削弱配方的基础炼金原理。仅在当前战斗中保留。",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CATALYSIS.title": "催化原理",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CATALYSIS.description": "强化显式生产并支持生产调配。最多3层，仅在当前战斗中保留。",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_DIFFUSION.title": "扩散原理",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_DIFFUSION.description": "用于局部或整阵营药剂投放。最多3层，仅在当前战斗中保留。",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_ECHO.title": "回响原理",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_ECHO.description": "用于重放原始药剂目标快照或生成派生药剂。最多3层，仅在当前战斗中保留。",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.title": "药剂背包",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.description": "保存本场战斗中炼成、尚未取出的药剂。",
-  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "药剂背包是空的。"
+  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "药剂背包是空的。",
+  "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.title": "实验记录",
+  "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.description": "本回合每完成以下一种不同炼金步骤，记录1项：炼成原始药剂；成功提纯、升华或杰作转化背包中的已有药剂；使用原始药剂。同类步骤重复完成仍只记录1项。回响重放与回响派生药剂不计入记录。"
 }

@@ -35,7 +35,7 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="STS2-RitsuLib">
-      <HintPath>K:\SteamLibrary\steamapps\workshop\content\2868840\3747602295\lib\0.108.0\STS2-RitsuLib.dll</HintPath>
+      <HintPath>K:\SteamLibrary\steamapps\workshop\content\2868840\3747602295\lib\0.109.0\STS2-RitsuLib.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

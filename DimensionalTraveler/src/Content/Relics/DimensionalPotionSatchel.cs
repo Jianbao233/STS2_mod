@@ -8,6 +8,7 @@ using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using STS2RitsuLib.Interop.AutoRegistration;
 using STS2RitsuLib.Scaffolding.Content;
+using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Characters;
 using DimensionalTraveler.Content.Cards.System;
 using DimensionalTraveler.Content.Pools;
@@ -37,7 +38,8 @@ public sealed class DimensionalPotionSatchel : ModRelicTemplate
     public override async Task BeforeCombatStart()
     {
         Flash();
-        foreach (var principle in AlchemyPrinciples.All)
+        await AlchemyCombatState.Attach(Owner);
+        foreach (var principle in AlchemyPrinciples.Basic)
             await AlchemyPrinciples.Gain(Owner, principle, 1, this);
 
         var combatState = Owner.Creature.CombatState;
@@ -58,7 +60,7 @@ public sealed class DimensionalPotionSatchel : ModRelicTemplate
             return;
 
         Flash();
-        foreach (var principle in AlchemyPrinciples.All)
+        foreach (var principle in AlchemyPrinciples.Basic)
             await AlchemyPrinciples.Gain(Owner, principle, 1, this);
     }
 }

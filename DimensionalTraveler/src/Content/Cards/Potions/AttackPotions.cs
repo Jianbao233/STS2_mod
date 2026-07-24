@@ -1,5 +1,6 @@
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Models;
@@ -22,12 +23,14 @@ public sealed class AttackPotion : AlchemyPotionCard
     {
     }
 
-    protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
+    internal override async Task ResolveSingleTarget(
+        PlayerChoiceContext choiceContext,
+        Creature target,
+        CardPlay cardPlay)
     {
-        ArgumentNullException.ThrowIfNull(cardPlay.Target);
         await DamageCmd.Attack(DynamicVars.Damage.BaseValue)
             .FromCard(this, cardPlay)
-            .Targeting(cardPlay.Target)
+            .Targeting(target)
             .WithHitFx("vfx/vfx_attack_slash")
             .Execute(choiceContext);
     }
@@ -50,12 +53,14 @@ public sealed class RefinedAttackPotion : AlchemyPotionCard
     {
     }
 
-    protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
+    internal override async Task ResolveSingleTarget(
+        PlayerChoiceContext choiceContext,
+        Creature target,
+        CardPlay cardPlay)
     {
-        ArgumentNullException.ThrowIfNull(cardPlay.Target);
         await DamageCmd.Attack(DynamicVars.Damage.BaseValue)
             .FromCard(this, cardPlay)
-            .Targeting(cardPlay.Target)
+            .Targeting(target)
             .WithHitFx("vfx/vfx_attack_slash")
             .Execute(choiceContext);
         await AlchemyPrinciples.Gain(
@@ -68,6 +73,45 @@ public sealed class RefinedAttackPotion : AlchemyPotionCard
     protected override void OnUpgrade()
     {
         DynamicVars.Damage.UpgradeValueBy(2m);
+        DynamicVars["Corruption"].UpgradeValueBy(1m);
+    }
+}
+
+[RegisterCard(typeof(TravelerCardPool), StableEntryStem = "MASTERPIECE_ATTACK_POTION")]
+public sealed class MasterpieceAttackPotion : AlchemyPotionCard
+{
+    protected override IEnumerable<DynamicVar> CanonicalVars =>
+    [
+        new DamageVar(32m, ValueProp.Move),
+        new DynamicVar("Corruption", 3m),
+    ];
+
+    public override SecondaryResourceDefinition MainPrinciple => AlchemyPrinciples.Corruption;
+
+    public MasterpieceAttackPotion() : base(PotionFamily.Attack, PotionQuality.Masterpiece, Anyone)
+    {
+    }
+
+    internal override async Task ResolveSingleTarget(
+        PlayerChoiceContext choiceContext,
+        Creature target,
+        CardPlay cardPlay)
+    {
+        await DamageCmd.Attack(DynamicVars.Damage.BaseValue)
+            .FromCard(this, cardPlay)
+            .Targeting(target)
+            .WithHitFx("vfx/vfx_attack_slash")
+            .Execute(choiceContext);
+        await AlchemyPrinciples.Gain(
+            Owner,
+            AlchemyPrinciples.Corruption,
+            DynamicVars["Corruption"].IntValue,
+            this);
+    }
+
+    protected override void OnUpgrade()
+    {
+        DynamicVars.Damage.UpgradeValueBy(13m);
         DynamicVars["Corruption"].UpgradeValueBy(1m);
     }
 }

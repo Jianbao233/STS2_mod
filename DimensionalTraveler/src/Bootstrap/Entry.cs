@@ -5,6 +5,7 @@ using STS2RitsuLib;
 using STS2RitsuLib.Interop;
 using DimensionalTraveler.Alchemy;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Resources;
 
 namespace DimensionalTraveler.Bootstrap;
@@ -24,6 +25,7 @@ public static class Entry
         AlchemyTargetTypes.Register();
         AlchemyBackpack.Register();
         AlchemyPrinciples.Register();
+        PotionCatalog.ValidateCompleteness();
         SystemCardProtection.Install(assembly);
         Logger.Info("[DimensionalTraveler] 内容程序集、目标类型、药剂背包、炼金原理与系统牌保护已注册。");
     }

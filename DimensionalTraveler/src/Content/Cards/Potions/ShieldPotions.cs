@@ -1,5 +1,6 @@
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Models;
@@ -25,11 +26,11 @@ public sealed class ShieldPotion : AlchemyPotionCard
     {
     }
 
-    protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
-    {
-        ArgumentNullException.ThrowIfNull(cardPlay.Target);
-        return CreatureCmd.GainBlock(cardPlay.Target, DynamicVars.Block, cardPlay);
-    }
+    internal override Task ResolveSingleTarget(
+        PlayerChoiceContext choiceContext,
+        Creature target,
+        CardPlay cardPlay) =>
+        CreatureCmd.GainBlock(target, DynamicVars.Block, cardPlay);
 
     protected override void OnUpgrade() => DynamicVars.Block.UpgradeValueBy(2m);
 }
@@ -51,13 +52,15 @@ public sealed class RefinedShieldPotion : AlchemyPotionCard
     {
     }
 
-    protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
+    internal override async Task ResolveSingleTarget(
+        PlayerChoiceContext choiceContext,
+        Creature target,
+        CardPlay cardPlay)
     {
-        ArgumentNullException.ThrowIfNull(cardPlay.Target);
-        await CreatureCmd.GainBlock(cardPlay.Target, DynamicVars.Block, cardPlay);
+        await CreatureCmd.GainBlock(target, DynamicVars.Block, cardPlay);
         await PowerCmd.Apply<NextDamageReductionPower>(
             choiceContext,
-            cardPlay.Target,
+            target,
             DynamicVars["Reduction"].BaseValue,
             Owner.Creature,
             this);
@@ -67,5 +70,43 @@ public sealed class RefinedShieldPotion : AlchemyPotionCard
     {
         DynamicVars.Block.UpgradeValueBy(2m);
         DynamicVars["Reduction"].UpgradeValueBy(20m);
+    }
+}
+
+[RegisterCard(typeof(TravelerCardPool), StableEntryStem = "MASTERPIECE_SHIELD_POTION")]
+public sealed class MasterpieceShieldPotion : AlchemyPotionCard
+{
+    protected override IEnumerable<DynamicVar> CanonicalVars =>
+    [
+        new BlockVar(20m, ValueProp.Move),
+        new PowerVar<MegaCrit.Sts2.Core.Models.Powers.PlatingPower>(4m),
+    ];
+
+    public override SecondaryResourceDefinition MainPrinciple => AlchemyPrinciples.Vitality;
+
+    public override bool GainsBlock => true;
+
+    public MasterpieceShieldPotion() : base(PotionFamily.Shield, PotionQuality.Masterpiece, Anyone)
+    {
+    }
+
+    internal override async Task ResolveSingleTarget(
+        PlayerChoiceContext choiceContext,
+        Creature target,
+        CardPlay cardPlay)
+    {
+        await CreatureCmd.GainBlock(target, DynamicVars.Block, cardPlay);
+        await PowerCmd.Apply<MegaCrit.Sts2.Core.Models.Powers.PlatingPower>(
+            choiceContext,
+            target,
+            DynamicVars["PlatingPower"].BaseValue,
+            Owner.Creature,
+            this);
+    }
+
+    protected override void OnUpgrade()
+    {
+        DynamicVars.Block.UpgradeValueBy(4m);
+        DynamicVars["PlatingPower"].UpgradeValueBy(3m);
     }
 }

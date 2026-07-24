@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib.Interop.AutoRegistration;
 using STS2RitsuLib.Scaffolding.Content;
+using DimensionalTraveler.Alchemy.Production;
 using DimensionalTraveler.Characters;
 using DimensionalTraveler.Content.Pools;
 using DimensionalTraveler.Resources;
@@ -45,15 +46,21 @@ public sealed class BalancedProduction : ModCardTemplate
 
     public override string? CustomPortraitPath => CardModel.MissingPortraitPath;
 
-    public BalancedProduction() : base(1, CardType.Skill, CardRarity.Common, TargetType.Self)
+    public BalancedProduction() : base(1, CardType.Skill, CardRarity.Basic, TargetType.Self)
     {
     }
 
-    protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
+    protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
     {
         var amount = DynamicVars["Gain"].IntValue;
-        foreach (var principle in AlchemyPrinciples.All)
-            await AlchemyPrinciples.Gain(Owner, principle, amount, this);
+        return AlchemyProduction.Execute(
+            Owner,
+            this,
+            ProductionPlan.ResourcesOf(
+                (AlchemyPrinciples.Vitality, amount),
+                (AlchemyPrinciples.Volatility, amount),
+                (AlchemyPrinciples.Corruption, amount)),
+            ProductionKind.FlexibleBasic);
     }
 
     protected override void OnUpgrade() => DynamicVars["Gain"].UpgradeValueBy(1m);

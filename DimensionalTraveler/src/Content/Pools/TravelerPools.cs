@@ -1,5 +1,6 @@
 using Godot;
 using MegaCrit.Sts2.Core.Helpers;
+using STS2RitsuLib.Interop.AutoRegistration;
 using STS2RitsuLib.Scaffolding.Content;
 
 namespace DimensionalTraveler.Content.Pools;
@@ -15,6 +16,20 @@ public sealed class TravelerCardPool : TypeListCardPoolModel
     public override Color EnergyOutlineColor => new("174E59FF");
 
     public override bool IsColorless => false;
+}
+
+[RegisterSharedCardPool]
+public sealed class TravelerTokenCardPool : TypeListCardPoolModel
+{
+    public override string Title => "dimensional_traveler_choices";
+
+    public override string EnergyColorName => "ironclad";
+
+    public override Color DeckEntryCardColor => new("57C7C9");
+
+    public override Color EnergyOutlineColor => new("174E59FF");
+
+    public override bool IsColorless => true;
 }
 
 public sealed class TravelerRelicPool : TypeListRelicPoolModel

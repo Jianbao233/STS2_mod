@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Models;
 using STS2RitsuLib.Interop.AutoRegistration;
 using STS2RitsuLib.Scaffolding.Content;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Alchemy.Payment;
 using DimensionalTraveler.Characters;
 using DimensionalTraveler.Content.Cards.Formulas;
 using DimensionalTraveler.Content.Cards.Potions;
@@ -20,7 +21,7 @@ public sealed class FormulaRetrieval : ModCardTemplate
     public override string? CustomPortraitPath => CardModel.MissingPortraitPath;
 
     protected override bool IsPlayable =>
-        PileType.Draw.GetPile(Owner)?.Cards.Any(static card => card is IAlchemyFormulaCard) == true;
+        PileType.Draw.GetPile(Owner)?.Cards.Any(IsFormalFormula) == true;
 
     public FormulaRetrieval() : base(1, CardType.Skill, CardRarity.Basic, TargetType.Self)
     {
@@ -29,7 +30,7 @@ public sealed class FormulaRetrieval : ModCardTemplate
     protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
     {
         var drawPile = PileType.Draw.GetPile(Owner);
-        var candidates = drawPile?.Cards.Where(static card => card is IAlchemyFormulaCard).ToArray() ?? [];
+        var candidates = drawPile?.Cards.Where(IsFormalFormula).ToArray() ?? [];
         if (candidates.Length == 0)
             return;
 
@@ -43,6 +44,9 @@ public sealed class FormulaRetrieval : ModCardTemplate
     }
 
     protected override void OnUpgrade() => EnergyCost.UpgradeBy(-1);
+
+    private static bool IsFormalFormula(CardModel card) =>
+        card is IAlchemyFormulaCard { IsTemporaryCopy: false };
 }
 
 [RegisterCard(typeof(TravelerCardPool), StableEntryStem = "FORMULA_RETENTION")]
@@ -54,7 +58,7 @@ public sealed class FormulaRetention : ModCardTemplate
     public override string? CustomPortraitPath => CardModel.MissingPortraitPath;
 
     protected override bool IsPlayable =>
-        PileType.Hand.GetPile(Owner)?.Cards.Any(card => card != this && card is IAlchemyFormulaCard) == true;
+        PileType.Hand.GetPile(Owner)?.Cards.Any(card => card != this && IsFormalFormula(card)) == true;
 
     public FormulaRetention() : base(1, CardType.Skill, CardRarity.Basic, TargetType.Self)
     {
@@ -63,7 +67,7 @@ public sealed class FormulaRetention : ModCardTemplate
     protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
     {
         var candidates = PileType.Hand.GetPile(Owner)?.Cards
-            .Where(card => card != this && card is IAlchemyFormulaCard)
+            .Where(card => card != this && IsFormalFormula(card))
             .ToArray() ?? [];
         if (candidates.Length == 0)
             return;
@@ -78,51 +82,38 @@ public sealed class FormulaRetention : ModCardTemplate
     }
 
     protected override void OnUpgrade() => RemoveKeyword(CardKeyword.Exhaust);
+
+    private static bool IsFormalFormula(CardModel card) =>
+        card is IAlchemyFormulaCard { IsTemporaryCopy: false };
 }
 
 [RegisterCard(typeof(TravelerCardPool), StableEntryStem = "PURIFICATION")]
 [RegisterCharacterStarterCard(typeof(Traveler))]
-public sealed class Purification : ModCardTemplate
+public sealed class Purification : DynamicBackpackPaymentCard
 {
-    public override string? CustomPortraitPath => CardModel.MissingPortraitPath;
-
-    protected override bool IsPlayable =>
-        BackpackFlow.CanStart(BackpackTransition.Purify, Owner, this);
-
-    public Purification() : base(1, CardType.Skill, CardRarity.Basic, TargetType.Self)
+    public Purification()
+        : base(
+            1,
+            CardRarity.Basic,
+            BackpackTransition.Purify,
+            principleCost: 1)
     {
     }
-
-    protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay) =>
-        BackpackFlow.Execute(
-            BackpackTransition.Purify,
-            choiceContext,
-            Owner,
-            this,
-            SelectionScreenPrompt);
 
     protected override void OnUpgrade() => EnergyCost.UpgradeBy(-1);
 }
 
 [RegisterCard(typeof(TravelerCardPool), StableEntryStem = "SUBLIMATION")]
-public sealed class Sublimation : ModCardTemplate
+public sealed class Sublimation : DynamicBackpackPaymentCard
 {
-    public override string? CustomPortraitPath => CardModel.MissingPortraitPath;
-
-    protected override bool IsPlayable =>
-        BackpackFlow.CanStart(BackpackTransition.Sublimate, Owner, this);
-
-    public Sublimation() : base(1, CardType.Skill, CardRarity.Uncommon, TargetType.Self)
+    public Sublimation()
+        : base(
+            1,
+            CardRarity.Uncommon,
+            BackpackTransition.Sublimate,
+            principleCost: 2)
     {
     }
-
-    protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay) =>
-        BackpackFlow.Execute(
-            BackpackTransition.Sublimate,
-            choiceContext,
-            Owner,
-            this,
-            SelectionScreenPrompt);
 
     protected override void OnUpgrade() => EnergyCost.UpgradeBy(-1);
 }

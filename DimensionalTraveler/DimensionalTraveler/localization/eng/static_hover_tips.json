@@ -5,7 +5,15 @@
   "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_VOLATILITY.description": "A basic alchemical principle used for efficiency, routing, and burst formulas. Retained only for the current combat.",
   "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CORRUPTION.title": "Corruption Principle",
   "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CORRUPTION.description": "A basic alchemical principle used for offense, erosion, and weakening formulas. Retained only for the current combat.",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CATALYSIS.title": "Catalysis Principle",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_CATALYSIS.description": "Improves explicit production and powers production routing. Maximum 3. Retained only for the current combat.",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_DIFFUSION.title": "Diffusion Principle",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_DIFFUSION.description": "Supports additional-target and whole-side potion delivery. Maximum 3. Retained only for the current combat.",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_ECHO.title": "Echo Principle",
+  "DIMENSIONAL_TRAVELER_SECONDARY_RESOURCE_ECHO.description": "Replays original-potion target snapshots or creates derived potions. Maximum 3. Retained only for the current combat.",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.title": "Potion Backpack",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.description": "Stores brewed potions that have not yet been retrieved during this combat.",
-  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "The Potion Backpack is empty."
+  "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "The Potion Backpack is empty.",
+  "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.title": "Experiment Record",
+  "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.description": "Record 1 for each different alchemical step completed this turn: brew an original potion; successfully purify, sublimate, or transform an existing potion in the Satchel; use an original potion. Repeating the same step does not add another record. Echo replays and Echo-derived potions do not count."
 }

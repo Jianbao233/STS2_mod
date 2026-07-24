@@ -27,21 +27,12 @@ public sealed class NextDamageReductionPower : ModPowerTemplate
         CardModel? cardSource,
         CardPlay? cardPlay)
     {
-        if (target != Owner || !props.IsPoweredAttack())
+        if (target != Owner || amount <= 0m)
             return 1m;
 
         return Math.Clamp((100m - Amount) / 100m, 0m, 1m);
     }
 
-    public override async Task AfterDamageReceived(
-        PlayerChoiceContext choiceContext,
-        Creature target,
-        DamageResult result,
-        ValueProp props,
-        Creature? dealer,
-        CardModel? cardSource)
-    {
-        if (target == Owner && props.IsPoweredAttack())
-            await PowerCmd.Remove(this);
-    }
+    public override Task AfterModifyingDamageAmount(CardModel? cardSource) =>
+        PowerCmd.Remove(this);
 }

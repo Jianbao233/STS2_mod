@@ -5,3 +5,6 @@ release/
 .godot/
 *.pck
 _runtime_*
+_acceptance_runtime.log
+tests/acceptance/reports/*
+!tests/acceptance/reports/.gitkeep
