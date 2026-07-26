@@ -1,4 +1,3 @@
-using System.Reflection;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
@@ -12,18 +11,6 @@ namespace DimensionalTraveler.Alchemy.Backpack;
 
 public static class SystemCardProtection
 {
-    private const string HarmonyId = "DimensionalTraveler.SystemCardProtection";
-    private static bool _installed;
-
-    public static void Install(Assembly assembly)
-    {
-        if (_installed)
-            return;
-
-        new Harmony(HarmonyId).PatchAll(assembly);
-        _installed = true;
-    }
-
     internal static bool IsSystemCard(CardModel card) => card is PotionSatchel;
 
     internal static bool IsProtected(CardModel card) =>

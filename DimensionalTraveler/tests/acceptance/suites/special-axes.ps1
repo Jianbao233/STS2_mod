@@ -87,25 +87,40 @@ Invoke-DtCase -Suite $suite -Name "d04-full-diffusion-whole-side" -Body {
         Start-Sleep -Milliseconds 500
         $state = Get-DtState
     }
-    Set-AllDtEnemyHp -State $state -Hp 40
+    Set-AllDtEnemyHp -State $state -Hp 10
 
     $prepare = Invoke-DtCard -CardId "DIMENSIONAL_TRAVELER_CARD_FULL_DIFFUSION" -Target @{ target_index = -1 }
     Assert-DtTrue $prepare.success "D04 完整扩散未成功打出"
     Move-DtPotionToHand
     $before = Get-DtState
     $beforeEnemies = @($before.extensions.dimensionalTravelerTest.combatants |
-        Where-Object { $_.side -eq "Enemy" } | Sort-Object combatId)
+        Where-Object { $_.side -eq "Enemy" } |
+        Sort-Object combatId |
+        ForEach-Object {
+            [pscustomobject]@{
+                CombatId = [int]$_.combatId
+                CurrentHp = [int]$_.currentHp
+            }
+        })
     $play = Invoke-DtCard -CardId "DIMENSIONAL_TRAVELER_CARD_ATTACK_POTION" `
         -Target @{ target_side = "enemy"; target_index = 0 }
     Assert-DtTrue $play.success "D04 攻击药剂未成功打出"
 
     $after = Get-DtState
-    foreach ($enemy in $beforeEnemies) {
-        $current = Get-DtCombatant -State $after -CombatId ([int]$enemy.combatId)
-        Assert-DtEqual 9 ($enemy.currentHp - $current.currentHp) "D04 未对全部敌方目标结算 9 点伤害"
-    }
+    $afterCombatants = @($after.extensions.dimensionalTravelerTest.combatants |
+        Where-Object { $_.side -eq "Enemy" })
     $targets = @($after.extensions.dimensionalTravelerTest.turn.latestOriginalPotion.targetCombatIds)
     Assert-DtEqual $beforeEnemies.Count $targets.Count "D04 冻结目标集合与敌方存活集合不一致"
+    foreach ($enemy in $beforeEnemies) {
+        Assert-DtTrue ($targets -contains $enemy.CombatId) "D04 冻结目标缺少 CombatId=$($enemy.CombatId)"
+        $current = $afterCombatants | Where-Object { [int]$_.combatId -eq $enemy.CombatId } | Select-Object -First 1
+        if ($null -eq $current) {
+            Assert-DtTrue ($enemy.CurrentHp -le 9) "D04 丢失了本应存活的 CombatId=$($enemy.CombatId)"
+        }
+        else {
+            Assert-DtEqual 9 ($enemy.CurrentHp - $current.currentHp) "D04 未对 CombatId=$($enemy.CombatId) 结算 9 点伤害"
+        }
+    }
     Assert-DtEqual "None" $after.extensions.dimensionalTravelerTest.turn.pendingDiffusion "D04 结算后未清除资格"
     return @{ targetCount = $targets.Count; damageEach = 9 }
 }

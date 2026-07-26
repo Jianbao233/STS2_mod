@@ -1,0 +1,18 @@
+{
+  "STORY_DIMENSIONAL_TRAVELER_TRAVEL_RECORD": "旅途记录",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.title": "失真的遗产",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.description": "第一次抵达时，旅者只想记录这个世界如何让贫瘠的材料继续生长，如何让脆弱的生命继续战斗。\n\n他将转化限制在自己掌中，以为隔着一层理解之外的雾，就不会有人看见。\n\n涅奥与另一位无名先古却越过了那层雾。他们看见的不是方法，只有几条残缺的规律：变化可以被推动，可以蔓延，可以再次发生。\n\n后来，尖塔用自己的知识把这些残片拼成了荒疫。旅者并未给出配方，却没能让观察止于被观察的一方。",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.unlock": "[aqua]次元旅人[/aqua]已进入尖塔。\n旅途记录「失真的遗产」现已开放。",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.unlockInfo": "启用[aqua]次元旅人[/aqua]，揭示这段旧日记录。",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.unlockText": "解锁可玩角色：[aqua]次元旅人[/aqua]。\n解锁旅途记录：「失真的遗产」。",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.title": "火种的选择",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.description": "荒疫失控后，先古之民没有等待旅者替他们决定命运。\n\n他们拘禁涅奥，藏起仍能存活的人，也在不断枯萎的土地上维持最后的秩序。有人坚持等待，有人只想保住眼前的同伴；并非所有生命都以同一种方式理解延续。\n\n旅者归来时，荒疫已经与建筑师、最后之树以及世界仍能延续的条件纠缠在一起。若将其直接抹除，剩下的支点也会一同断裂。\n\n于是他没有替这个世界决定结局。他只让最后的火种不至熄灭，让仍想活下去的人继续拥有选择。",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.unlock": "一段旅程已经留下记录。\n旅途记录「火种的选择」现已开放。",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.unlockInfo": "以[aqua]次元旅人[/aqua]结束1局跑局，揭示这段记录。",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.unlockText": "解锁旅途记录：「火种的选择」。",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.title": "留下的人",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.description": "千年后，尖塔再次开放。旅者看见那些残缺的规律早已不再属于一次越界窥探。\n\n它们被当地生命使用、误读、修正，藏在重复发生的结果、越过边界的作用与被放大的代价之中。没有谁能再单独宣称它们的来源。\n\n荒疫仍会在化身附近显出错误的回声，却既不能理解旅者，也不能被旅者命令。旧因果没有因时间过去而自行消失。\n\n旅者最终没有撤回那些规则。他留下一个受限的观察者，记录它们带来的变化，并把是否再次回应的权利留在未来，而不是留给自己的一时判断。",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.unlock": "第二次旅程已经结束。\n旅途记录「留下的人」与结局回顾现已开放。",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.unlockInfo": "以[aqua]次元旅人[/aqua]结束2局跑局，揭示最后的记录。",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.unlockText": "解锁旅途记录：「留下的人」。\n解锁结局回顾。"
+}

@@ -1,0 +1,18 @@
+{
+  "STORY_DIMENSIONAL_TRAVELER_TRAVEL_RECORD": "Travel Record",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.title": "A Distorted Legacy",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.description": "On their first arrival, the traveler only meant to record how this world made barren matter grow again, how fragile lives kept fighting.\n\nThey confined transformation to their own hands, believing that no one could see through a veil beyond understanding.\n\nNeow and another, unnamed ancient crossed that veil. They did not see a method, only a few broken rules: change could be urged onward, spread outward, and happen again.\n\nLater, the Spire used its own knowledge to assemble those fragments into the Blight. The traveler gave no recipe, yet failed to keep observation on the side that was being observed.",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.unlock": "The [aqua]Dimensional Traveler[/aqua] has entered the Spire.\nTravel Record: “A Distorted Legacy” is now available.",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.unlockInfo": "Enable the [aqua]Dimensional Traveler[/aqua] to reveal this old record.",
+  "DIMENSIONAL_TRAVELER_EPOCH_1.unlockText": "Unlock playable character: [aqua]The Dimensional Traveler[/aqua].\nUnlock Travel Record: “A Distorted Legacy.”",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.title": "The Choice of a Spark",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.description": "When the Blight ran wild, the ancients did not wait for the traveler to decide their fate.\n\nThey imprisoned Neow, hid those who could still survive, and kept the last order alive upon a dying land. Some waited. Some only tried to keep the companion before them alive. Not every life understood continuance in the same way.\n\nWhen the traveler returned, the Blight had already become entangled with the Architect, the last tree, and the conditions that still allowed the world to endure. To erase it outright would have broken the remaining anchors as well.\n\nSo the traveler did not decide the world's ending. They only kept the final spark from going out, so that those who wished to live could continue to choose.",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.unlock": "One journey has left its record.\nTravel Record: “The Choice of a Spark” is now available.",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.unlockInfo": "Finish 1 run as the [aqua]Dimensional Traveler[/aqua] to reveal this record.",
+  "DIMENSIONAL_TRAVELER_EPOCH_2.unlockText": "Unlock Travel Record: “The Choice of a Spark.”",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.title": "Those Who Remained",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.description": "A thousand years later, the Spire opened again. The traveler saw that the broken rules no longer belonged to a single act of trespass.\n\nThey had been used, misread, and amended by the lives of this world. They hid in repeated outcomes, effects that crossed their bounds, and costs made larger than before. No one could claim their origin alone.\n\nThe Blight still showed an erroneous echo near the vessel. Yet it could neither understand the traveler nor obey them. Old consequences had not vanished merely because time had passed.\n\nThe traveler did not reclaim the rules. They left a limited observer to record the changes those rules would bring, leaving the choice of any future answer to the future rather than to a moment of judgment.",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.unlock": "The second journey has ended.\nTravel Record: “Those Who Remained” and the epilogue review are now available.",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.unlockInfo": "Finish 2 runs as the [aqua]Dimensional Traveler[/aqua] to reveal the final record.",
+  "DIMENSIONAL_TRAVELER_EPOCH_3.unlockText": "Unlock Travel Record: “Those Who Remained.”\nUnlock epilogue review."
+}

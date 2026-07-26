@@ -11,6 +11,11 @@ using DimensionalTraveler.Resources;
 
 namespace DimensionalTraveler.Alchemy.Backpack;
 
+public interface IAlchemyBackpackCapacityModifier
+{
+    int CapacityModifier { get; }
+}
+
 public interface IAlchemyBackpackCapacityProvider
 {
     int Capacity { get; }
@@ -46,13 +51,19 @@ public static class AlchemyBackpack
     public static IReadOnlyList<AlchemyPotionCard> GetPotions(Player player) =>
         GetPile(player).Cards.OfType<AlchemyPotionCard>().ToArray();
 
-    public static int GetCapacity(Player player) =>
-        player.Piles
+    public static int GetCapacity(Player player)
+    {
+        var baseCapacity = player.Piles
             .SelectMany(static pile => pile.Cards)
             .OfType<IAlchemyBackpackCapacityProvider>()
             .Select(static provider => provider.Capacity)
             .DefaultIfEmpty(BaseCapacity)
             .Max();
+        var relicCapacity = player.Relics
+            .OfType<IAlchemyBackpackCapacityModifier>()
+            .Sum(static modifier => modifier.CapacityModifier);
+        return baseCapacity + relicCapacity;
+    }
 
     public static PotionQuality GetMaximumQuality(Player player) =>
         player.Piles

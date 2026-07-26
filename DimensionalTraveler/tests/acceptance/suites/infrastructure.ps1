@@ -88,6 +88,62 @@ Invoke-DtCase -Suite $suite -Name "localization-key-parity" -Body {
     return @{ keys = $zhsKeys.Count; titles = 95 }
 }
 
+Invoke-DtCase -Suite $suite -Name "narrative-localization-and-event-contract" -Body {
+    $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    $localeRoot = Join-Path $projectRoot "DimensionalTraveler\localization"
+    $expectedKeyCounts = @{
+        "epochs.json" = 16
+        "events.json" = 25
+        "ancients.json" = 38
+        "narrative.json" = 3
+    }
+
+    foreach ($fileName in $expectedKeyCounts.Keys) {
+        $zhs = Get-Content -Raw -Path (Join-Path $localeRoot "zhs\$fileName") | ConvertFrom-Json
+        $eng = Get-Content -Raw -Path (Join-Path $localeRoot "eng\$fileName") | ConvertFrom-Json
+        $zhsKeys = @($zhs.PSObject.Properties.Name | Sort-Object)
+        $engKeys = @($eng.PSObject.Properties.Name | Sort-Object)
+        Assert-DtEqual $expectedKeyCounts[$fileName] $zhsKeys.Count "中文 $fileName 键数错误"
+        Assert-DtEqual $expectedKeyCounts[$fileName] $engKeys.Count "英文 $fileName 键数错误"
+        Assert-DtEqual ($zhsKeys -join "`n") ($engKeys -join "`n") "中英文 $fileName 键集合不一致"
+    }
+
+    $events = Get-Content -Raw -Path (Join-Path $localeRoot "zhs\events.json") | ConvertFrom-Json
+    foreach ($key in @(
+        "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD.title",
+        "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD.pages.TRAVELER_INITIAL.options.CONTAIN.title",
+        "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD.pages.TRAVELER_INITIAL.options.TRANSFER.title",
+        "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD.pages.TRAVELER_INITIAL.options.EXPLOIT.disabled",
+        "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD.pages.OTHER_INITIAL.options.COPY.disabled",
+        "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD.pages.OTHER_COPY.selectionScreenPrompt"
+    )) {
+        Assert-DtTrue ($null -ne $events.PSObject.Properties[$key]) "未封的记录缺少本地化键：$key"
+    }
+
+    $ancients = Get-Content -Raw -Path (Join-Path $localeRoot "zhs\ancients.json") | ConvertFrom-Json
+    $ancientIds = @("NEOW", "DARV", "OROBAS", "NONUPEIPE", "PAEL", "TANX", "VAKUU")
+    foreach ($ancientId in $ancientIds) {
+        Assert-DtTrue (@($ancients.PSObject.Properties.Name | Where-Object { $_ -like "$ancientId.talk.DIMENSIONAL_TRAVELER.*" }).Count -gt 0) "先古 $ancientId 缺少旅人分支"
+    }
+    foreach ($placeholderId in @("NONUPEIPE", "PAEL", "TANX", "VAKUU")) {
+        Assert-DtTrue ([string]$ancients.PSObject.Properties["$placeholderId.talk.DIMENSIONAL_TRAVELER.0-0r.ancient"].Value -match "测试占位") "先古 $placeholderId 的测试占位未明确标注"
+    }
+
+    $eventSource = Get-Content -Raw -Path (Join-Path $projectRoot "src\Content\Events\UnsealedRecord.cs")
+    foreach ($fragment in @(
+        "[RegisterSharedEvent]",
+        "public sealed class UnsealedRecord : ModEventTemplate",
+        'ContentAssetProfiles.Event("AROMA_OF_CHAOS")',
+        "RelicSelectCmd.FromChooseARelicScreen",
+        "FirstFormulaPrincipleDiscount",
+        "PotionSatchelExpansion"
+    )) {
+        Assert-DtTrue $eventSource.Contains($fragment) "未封的记录未满足注册或奖励边界：$fragment"
+    }
+
+    return @{ tables = $expectedKeyCounts; ancients = $ancientIds.Count; eventId = "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD" }
+}
+
 Invoke-DtCase -Suite $suite -Name "target-tool-contract" -Body {
     $target = Invoke-DtTool -Name "dimensional_traveler_test_target" -Arguments @{ action = "get" }
     Assert-DtTrue $target.ok "目标查询命令失败"

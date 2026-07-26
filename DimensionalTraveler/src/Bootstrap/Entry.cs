@@ -7,6 +7,7 @@ using DimensionalTraveler.Alchemy;
 using DimensionalTraveler.Alchemy.Backpack;
 using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Resources;
+using DimensionalTraveler.Progression;
 
 namespace DimensionalTraveler.Bootstrap;
 
@@ -22,11 +23,13 @@ public static class Entry
         var assembly = Assembly.GetExecutingAssembly();
         RitsuLibFramework.EnsureGodotScriptsRegistered(assembly, Logger);
         ModTypeDiscoveryHub.RegisterModAssembly(ModId, assembly);
+        NarrativeTimelineRegistration.Register(ModId);
+        NarrativeProgression.RegisterRunUnlockRules(ModId);
+        HarmonyPatches.Install(assembly);
         AlchemyTargetTypes.Register();
         AlchemyBackpack.Register();
         AlchemyPrinciples.Register();
         PotionCatalog.ValidateCompleteness();
-        SystemCardProtection.Install(assembly);
-        Logger.Info("[DimensionalTraveler] 内容程序集、目标类型、药剂背包、炼金原理与系统牌保护已注册。");
+        Logger.Info("[DimensionalTraveler] 内容程序集、叙事时间线、进度规则、炼金原理与运行时补丁已注册。");
     }
 }

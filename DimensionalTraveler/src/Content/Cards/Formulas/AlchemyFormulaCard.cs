@@ -6,6 +6,7 @@ using STS2RitsuLib.Combat.SecondaryResources;
 using STS2RitsuLib.Scaffolding.Content;
 using DimensionalTraveler.Alchemy.Backpack;
 using DimensionalTraveler.Content.Cards.Potions;
+using DimensionalTraveler.Content.Relics;
 
 namespace DimensionalTraveler.Content.Cards.Formulas;
 
@@ -64,10 +65,14 @@ public abstract class AlchemyFormulaCard : ModCardTemplate, IAlchemyFormulaCard
             secondaryCosts.Set(resourceId, amount);
     }
 
-    protected override Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay) =>
-        AlchemyBackpack.Brew(
+    protected override async Task OnPlay(PlayerChoiceContext choiceContext, CardPlay cardPlay)
+    {
+        var potion = await AlchemyBackpack.Brew(
             Owner,
             PotionFamily,
             ProductQuality,
             upgraded: IsUpgraded);
+        if (potion is not null)
+            Owner.GetRelic<FirstFormulaPrincipleDiscount>()?.ConsumeAfterSuccessfulBrew(this);
+    }
 }
