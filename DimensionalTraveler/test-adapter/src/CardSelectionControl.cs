@@ -5,6 +5,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
@@ -49,16 +50,23 @@ internal static class CardSelectionControl
     public static JsonObject Execute(JsonObject args)
     {
         var action = args["action"]?.GetValue<string>()?.Trim().ToLowerInvariant();
-        var screen = TryGetScreen();
+        var chooseScreen = TryGetChooseScreen();
+        var simpleScreen = TryGetSimpleScreen();
         if (action == "get")
-            return TestToolResult.Ok(new JsonObject { ["selection"] = Capture(screen) });
+            return TestToolResult.Ok(new JsonObject { ["selection"] = Capture(chooseScreen, simpleScreen) });
         if (action == "cancel")
-            return Cancel(screen);
+            return Cancel(chooseScreen);
         if (action != "select")
             return TestToolResult.Fail($"未知 action：{action ?? "<null>"}。", "invalid_action");
-        if (screen is null)
-            return TestToolResult.Fail("当前没有活动的 NChooseACardSelectionScreen。", "selection_inactive");
+        if (chooseScreen is not null)
+            return SelectChooseScreen(chooseScreen, args);
+        if (simpleScreen is not null)
+            return SelectSimpleScreen(simpleScreen, args);
+        return TestToolResult.Fail("当前没有活动的原生选卡界面。", "selection_inactive");
+    }
 
+    private static JsonObject SelectChooseScreen(NChooseACardSelectionScreen screen, JsonObject args)
+    {
         var ageMs = GetAgeMs(screen);
         if (ageMs <= 350)
         {
@@ -68,28 +76,9 @@ internal static class CardSelectionControl
         }
 
         var candidates = GetCandidates(screen);
-        NCardHolder? selected;
-        if (args["candidate_index"] is JsonNode indexNode)
-        {
-            var index = indexNode.GetValue<int>();
-            if (index < 0 || index >= candidates.Count)
-            {
-                return TestToolResult.Fail(
-                    $"candidate_index {index} 超出范围，候选数为 {candidates.Count}。",
-                    "candidate_out_of_range");
-            }
-            selected = candidates[index];
-        }
-        else
-        {
-            var cardId = args["card_id"]?.GetValue<string>()?.Trim();
-            if (string.IsNullOrWhiteSpace(cardId))
-                return TestToolResult.Fail("select 需要 candidate_index 或 card_id。", "missing_candidate");
-            selected = candidates.FirstOrDefault(holder =>
-                string.Equals(holder.CardModel?.Id.Entry, cardId, StringComparison.OrdinalIgnoreCase));
-            if (selected is null)
-                return TestToolResult.Fail($"候选中不存在 card_id {cardId}。", "candidate_not_found");
-        }
+        var selected = ResolveCandidate(candidates, args);
+        if (selected is null)
+            return CandidateError(candidates, args);
 
         var completion = CompletionSourceField?.GetValue(screen);
         var taskBefore = GetCompletionTask(completion);
@@ -110,6 +99,7 @@ internal static class CardSelectionControl
         return TestToolResult.Ok(new JsonObject
         {
             ["cardId"] = selected.CardModel?.Id.Entry,
+            ["screenType"] = nameof(NChooseACardSelectionScreen),
             ["ageMs"] = ageMs,
             ["activeScreenFound"] = true,
             ["holderCount"] = candidates.Count,
@@ -129,6 +119,54 @@ internal static class CardSelectionControl
             ["selectHolderMethodFound"] = SelectHolderMethod is not null,
             ["completionPath"] = completionPath,
         });
+    }
+
+    private static JsonObject SelectSimpleScreen(NSimpleCardSelectScreen screen, JsonObject args)
+    {
+        var grid = Descendants(screen).OfType<NCardGrid>().FirstOrDefault(GodotObject.IsInstanceValid);
+        var candidates = GetCandidates(screen);
+        var selected = ResolveCandidate(candidates, args);
+        if (grid is null)
+            return TestToolResult.Fail("原生简单选卡界面缺少 NCardGrid。", "simple_grid_unavailable");
+        if (selected is not NGridCardHolder gridHolder)
+            return CandidateError(candidates, args);
+
+        grid.EmitSignal(NCardGrid.SignalName.HolderPressed, gridHolder);
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["cardId"] = gridHolder.CardModel?.Id.Entry,
+            ["screenType"] = nameof(NSimpleCardSelectScreen),
+            ["holderCount"] = candidates.Count,
+            ["completionPath"] = "native_grid_holder_pressed",
+        });
+    }
+
+    private static NCardHolder? ResolveCandidate(IReadOnlyList<NCardHolder> candidates, JsonObject args)
+    {
+        if (args["candidate_index"] is JsonNode indexNode)
+        {
+            var index = indexNode.GetValue<int>();
+            return index >= 0 && index < candidates.Count ? candidates[index] : null;
+        }
+
+        var cardId = args["card_id"]?.GetValue<string>()?.Trim();
+        return string.IsNullOrWhiteSpace(cardId)
+            ? null
+            : candidates.FirstOrDefault(holder =>
+                string.Equals(holder.CardModel?.Id.Entry, cardId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static JsonObject CandidateError(IReadOnlyList<NCardHolder> candidates, JsonObject args)
+    {
+        if (args["candidate_index"] is JsonNode indexNode)
+        {
+            return TestToolResult.Fail(
+                $"candidate_index {indexNode.GetValue<int>()} 超出范围，候选数为 {candidates.Count}。",
+                "candidate_out_of_range");
+        }
+        if (string.IsNullOrWhiteSpace(args["card_id"]?.GetValue<string>()))
+            return TestToolResult.Fail("select 需要 candidate_index 或 card_id。", "missing_candidate");
+        return TestToolResult.Fail("候选中不存在指定 card_id。", "candidate_not_found");
     }
 
     private static JsonObject Cancel(NChooseACardSelectionScreen? screen)
@@ -151,9 +189,13 @@ internal static class CardSelectionControl
         });
     }
 
-    public static JsonObject Capture(NChooseACardSelectionScreen? screen = null)
+    public static JsonObject Capture(
+        NChooseACardSelectionScreen? chooseScreen = null,
+        NSimpleCardSelectScreen? simpleScreen = null)
     {
-        screen ??= TryGetScreen();
+        chooseScreen ??= TryGetChooseScreen();
+        simpleScreen ??= chooseScreen is null ? TryGetSimpleScreen() : null;
+        var screen = (Node?)chooseScreen ?? simpleScreen;
         if (screen is null)
         {
             return new JsonObject
@@ -181,15 +223,16 @@ internal static class CardSelectionControl
         return new JsonObject
         {
             ["active"] = true,
-            ["ready"] = GetAgeMs(screen) > 350,
-            ["ageMs"] = GetAgeMs(screen),
+            ["ready"] = chooseScreen is null || GetAgeMs(chooseScreen) > 350,
+            ["screenType"] = screen.GetType().Name,
+            ["ageMs"] = chooseScreen is null ? null : GetAgeMs(chooseScreen),
             ["candidates"] = candidates,
             ["selectors"] = CaptureSelectorState(),
             ["overlayNodeTypes"] = CaptureOverlayTypes(),
         };
     }
 
-    private static NChooseACardSelectionScreen? TryGetScreen()
+    private static NChooseACardSelectionScreen? TryGetChooseScreen()
     {
         var overlays = NOverlayStack.Instance;
         if (overlays is null)
@@ -198,6 +241,17 @@ internal static class CardSelectionControl
         return Descendants(overlays)
             .OfType<NChooseACardSelectionScreen>()
             .FirstOrDefault(GodotObject.IsInstanceValid);
+    }
+
+    private static NSimpleCardSelectScreen? TryGetSimpleScreen()
+    {
+        var overlays = NOverlayStack.Instance;
+        if (overlays is null)
+            return null;
+
+        return Descendants(overlays)
+            .OfType<NSimpleCardSelectScreen>()
+            .FirstOrDefault(screen => GodotObject.IsInstanceValid(screen) && screen.IsVisibleInTree());
     }
 
     private static JsonArray CaptureOverlayTypes()

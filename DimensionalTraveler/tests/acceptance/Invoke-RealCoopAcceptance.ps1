@@ -5,7 +5,9 @@ param(
     [int]$HostBridgePort = 9877,
     [int]$ClientBridgePort = 9887,
     [ValidateRange(5, 30)]
-    [int]$TestFps = 15,
+    [int]$TestFps = 5,
+    [ValidateRange(1, [long]::MaxValue)]
+    [long]$ProcessorAffinityMask = 1,
     [switch]$SkipBuild,
     [switch]$AllowStartGame
 )
@@ -103,7 +105,7 @@ function Invoke-GameTool {
         [Parameter(Mandatory)][string]$Endpoint,
         [Parameter(Mandatory)][string]$Name,
         [hashtable]$Arguments = @{},
-        [int]$TimeoutSeconds = 30
+        [int]$TimeoutSeconds = 90
     )
     $result = Invoke-BridgeRpc -Endpoint $Endpoint -Method "tools/call" -Params @{
         name = $Name
@@ -161,9 +163,12 @@ function Assert-ProcessAlive {
     }
 
     try {
-        # 游戏启动链可能主动提权；验收期间持续收敛到低优先级，避免抢占桌面与编辑器资源。
-        if ($Process.PriorityClass -ne [System.Diagnostics.ProcessPriorityClass]::BelowNormal) {
-            $Process.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::BelowNormal
+        if ($Process.ProcessorAffinity -ne [IntPtr]$ProcessorAffinityMask) {
+            $Process.ProcessorAffinity = [IntPtr]$ProcessorAffinityMask
+        }
+        # 双进程验收不应抢占编辑器或桌面；Idle 保证系统负载优先留给前台工作。
+        if ($Process.PriorityClass -ne [System.Diagnostics.ProcessPriorityClass]::Idle) {
+            $Process.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::Idle
         }
     }
     catch {
@@ -176,7 +181,7 @@ function Wait-Bridge {
         [Parameter(Mandatory)][string]$Endpoint,
         [Parameter(Mandatory)]$Process,
         [Parameter(Mandatory)][string]$Role,
-        [int]$TimeoutSeconds = 180
+        [int]$TimeoutSeconds = 420
     )
     $health = $Endpoint -replace '/messages$', '/health'
     $deadline = [DateTimeOffset]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -347,7 +352,8 @@ function Start-AcceptanceGame {
         $startInfo.EnvironmentVariables["DT_ACCEPTANCE_ROLE"] = $Role
         $process = [System.Diagnostics.Process]::Start($startInfo)
         if ($null -eq $process) { throw "$Role 游戏进程启动失败。" }
-        $process.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::BelowNormal
+        $process.ProcessorAffinity = [IntPtr]$ProcessorAffinityMask
+        $process.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::Idle
         return $process
     }
     finally {
@@ -362,6 +368,66 @@ function Get-LocalTravelerSnapshot {
     return @($State.extensions.dimensionalTravelerTest.travelers | Where-Object {
         [long]$_.playerNetId -eq $NetId
     })[0]
+}
+
+function Test-TravelerHasCardInPiles {
+    param([Parameter(Mandatory)]$Traveler, [Parameter(Mandatory)][string]$CardId)
+
+    return @($Traveler.piles.PSObject.Properties.Value | ForEach-Object { @($_) } | Where-Object {
+        $_.cardId -eq $CardId
+    }).Count -gt 0
+}
+
+function Get-AuthoritativeTravelerProjection {
+    param([Parameter(Mandatory)]$State)
+
+    # 审计轨迹和 UI 状态在各端独立记录，不能作为 LAN 收敛依据。
+    return @($State.extensions.dimensionalTravelerTest.travelers |
+        Sort-Object { [long]$_.playerNetId } |
+        ForEach-Object {
+            [ordered]@{
+                schemaVersion = $_.schemaVersion
+                playerNetId = $_.playerNetId
+                gamePhase = $_.gamePhase
+                principles = $_.principles
+                relics = @($_.relics)
+                nativePotions = $_.nativePotions
+                player = $_.player
+                playerCombat = $_.playerCombat
+                backpack = $_.backpack
+                piles = $_.piles
+                combatants = @($_.combatants | ForEach-Object {
+                    [ordered]@{
+                        combatId = $_.combatId
+                        side = $_.side
+                        currentHp = $_.currentHp
+                        maxHp = $_.maxHp
+                        block = $_.block
+                        isAlive = $_.isAlive
+                        isPlayer = $_.isPlayer
+                        powers = @($_.powers | Where-Object {
+                            $_.id -ne "DIMENSIONAL_TRAVELER_POWER_ALCHEMY_COMBAT_STATE_POWER"
+                        })
+                    }
+                })
+                rng = $_.rng
+                combatStateAttached = $_.combatStateAttached
+                turn = $_.turn
+                firstFormulaPrincipleDiscountConsumed = $_.firstFormulaPrincipleDiscountConsumed
+            }
+        })
+}
+
+function Assert-AuthoritativeTravelerConvergence {
+    param(
+        [Parameter(Mandatory)]$HostState,
+        [Parameter(Mandatory)]$ClientState,
+        [Parameter(Mandatory)][string]$Message
+    )
+
+    $hostProjection = ConvertTo-Json -InputObject @(Get-AuthoritativeTravelerProjection -State $HostState) -Depth 30 -Compress
+    $clientProjection = ConvertTo-Json -InputObject @(Get-AuthoritativeTravelerProjection -State $ClientState) -Depth 30 -Compress
+    Assert-Equal $hostProjection $clientProjection $Message
 }
 
 $runManifest = [ordered]@{
@@ -553,7 +619,7 @@ try {
         } -RejectCombatAsymmetry
 
     $clientSource = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{ action = "capture_lan_snapshot" } `
-        -Process $clientProcess -Role "Client" -TimeoutSeconds 30 -Predicate {
+        -Process $clientProcess -Role "Client" -TimeoutSeconds 90 -Predicate {
             param($value)
             $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
             if ($null -eq $owner) { return $false }
@@ -578,7 +644,7 @@ try {
     # 受管动作由 Host 权威队列执行，但原生 `CardSelectCmd` 对动作所有者 player 1001 判定为本地时，
     # 选择 UI 会在 Client 出现；Host 则暂停队列等待该远端 choice。
     $selection = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_selection" `
-        -Arguments @{ action = "get" } -Process $clientProcess -Role "Client" -TimeoutSeconds 30 `
+        -Arguments @{ action = "get" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
         -Predicate { param($value) $value.ok -and $value.selection.active -and $value.selection.ready }
     Assert-Equal 3 @($selection.selection.candidates).Count "Client 攻击药水候选数错误"
     $chosen = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_selection" `
@@ -614,6 +680,326 @@ try {
     Assert-Equal ($hostOwner.rng | ConvertTo-Json -Compress) ($clientOwner.rng | ConvertTo-Json -Compress) `
         "双方最终战斗 RNG 快照不一致"
 
+    # 第二条真实双端路径：Client 本地固定萃取得到护盾药剂，经原生药剂包选择取到手牌，
+    # 再对 Host 投放。这里验证背包私有、原生选择和跨玩家目标结算都通过同步动作收敛。
+    $clientBlockGrant = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "grant_native_potion"
+        potion_id = "BLOCK_POTION"
+    }
+    Assert-True $clientBlockGrant.ok "Client 建立格挡药水失败：$(Get-ToolError $clientBlockGrant)"
+    Assert-Equal "requested" $clientBlockGrant.status "Client 格挡药水注入请求未受理"
+
+    $clientBlockSource = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{ action = "capture_lan_snapshot" } `
+        -Process $clientProcess -Role "Client" -TimeoutSeconds 90 -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and @($owner.testPotionGrants | Where-Object {
+                $_.potionId -eq "BLOCK_POTION" -and $_.stage -eq "Committed" -and $null -ne $_.slotIndex
+            }).Count -eq 1
+        }
+    $clientBlockOwner = Get-LocalTravelerSnapshot -State $clientBlockSource -NetId $clientNetId
+    $blockSlotIndex = [int]@($clientBlockOwner.testPotionGrants | Where-Object {
+        $_.potionId -eq "BLOCK_POTION" -and $_.stage -eq "Committed"
+    })[0].slotIndex
+
+    $blockExtract = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "extract_native_potion"
+        potion_slot_index = $blockSlotIndex
+    }
+    Assert-True $blockExtract.ok "Client 发起格挡药水萃取失败：$(Get-ToolError $blockExtract)"
+    Assert-Equal "completed" $blockExtract.status "Client 格挡药水萃取未完成"
+
+    $clientBackpackReady = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and $owner.backpack.count -eq 2 -and
+                @($owner.backpack.cards | Where-Object { $_.family -eq "Shield" -and $_.origin -eq "Extracted" }).Count -eq 1
+        }
+
+    $satchelPlay = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "play_local_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_POTION_SATCHEL"
+        return_when_gathering_choice = $true
+    } -TimeoutSeconds 90
+    Assert-True $satchelPlay.ok "Client 打开药剂包失败：$(Get-ToolError $satchelPlay)"
+    Assert-Equal "awaiting_choice" $satchelPlay.state "Client 药剂包未进入原生选择阶段"
+
+    $satchelSelection = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_selection" `
+        -Arguments @{ action = "get" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $value.ok -and $value.selection.active -and $value.selection.ready -and
+                @($value.selection.candidates | Where-Object { $_.cardId -eq "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION" }).Count -eq 1
+        }
+    $shieldIndex = [int]@($satchelSelection.selection.candidates | Where-Object {
+        $_.cardId -eq "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION"
+    })[0].index
+    $shieldChosen = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_selection" `
+        -Arguments @{ action = "select"; candidate_index = $shieldIndex }
+    Assert-True $shieldChosen.ok "Client 从药剂包取出护盾药剂失败：$(Get-ToolError $shieldChosen)"
+
+    $clientShieldReady = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and @($owner.piles.hand | Where-Object {
+                $_.cardId -eq "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION"
+            }).Count -eq 1
+        }
+    $hostTraveler = Get-LocalTravelerSnapshot -State $hostFinal -NetId ([long]$hostLobby.localNetId)
+    Assert-True ($null -ne $hostTraveler) "Host 旅者快照缺失"
+    $hostCombatId = [uint32]$hostTraveler.player.combatId
+    $hostCombatant = @($hostTraveler.combatants | Where-Object {
+        [uint32]$_.combatId -eq $hostCombatId
+    } | Select-Object -First 1)[0]
+    Assert-True ($null -ne $hostCombatant) "Host 战斗实体快照缺失"
+    $hostBlockBefore = [int]$hostCombatant.block
+
+    $shieldPlay = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "play_local_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION"
+        target_combat_id = $hostCombatId
+    } -TimeoutSeconds 90
+    Assert-True $shieldPlay.ok "Client 对 Host 投放护盾药剂失败：$(Get-ToolError $shieldPlay)"
+
+    $hostAfterShield = Wait-ToolResult -Endpoint $hostEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $hostProcess -Role "Host" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $target = Get-LocalTravelerSnapshot -State $value -NetId ([long]$hostLobby.localNetId)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $target -and $null -ne $owner -and
+                [int](@($target.combatants | Where-Object {
+                    [uint32]$_.combatId -eq $hostCombatId
+                } | Select-Object -First 1).block) -eq ($hostBlockBefore + 8) -and
+                $owner.backpack.count -eq 1 -and
+                -not (Test-TravelerHasCardInPiles -Traveler $owner -CardId "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION")
+        }
+    $clientAfterShield = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $target = Get-LocalTravelerSnapshot -State $value -NetId ([long]$hostLobby.localNetId)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $target -and $null -ne $owner -and
+                [int](@($target.combatants | Where-Object { [uint32]$_.combatId -eq $hostCombatId } | Select-Object -First 1).block) -eq ($hostBlockBefore + 8) -and
+                $owner.backpack.count -eq 1 -and
+                -not (Test-TravelerHasCardInPiles -Traveler $owner -CardId "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION")
+        }
+    Assert-AuthoritativeTravelerConvergence -HostState $hostAfterShield -ClientState $clientAfterShield `
+        -Message "Client 对 Host 投药后的权威旅者状态不一致"
+
+    $teamDeliveryResult = [ordered]@{
+        suite = "real-coop-delivery"
+        name = "client-owned-shield-potion-delivers-to-host-through-native-satchel"
+        passed = $true
+        durationMs = [int]([DateTimeOffset]::UtcNow - $caseStartedAt).TotalMilliseconds
+        evidence = [ordered]@{
+            sourceOwnerNetId = $clientNetId
+            targetOwnerNetId = [long]$hostLobby.localNetId
+            targetCombatId = $hostCombatId
+            blockDelta = 8
+            finalBackpackCount = 1
+        }
+    }
+    Write-CaseResult -Value $teamDeliveryResult
+
+    # 第三条路径：Client 持有局部扩散，先对 Host 投放护盾药剂，再通过原生目标选择把
+    # 同一药剂扩散给 Client 自身。两端快照必须持有同一冻结双目标顺序。
+    $clientLocalDiffusionGrant = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "grant_test_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_LOCAL_DIFFUSION"
+    }
+    Assert-True $clientLocalDiffusionGrant.ok "Client 注入局部扩散测试卡失败：$(Get-ToolError $clientLocalDiffusionGrant)"
+    $clientLocalDiffusionReady = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and @($owner.piles.hand | Where-Object {
+                $_.cardId -eq "DIMENSIONAL_TRAVELER_CARD_LOCAL_DIFFUSION"
+            }).Count -eq 1
+        }
+    $localDiffusionPlay = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "play_local_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_LOCAL_DIFFUSION"
+    }
+    Assert-True $localDiffusionPlay.ok "Client 打出局部扩散失败：$(Get-ToolError $localDiffusionPlay)"
+
+    $clientPreparedDiffusion = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and $owner.turn.pendingDiffusion -eq "AdditionalTarget"
+        }
+    $clientShieldGrant = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "grant_test_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION"
+    }
+    Assert-True $clientShieldGrant.ok "Client 注入护盾药剂测试卡失败：$(Get-ToolError $clientShieldGrant)"
+    $clientShieldCardReady = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and @($owner.piles.hand | Where-Object {
+                $_.cardId -eq "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION"
+            }).Count -eq 1
+        }
+    $hostBeforeDiffusion = Get-LocalTravelerSnapshot -State $hostAfterShield -NetId ([long]$hostLobby.localNetId)
+    $clientBeforeDiffusion = Get-LocalTravelerSnapshot -State $clientPreparedDiffusion -NetId $clientNetId
+    $hostBlockBeforeDiffusion = [int](@($hostBeforeDiffusion.combatants | Where-Object {
+        [uint32]$_.combatId -eq $hostCombatId
+    } | Select-Object -First 1).block)
+    $clientCombatId = [uint32]$clientBeforeDiffusion.player.combatId
+    $clientBlockBeforeDiffusion = [int](@($clientBeforeDiffusion.combatants | Where-Object {
+        [uint32]$_.combatId -eq $clientCombatId
+    } | Select-Object -First 1).block)
+    $diffusedShieldPlay = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "play_local_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_SHIELD_POTION"
+        target_combat_id = $hostCombatId
+        return_when_targeting = $true
+    } -TimeoutSeconds 90
+    Assert-True $diffusedShieldPlay.ok "Client 发起局部扩散护盾药剂失败：$(Get-ToolError $diffusedShieldPlay)"
+    Assert-Equal "awaiting_target" $diffusedShieldPlay.state "局部扩散未进入原生追加目标选择"
+    $additionalTarget = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_target" `
+        -Arguments @{ action = "get" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $value.ok -and $value.targeting.active -and
+                @($value.targeting.candidates | Where-Object { [uint32]$_.combatId -eq $clientCombatId }).Count -eq 1
+        }
+    $additionalSelected = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_target" `
+        -Arguments @{ action = "select"; combat_id = $clientCombatId }
+    Assert-True $additionalSelected.ok "Client 提交局部扩散追加目标失败：$(Get-ToolError $additionalSelected)"
+    $hostAfterDiffusion = Wait-ToolResult -Endpoint $hostEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $hostProcess -Role "Host" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $hostTraveler = Get-LocalTravelerSnapshot -State $value -NetId ([long]$hostLobby.localNetId)
+            $client = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $hostTraveler -and $null -ne $client -and
+                [int](@($hostTraveler.combatants | Where-Object { [uint32]$_.combatId -eq $hostCombatId } | Select-Object -First 1).block) -eq ($hostBlockBeforeDiffusion + 8) -and
+                [int](@($client.combatants | Where-Object { [uint32]$_.combatId -eq $clientCombatId } | Select-Object -First 1).block) -eq ($clientBlockBeforeDiffusion + 8) -and
+                $client.turn.pendingDiffusion -eq "None"
+        }
+    $clientAfterDiffusion = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and @($owner.turn.latestOriginalPotion.targetCombatIds).Count -eq 2
+        }
+    $diffusionOwner = Get-LocalTravelerSnapshot -State $clientAfterDiffusion -NetId $clientNetId
+    $initialDiffusionTargetId = [uint32]$diffusionOwner.turn.latestOriginalPotion.targetCombatIds[0]
+    $additionalDiffusionTargetId = [uint32]$diffusionOwner.turn.latestOriginalPotion.targetCombatIds[1]
+    Assert-AuthoritativeTravelerConvergence -HostState $hostAfterDiffusion -ClientState $clientAfterDiffusion `
+        -Message "局部扩散后的权威旅者状态不一致"
+    Assert-Equal $hostCombatId $initialDiffusionTargetId "局部扩散首次目标错误"
+    Assert-Equal $clientCombatId $additionalDiffusionTargetId "局部扩散追加目标错误"
+    $diffusionResult = [ordered]@{
+        suite = "real-coop-diffusion"
+        name = "client-owned-local-diffusion-resolves-host-and-client-through-native-targeting"
+        passed = $true
+        durationMs = [int]([DateTimeOffset]::UtcNow - $caseStartedAt).TotalMilliseconds
+        evidence = @{ ownerNetId = $clientNetId; initialTargetCombatId = $hostCombatId; additionalTargetCombatId = $clientCombatId; blockDeltaEach = 8 }
+    }
+    Write-CaseResult -Value $diffusionResult
+
+    # 第四条路径：两瓶回响萃取提供恰好 2 点回响，随后 Client 重放上一条双目标原始药剂。
+    foreach ($sequence in 1..2) {
+        $echoGrant = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+            action = "grant_native_potion"
+            potion_id = "BEETLE_JUICE"
+        }
+        Assert-True $echoGrant.ok "Client 注入第 $sequence 瓶回响药水失败：$(Get-ToolError $echoGrant)"
+        $echoSource = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+            -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+            -Predicate {
+                param($value)
+                $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+                $null -ne $owner -and @($owner.testPotionGrants | Where-Object {
+                    $_.potionId -eq "BEETLE_JUICE" -and $_.stage -eq "Committed" -and $null -ne $_.slotIndex
+                }).Count -ge $sequence
+            }
+        $echoOwner = Get-LocalTravelerSnapshot -State $echoSource -NetId $clientNetId
+        $echoSlot = [int]@($echoOwner.testPotionGrants | Where-Object {
+            $_.potionId -eq "BEETLE_JUICE" -and $_.stage -eq "Committed"
+        })[$sequence - 1].slotIndex
+        $echoExtract = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+            action = "extract_native_potion"
+            potion_slot_index = $echoSlot
+        }
+        Assert-True $echoExtract.ok "Client 萃取第 $sequence 瓶回响药水失败：$(Get-ToolError $echoExtract)"
+        Assert-Equal "completed" $echoExtract.status "第 $sequence 瓶回响药水未完成萃取"
+    }
+    $clientEchoReady = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and $owner.principles.echo.amount -eq 2
+        }
+    $echoCardGrant = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "grant_test_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_ECHO_REPLAY"
+    }
+    Assert-True $echoCardGrant.ok "Client 注入回响重放测试卡失败：$(Get-ToolError $echoCardGrant)"
+    $clientEchoCardReady = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and @($owner.piles.hand | Where-Object {
+                $_.cardId -eq "DIMENSIONAL_TRAVELER_CARD_ECHO_REPLAY"
+            }).Count -eq 1
+        }
+    $echoOwnerBeforeReplay = Get-LocalTravelerSnapshot -State $clientEchoCardReady -NetId $clientNetId
+    $hostBlockBeforeReplay = [int](@($echoOwnerBeforeReplay.combatants | Where-Object {
+        [uint32]$_.combatId -eq $hostCombatId
+    } | Select-Object -First 1).block)
+    $clientBlockBeforeReplay = [int](@($echoOwnerBeforeReplay.combatants | Where-Object {
+        [uint32]$_.combatId -eq $clientCombatId
+    } | Select-Object -First 1).block)
+    $echoReplay = Invoke-GameTool -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" -Arguments @{
+        action = "play_local_card"
+        card_id = "DIMENSIONAL_TRAVELER_CARD_ECHO_REPLAY"
+    } -TimeoutSeconds 90
+    Assert-True $echoReplay.ok "Client 打出回响重放失败：$(Get-ToolError $echoReplay)"
+    $hostAfterReplay = Wait-ToolResult -Endpoint $hostEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $hostProcess -Role "Host" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $hostTraveler = Get-LocalTravelerSnapshot -State $value -NetId ([long]$hostLobby.localNetId)
+            $client = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $hostTraveler -and $null -ne $client -and
+                [int](@($hostTraveler.combatants | Where-Object { [uint32]$_.combatId -eq $hostCombatId } | Select-Object -First 1).block) -eq ($hostBlockBeforeReplay + 8) -and
+                [int](@($client.combatants | Where-Object { [uint32]$_.combatId -eq $clientCombatId } | Select-Object -First 1).block) -eq ($clientBlockBeforeReplay + 8) -and
+                $client.principles.echo.amount -eq 0
+        }
+    $clientAfterReplay = Wait-ToolResult -Endpoint $clientEndpoint -Name "dimensional_traveler_test_control" `
+        -Arguments @{ action = "capture_lan_snapshot" } -Process $clientProcess -Role "Client" -TimeoutSeconds 90 `
+        -Predicate {
+            param($value)
+            $owner = Get-LocalTravelerSnapshot -State $value -NetId $clientNetId
+            $null -ne $owner -and $owner.principles.echo.amount -eq 0
+        }
+    Assert-AuthoritativeTravelerConvergence -HostState $hostAfterReplay -ClientState $clientAfterReplay `
+        -Message "回响重放后的权威旅者状态不一致"
+    $echoReplayResult = [ordered]@{
+        suite = "real-coop-echo"
+        name = "client-owned-echo-replay-reuses-frozen-dual-target-snapshot"
+        passed = $true
+        durationMs = [int]([DateTimeOffset]::UtcNow - $caseStartedAt).TotalMilliseconds
+        evidence = @{ ownerNetId = $clientNetId; targetCombatIds = @($hostCombatId, $clientCombatId); echoSpent = 2; blockDeltaEach = 8 }
+    }
+    Write-CaseResult -Value $echoReplayResult
+
     $availableGameLogs = @($hostLog, $clientLog | Where-Object { Test-Path $_ })
     $stateDivergence = $availableGameLogs.Count -gt 0 -and
         (Select-String -Path $availableGameLogs -Pattern "State divergence|ChecksumTracker.LogStateDivergence" -Quiet)
@@ -643,16 +1029,16 @@ try {
         runId = $runId
         passed = $true
         status = "completed"
-        testCount = 1
-        passedCount = 1
+        testCount = 4
+        passedCount = 4
         failedCount = 0
         host = @{ pid = $hostProcess.Id; endpoint = $hostEndpoint; log = $hostLog }
         client = @{ pid = $clientProcess.Id; endpoint = $clientEndpoint; log = $clientLog }
-        tests = @($caseResult)
+        tests = @($caseResult, $teamDeliveryResult, $diffusionResult, $echoReplayResult)
         checkedAt = [DateTimeOffset]::Now.ToString("o")
         sessionDirectory = $sessionDir
     })
-    Write-Host "真实双进程萃取验收完成：1/1 通过"
+    Write-Host "真实双进程炼金验收完成：4/4 通过"
     Write-Host "报告：$finalPath"
 }
 catch {

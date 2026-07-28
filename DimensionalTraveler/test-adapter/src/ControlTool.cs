@@ -16,6 +16,7 @@ using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Actions;
 using MegaCrit.Sts2.Core.Entities.Merchant;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Hooks;
@@ -44,7 +45,7 @@ internal static class ControlTool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["start_test_run", "enter_test_combat", "inspect_lan_lobby", "inspect_lan_run", "capture_lan_snapshot", "disable_lan_auto_driver", "proceed_lan_event", "select_lan_traveler_and_ready", "enter_lan_test_combat", "inspect_merchant_potion_price", "inspect_run_player_round_trip", "inspect_shared_potion_pool", "inspect_extraction_catalog", "grant_native_potion", "discard_native_potion", "extract_native_potion", "force_end_player_turn", "grant_run_relic", "set_run_player_hp", "start_test_combat", "reset_scenario", "start_pseudo_coop", "inspect_players", "enter_pseudo_coop_test_combat", "apply_fixture", "apply_player_fixture", "play_player_card", "grant_relic", "grant_player_relic", "grant_player_native_potion", "extract_player_native_potion", "inspect_catalog", "set_principles", "clear_backpack", "brew_potion", "move_backpack_potion_to_hand", "reset_turn", "clear_payment_audit", "clear_extraction_audit", "set_enemy_hp", "set_enemy_block"]
+              "enum": ["start_test_run", "enter_test_combat", "inspect_lan_lobby", "inspect_lan_run", "capture_lan_snapshot", "disable_lan_auto_driver", "proceed_lan_event", "select_lan_traveler_and_ready", "enter_lan_test_combat", "inspect_merchant_potion_price", "inspect_run_player_round_trip", "inspect_shared_potion_pool", "inspect_extraction_catalog", "grant_native_potion", "grant_test_card", "discard_native_potion", "extract_native_potion", "play_local_card", "force_end_player_turn", "grant_run_relic", "set_run_player_hp", "start_test_combat", "reset_scenario", "start_pseudo_coop", "inspect_players", "enter_pseudo_coop_test_combat", "apply_fixture", "apply_player_fixture", "play_player_card", "grant_relic", "grant_player_relic", "grant_player_native_potion", "extract_player_native_potion", "inspect_catalog", "set_principles", "clear_backpack", "brew_potion", "move_backpack_potion_to_hand", "reset_turn", "clear_payment_audit", "clear_extraction_audit", "set_enemy_hp", "set_enemy_block"]
             },
             "seed": { "type": "string" },
             "player_net_id": { "type": "integer" },
@@ -56,6 +57,8 @@ internal static class ControlTool
             "family": { "type": "string" },
             "quality": { "type": "string" },
             "upgraded": { "type": "boolean" },
+            "return_when_gathering_choice": { "type": "boolean" },
+            "return_when_targeting": { "type": "boolean" },
             "origin": { "type": "string" },
             "backpack_index": { "type": "integer" },
             "potion_id": { "type": "string" },
@@ -148,8 +151,10 @@ internal static class ControlTool
             "grant_relic" => await RelicTestControl.Grant(player, args),
             "inspect_catalog" => InspectCatalog(),
             "grant_native_potion" => await GrantNativePotion(player, args),
+            "grant_test_card" => GrantTestCard(player, args),
             "discard_native_potion" => DiscardNativePotion(player, args),
             "extract_native_potion" => await ExtractNativePotion(player, args),
+            "play_local_card" => await PlayLocalCard(player, args),
             "force_end_player_turn" => ForceEndPlayerTurn(player),
             "set_principles" => await SetPrinciples(player, args),
             "clear_backpack" => await ClearBackpack(player),
@@ -750,6 +755,23 @@ internal static class ControlTool
         });
     }
 
+    private static JsonNode GrantTestCard(Player player, JsonObject args)
+    {
+        var cardId = args["card_id"]?.GetValue<string>()?.Trim();
+        if (string.IsNullOrWhiteSpace(cardId))
+            return TestToolResult.Fail("grant_test_card 需要 card_id。", "missing_card_id");
+        if (!TestCardGrantAction.CanRequest(player, cardId, out var failureCode))
+            return TestToolResult.Fail($"测试卡牌 {cardId} 不可注入：{failureCode}。", failureCode);
+        if (!TestCardGrantAction.Request(player, cardId))
+            return TestToolResult.Fail($"测试卡牌 {cardId} 的同步注入请求被拒绝。", "managed_action_request_rejected");
+
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["cardId"] = cardId,
+            ["status"] = "requested",
+        });
+    }
+
     private static JsonNode DiscardNativePotion(Player player, JsonObject args)
     {
         var slotIndex = args["potion_slot_index"]?.GetValue<int>() ?? -1;
@@ -805,6 +827,118 @@ internal static class ControlTool
         }
 
         return TestToolResult.Fail("受管萃取动作未在 1 秒内移除原生药水。", "action_timeout");
+    }
+
+    private static async Task<JsonNode> PlayLocalCard(Player player, JsonObject args)
+    {
+        var cardId = args["card_id"]?.GetValue<string>()?.Trim();
+        if (string.IsNullOrWhiteSpace(cardId))
+            return TestToolResult.Fail("play_local_card 需要 card_id。", "missing_card_id");
+
+        var hand = PileType.Hand.GetPile(player)?.Cards;
+        var card = hand?.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id.Entry, cardId, StringComparison.OrdinalIgnoreCase));
+        if (card is null)
+            return TestToolResult.Fail($"本地玩家手牌中找不到 {cardId}。", "card_not_found");
+
+        var targetId = args["target_combat_id"]?.GetValue<uint?>();
+        var target = targetId.HasValue
+            ? player.Creature.CombatState?.GetCreature(targetId)
+            : null;
+        if (targetId.HasValue && target is null)
+            return TestToolResult.Fail($"找不到 combatId={targetId} 的目标。", "target_not_found");
+        if (!card.CanPlayTargeting(target))
+            return TestToolResult.Fail($"{card.Id.Entry} 当前不能对所选目标打出。", "card_not_playable");
+
+        var waitForChoice = args["return_when_gathering_choice"]?.GetValue<bool>() ?? false;
+        var waitForTargeting = args["return_when_targeting"]?.GetValue<bool>() ?? false;
+        var playAction = new PlayCardAction(
+            player,
+            NetCombatCard.FromModel(card),
+            card.Id,
+            target?.CombatId);
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        playAction.BeforeCancelled += _ => cancelled.TrySetResult();
+        RunManager.Instance!.ActionQueueSynchronizer.RequestEnqueue(playAction);
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (waitForChoice && (
+                playAction.State == GameActionState.GatheringPlayerChoice ||
+                CardSelectionControl.Capture()["active"]?.GetValue<bool>() == true))
+            {
+                return TestToolResult.Ok(new JsonObject
+                {
+                    ["cardId"] = card.Id.Entry,
+                    ["targetCombatId"] = target?.CombatId,
+                    ["actionId"] = playAction.Id,
+                    ["state"] = "awaiting_choice",
+                });
+            }
+
+            if (waitForTargeting)
+            {
+                if (TargetingControl.Capture()["active"]?.GetValue<bool>() == true)
+                {
+                    return TestToolResult.Ok(new JsonObject
+                    {
+                        ["cardId"] = card.Id.Entry,
+                        ["targetCombatId"] = target?.CombatId,
+                        ["actionId"] = playAction.Id,
+                        ["state"] = "awaiting_target",
+                    });
+                }
+
+                // 药剂的外层 PlayCardAction 可先完成，再由 OnPlay 的后续协程打开原生目标选择。
+                // 因此显式等待目标时不能把外层动作完成误判为整个交互完成。
+                if (cancelled.Task.IsCompleted || playAction.State == GameActionState.Canceled)
+                    break;
+                await Task.Delay(50);
+                continue;
+            }
+
+            if (card.Pile?.Type != PileType.Hand && playAction.State == GameActionState.None)
+            {
+                return TestToolResult.Ok(new JsonObject
+                {
+                    ["cardId"] = card.Id.Entry,
+                    ["targetCombatId"] = target?.CombatId,
+                    ["actionId"] = playAction.Id,
+                    ["state"] = "completed_without_task",
+                });
+            }
+
+            var completed = await Task.WhenAny(
+                playAction.CompletionTask,
+                cancelled.Task,
+                Task.Delay(50));
+            if (completed == playAction.CompletionTask || completed == cancelled.Task)
+                break;
+        }
+
+        if (cancelled.Task.IsCompleted || playAction.State == GameActionState.Canceled)
+            return TestToolResult.Fail($"{card.Id.Entry} 的原生出牌动作被取消。", "play_cancelled");
+        if (waitForTargeting)
+        {
+            return TestToolResult.Fail(
+                $"{card.Id.Entry} 未在 30 秒内打开原生目标选择，state={playAction.State}。",
+                "targeting_timeout");
+        }
+        if (!playAction.CompletionTask.IsCompleted)
+            return TestToolResult.Fail(
+                $"{card.Id.Entry} 的原生出牌动作在 30 秒内未完成，state={playAction.State}。",
+                "play_timeout");
+        if (playAction.Exception is not null)
+            return TestToolResult.Fail(playAction.Exception.ToString(), "play_failed");
+
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["cardId"] = card.Id.Entry,
+            ["targetCombatId"] = target?.CombatId,
+            ["actionId"] = playAction.Id,
+            ["state"] = playAction.State.ToString(),
+        });
     }
 
     private static JsonNode ForceEndPlayerTurn(Player player)

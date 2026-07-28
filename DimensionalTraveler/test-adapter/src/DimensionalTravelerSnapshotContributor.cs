@@ -197,6 +197,7 @@ internal sealed class DimensionalTravelerSnapshotContributor
         ["gold"] = player.Gold,
         ["currentHp"] = player.Creature.CurrentHp,
         ["maxHp"] = player.Creature.MaxHp,
+        ["combatId"] = player.Creature.CombatId,
         ["isAlive"] = player.Creature.IsAlive,
     };
 

@@ -15,6 +15,7 @@ public static class Entry
         PaymentAudit.Install();
         ChoiceAudit.Install();
         TestPotionGrantAction.Register();
+        TestCardGrantAction.Register();
         new Harmony("DimensionalTraveler.TestAdapter.LanAcceptanceAutoDriverGuard")
             .CreateClassProcessor(typeof(LanAcceptanceAutoDriverGuardPatch))
             .Patch();
