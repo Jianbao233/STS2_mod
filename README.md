@@ -20,8 +20,10 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 | **LoadOrderManager** | 手动调整 Mod 加载顺序；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/STS2-LoadOrderManager) · [Releases](https://github.com/Jianbao233/STS2-LoadOrderManager/releases) |
 | **PVP_ParallelTurn** | 双人 PVP 并行回合同步实验；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/sts2-parallel-turn-pvp) |
 | **RefreshShop** | 商店免费无限刷新；源码为独立仓库 | [Repo](https://github.com/Jianbao233/RefreshShop) |
+| **DimensionalTraveler** | 次元旅人炼金协作角色；源码为独立仓库 | [Repo](https://github.com/Jianbao233/STS2-DimensionalTraveler) |
+| **AutoModSubscriber** | 联机时自动订阅房主有但本机缺失的工坊 mod；本地保留于本仓 | [README](AutoModSubscriber/README.md) · [Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3750485606) |
 
-主仓库继续保存未迁移小 mod 源码；`ModListHider`、`LoadOrderManager`、`PVP_ParallelTurn`、`RefreshShop` 位于本地工作区内，但由各自独立仓库管理，`STS2_mod` 主仓只在根 README/MEMORY 中保留跳转说明。
+主仓库继续保存未迁移小 mod 源码；`ModListHider`、`LoadOrderManager`、`PVP_ParallelTurn`、`RefreshShop`、`DimensionalTraveler` 位于本地工作区内，但由各自独立仓库管理，`STS2_mod` 主仓只在根 README/MEMORY 中保留跳转说明。
 
 ---
 

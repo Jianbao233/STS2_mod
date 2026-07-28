@@ -9,6 +9,9 @@ project.godot.lock
 /LoadOrderManager/
 /PVP_ParallelTurn/
 /RefreshShop/
+/MerchantBlacklist/
+/MerchantBlacklist-customer/
+/DimensionalTraveler/
 
 # Local release/history archives
 torelease/
