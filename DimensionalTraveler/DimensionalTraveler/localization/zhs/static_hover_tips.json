@@ -14,6 +14,18 @@
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.title": "药剂背包",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.description": "保存本场战斗中炼成、尚未取出的药剂。",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "药剂背包是空的。",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.title": "萃取",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.preview.title": "萃取{Potion}",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.preview.description": "永久消耗这瓶药水，获得1层{Special}、{Amount}点{Basic}与{Rewards}{Gold:plural:|，并获得{Gold}金币}{MaxHp:plural:|与{MaxHp}点最大生命}。",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Vitality": "生机原理",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Volatility": "挥发原理",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Corruption": "腐化原理",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Catalysis": "催化原理",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Diffusion": "扩散原理",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Echo": "回响原理",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.reward.none": "不生成药剂卡",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.reward.attack_choice": "从3个候选普通攻击炼金药剂中选择1瓶",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.reward.list": "{Items}",
   "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.title": "实验记录",
   "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.description": "本回合每完成以下一种不同炼金步骤，记录1项：炼成原始药剂；成功提纯、升华或杰作转化背包中的已有药剂；使用原始药剂。同类步骤重复完成仍只记录1项。回响重放与回响派生药剂不计入记录。"
 }

@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json.Nodes;
 using HarmonyLib;
 
@@ -9,6 +8,7 @@ internal static class McpIntegration
     public const string ControlToolName = "dimensional_traveler_test_control";
     public const string TargetToolName = "dimensional_traveler_test_target";
     public const string SelectionToolName = "dimensional_traveler_test_selection";
+    public const string SessionToolName = "dimensional_traveler_test_session";
 
     private const string HarmonyId = "DimensionalTraveler.TestAdapter.McpIntegration";
     private static bool _installed;
@@ -29,37 +29,15 @@ internal static class McpIntegration
         _installed = true;
     }
 
-    private static McpRegistryContract ResolveContract()
-    {
-        var registryType = AccessTools.TypeByName("KitLib.Mcp.Tools.McpToolRegistry")
-            ?? throw Incompatible("未加载 KitLib.Dev，找不到 KitLib.Mcp.Tools.McpToolRegistry");
-        var listMethod = AccessTools.Method(registryType, "ListToolSchemas", Type.EmptyTypes);
-        var callMethod = AccessTools.Method(
-            registryType,
-            "CallAsync",
-            [typeof(string), typeof(JsonObject)]);
-
-        if (listMethod?.ReturnType != typeof(JsonArray))
-            throw Incompatible("ListToolSchemas() -> JsonArray 签名不存在");
-        if (callMethod?.ReturnType != typeof(Task<JsonNode>))
-            throw Incompatible("CallAsync(string, JsonObject) -> Task<JsonNode> 签名不存在");
-
-        return new McpRegistryContract(listMethod, callMethod);
-    }
-
-    private static NotSupportedException Incompatible(string detail)
-    {
-        var core = AccessTools.TypeByName("KitLib.Host.KitLibHost")?.Assembly.GetName();
-        var version = core?.Version?.ToString() ?? "unknown";
-        return new NotSupportedException(
-            $"DimensionalTraveler.TestAdapter 与当前 KitLib MCP 内部接口不兼容：{detail}；KitLib.Core={version}。");
-    }
+    private static KitLibCompatibility.McpRegistryContract ResolveContract() =>
+        KitLibCompatibility.RequireMcpRegistry();
 
     private static void AfterListTools(ref JsonArray __result)
     {
         AddSchema(__result, ControlTool.Schema);
         AddSchema(__result, TargetingControl.Schema);
         AddSchema(__result, CardSelectionControl.Schema);
+        AddSchema(__result, TestSessionTool.Schema);
     }
 
     private static bool BeforeCallTool(string name, JsonObject? args, ref Task<JsonNode> __result)
@@ -77,6 +55,11 @@ internal static class McpIntegration
         if (name == CardSelectionControl.Schema.Name)
         {
             __result = Wrap(Task.FromResult<JsonNode>(CardSelectionControl.Execute(args ?? new JsonObject())));
+            return false;
+        }
+        if (name == TestSessionTool.Schema.Name)
+        {
+            __result = Wrap(Task.FromResult<JsonNode>(TestSessionTool.Execute(args ?? new JsonObject())));
             return false;
         }
         return true;
@@ -120,7 +103,6 @@ internal static class McpIntegration
         });
     }
 
-    private sealed record McpRegistryContract(MethodInfo ListToolSchemas, MethodInfo CallAsync);
 }
 
 internal sealed record TestToolSchema(string Name, string Description, string InputSchema);

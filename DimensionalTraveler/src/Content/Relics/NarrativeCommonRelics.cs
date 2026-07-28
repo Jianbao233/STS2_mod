@@ -1,11 +1,10 @@
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Relics;
-using MegaCrit.Sts2.Core.GameActions.Multiplayer;
-using MegaCrit.Sts2.Core.Saves.Runs;
 using STS2RitsuLib.Combat.SecondaryResources;
 using STS2RitsuLib.Interop.AutoRegistration;
 using STS2RitsuLib.Scaffolding.Content;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Characters;
 using DimensionalTraveler.Content.Cards.Formulas;
 using DimensionalTraveler.Content.Cards.Potions;
@@ -16,18 +15,9 @@ namespace DimensionalTraveler.Content.Relics;
 [RegisterRelic(typeof(TravelerRelicPool), StableEntryStem = "FIRST_FORMULA_PRINCIPLE_DISCOUNT")]
 public sealed class FirstFormulaPrincipleDiscount : ModRelicTemplate, ISecondaryResourceHookListener
 {
-    [SavedProperty]
-    public bool IsAvailable { get; private set; } = true;
-
     public override RelicAssetProfile AssetProfile => ContentAssetProfiles.Relic("BAG_OF_PREPARATION");
 
     public override RelicRarity Rarity => RelicRarity.Common;
-
-    public override Task BeforeCombatStart()
-    {
-        IsAvailable = true;
-        return Task.CompletedTask;
-    }
 
     public decimal ModifySecondaryResourceCost(SecondaryResourceCostContext context, decimal cost)
     {
@@ -38,22 +28,31 @@ public sealed class FirstFormulaPrincipleDiscount : ModRelicTemplate, ISecondary
                 : cost;
     }
 
-    public bool ConsumeAfterSuccessfulBrew(AlchemyFormulaCard formula)
+    public bool ConsumeAfterSuccessfulBrew(AlchemyFormulaCard formula, CardPlay cardPlay)
     {
-        if (!CanDiscount(formula, formula.Owner, PotionMainPrinciples.For(formula.PotionFamily).Id))
+        var mainPrinciple = PotionMainPrinciples.For(formula.PotionFamily);
+        var payment = cardPlay.SecondaryResources();
+        if (payment.IsFree
+            || payment.Spent(mainPrinciple.Id) != formula.MainPrincipleCost - 1
+            || !CanDiscount(formula, formula.Owner, mainPrinciple.Id))
+        {
             return false;
+        }
 
-        IsAvailable = false;
-        Flash();
-        return true;
+        var consumed = AlchemyCombatState.Require(Owner).TryConsumeFirstFormulaPrincipleDiscount();
+        if (consumed)
+            Flash();
+        return consumed;
     }
 
-    private bool CanDiscount(AlchemyFormulaCard formula, MegaCrit.Sts2.Core.Entities.Players.Player player,
+    private bool CanDiscount(
+        AlchemyFormulaCard formula,
+        MegaCrit.Sts2.Core.Entities.Players.Player player,
         string resourceId)
     {
-        return IsAvailable
-            && player == Owner
+        return player == Owner
             && formula.Owner == Owner
+            && !AlchemyCombatState.Require(Owner).FirstFormulaPrincipleDiscountConsumed
             && PotionMainPrinciples.For(formula.PotionFamily).Id == resourceId;
     }
 }

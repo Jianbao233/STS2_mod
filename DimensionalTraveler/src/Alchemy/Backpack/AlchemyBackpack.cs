@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using STS2RitsuLib.CardPiles;
 using DimensionalTraveler.Bootstrap;
+using DimensionalTraveler.Alchemy.Events;
 using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Resources;
@@ -51,14 +52,24 @@ public static class AlchemyBackpack
     public static IReadOnlyList<AlchemyPotionCard> GetPotions(Player player) =>
         GetPile(player).Cards.OfType<AlchemyPotionCard>().ToArray();
 
-    public static int GetCapacity(Player player)
+    private static IAlchemyBackpackCapacityProvider GetBaseCapacityProvider(Player player)
     {
-        var baseCapacity = player.Piles
+        var providers = player.Piles
             .SelectMany(static pile => pile.Cards)
             .OfType<IAlchemyBackpackCapacityProvider>()
-            .Select(static provider => provider.Capacity)
-            .DefaultIfEmpty(BaseCapacity)
-            .Max();
+            .ToArray();
+        return providers.Length switch
+        {
+            0 => new DefaultBackpackCapacityProvider(),
+            1 => providers[0],
+            _ => throw new InvalidOperationException(
+                $"玩家 {player.NetId} 同时存在 {providers.Length} 个药剂背包基础容量提供者。系统牌必须唯一。"),
+        };
+    }
+
+    public static int GetCapacity(Player player)
+    {
+        var baseCapacity = GetBaseCapacityProvider(player).Capacity;
         var relicCapacity = player.Relics
             .OfType<IAlchemyBackpackCapacityModifier>()
             .Sum(static modifier => modifier.CapacityModifier);
@@ -66,12 +77,7 @@ public static class AlchemyBackpack
     }
 
     public static PotionQuality GetMaximumQuality(Player player) =>
-        player.Piles
-            .SelectMany(static pile => pile.Cards)
-            .OfType<IAlchemyBackpackCapacityProvider>()
-            .Select(static provider => provider.MaximumQuality)
-            .DefaultIfEmpty(PotionQuality.Refined)
-            .Max();
+        GetBaseCapacityProvider(player).MaximumQuality;
 
     public static bool CanStore(Player player, PotionQuality quality) =>
         quality <= GetMaximumQuality(player);
@@ -94,7 +100,7 @@ public static class AlchemyBackpack
                 && AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 2))
             .ToArray();
 
-    public static Task<bool> CommitPurification(AlchemyPotionCard potion)
+    public static Task<bool> CommitPurification(CardModel source, AlchemyPotionCard potion)
     {
         if (potion.IsUpgraded || potion.Pile?.Type != PileType)
             return Task.FromResult(false);
@@ -102,23 +108,29 @@ public static class AlchemyBackpack
         CardCmd.Upgrade(potion, CardPreviewStyle.None);
         AlchemyCombatState.Require(potion.Owner).Update(
             static turn => turn.Record(ExperimentRecord.UpgradedExistingPotion));
-        return Task.FromResult(true);
+        return NotifyPurification(source, potion);
     }
 
-    public static async Task<bool> CommitSublimation(AlchemyPotionCard potion)
+    public static async Task<bool> CommitSublimation(CardModel source, AlchemyPotionCard potion)
     {
         if (potion.Quality != PotionQuality.Normal || potion.Pile?.Type != PileType)
             return false;
 
-        return await TransformQuality(potion, PotionQuality.Refined) is not null;
+        return await TransformQuality(source, potion, PotionQuality.Refined) is not null;
     }
 
-    public static async Task<bool> CommitMasterpiece(AlchemyPotionCard potion)
+    public static async Task<bool> CommitMasterpiece(CardModel source, AlchemyPotionCard potion)
     {
         if (potion.Quality != PotionQuality.Refined || potion.Pile?.Type != PileType)
             return false;
 
-        return await TransformQuality(potion, PotionQuality.Masterpiece) is not null;
+        return await TransformQuality(source, potion, PotionQuality.Masterpiece) is not null;
+    }
+
+    private static async Task<bool> NotifyPurification(CardModel source, AlchemyPotionCard potion)
+    {
+        await AlchemyEvents.NotifyExistingPotionQualityChanged(potion.Owner, potion, source);
+        return true;
     }
 
     public static async Task<AlchemyPotionCard?> Brew(
@@ -127,7 +139,8 @@ public static class AlchemyBackpack
         PotionQuality quality = PotionQuality.Normal,
         bool upgraded = false,
         PotionOrigin origin = PotionOrigin.Original,
-        bool recordAsBrewed = true)
+        bool recordAsBrewed = true,
+        AbstractModel? source = null)
     {
         var combatState = player.Creature.CombatState;
         if (combatState is null)
@@ -165,10 +178,14 @@ public static class AlchemyBackpack
             });
         }
 
+        if (origin == PotionOrigin.Original && recordAsBrewed)
+            await AlchemyEvents.NotifyOriginalPotionBrewed(player, potion, source);
+
         return potion;
     }
 
     public static async Task<AlchemyPotionCard?> TransformQuality(
+        CardModel source,
         AlchemyPotionCard potion,
         PotionQuality quality)
     {
@@ -194,8 +211,19 @@ public static class AlchemyBackpack
 
             AlchemyCombatState.Require(potion.Owner).Update(
                 static turn => turn.Record(ExperimentRecord.UpgradedExistingPotion));
+            await AlchemyEvents.NotifyExistingPotionQualityChanged(
+                potion.Owner,
+                transformed,
+                source);
         }
 
         return transformed;
+    }
+
+    private sealed class DefaultBackpackCapacityProvider : IAlchemyBackpackCapacityProvider
+    {
+        public int Capacity => BaseCapacity;
+
+        public PotionQuality MaximumQuality => PotionQuality.Refined;
     }
 }

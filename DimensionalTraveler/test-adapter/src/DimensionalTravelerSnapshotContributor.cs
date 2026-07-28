@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json.Nodes;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Alchemy.Extraction;
 using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Content.Powers;
@@ -8,6 +9,7 @@ using DimensionalTraveler.Resources;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Entities.Potions;
 using MegaCrit.Sts2.Core.Entities.Powers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
@@ -42,19 +44,28 @@ internal sealed class DimensionalTravelerSnapshotContributor
             ["playerNetId"] = player.NetId.ToString(),
             ["gamePhase"] = gamePhase.ToString(),
             ["principles"] = CapturePrinciples(player),
+            ["relics"] = CaptureRelics(player),
+            ["nativePotions"] = CaptureNativePotions(player),
+            ["player"] = CapturePlayer(player),
             ["playerCombat"] = CapturePlayerCombat(player),
             ["backpack"] = CaptureBackpack(player),
             ["piles"] = CapturePiles(player),
             ["combatants"] = CaptureCombatants(player),
             ["payments"] = PaymentAudit.Capture(),
             ["choices"] = ChoiceAudit.Capture(),
+            ["extractions"] = CaptureExtractions(player),
+            ["testPotionGrants"] = CaptureTestPotionGrants(player),
+            ["rng"] = CaptureCombatCardGenerationRng(player),
             ["targeting"] = TargetingControl.Capture(),
         };
 
         var state = player.Creature.GetPower<AlchemyCombatStatePower>();
         result["combatStateAttached"] = state is not null;
         if (state is not null)
+        {
             result["turn"] = CaptureTurn(state.Snapshot);
+            result["firstFormulaPrincipleDiscountConsumed"] = state.FirstFormulaPrincipleDiscountConsumed;
+        }
         return result;
     }
 
@@ -86,6 +97,43 @@ internal sealed class DimensionalTravelerSnapshotContributor
         ["combatStateAttached"] = false,
     };
 
+    private static JsonArray CaptureExtractions(Player player) =>
+        new(ExtractionAudit.Capture(player)
+            .Select(record => (JsonNode?)new JsonObject
+            {
+                ["sequence"] = record.Sequence,
+                ["potionSlotIndex"] = record.PotionSlotIndex,
+                ["potionId"] = record.PotionId,
+                ["stage"] = record.Stage.ToString(),
+                ["detail"] = record.Detail,
+            })
+            .ToArray());
+
+    private static JsonArray CaptureTestPotionGrants(Player player) =>
+        new(TestPotionGrantAudit.Capture(player)
+            .Select(record => (JsonNode?)new JsonObject
+            {
+                ["sequence"] = record.Sequence,
+                ["potionId"] = record.PotionId,
+                ["stage"] = record.Stage.ToString(),
+                ["slotIndex"] = record.SlotIndex,
+                ["detail"] = record.Detail,
+            })
+            .ToArray());
+
+    private static JsonObject CaptureCombatCardGenerationRng(Player player)
+    {
+        var rng = player.RunState.Rng.CombatCardGeneration.ToSerializable();
+        return new JsonObject
+        {
+            ["counter"] = rng.counter,
+            ["state0"] = rng.state0.ToString(),
+            ["state1"] = rng.state1.ToString(),
+            ["state2"] = rng.state2.ToString(),
+            ["state3"] = rng.state3.ToString(),
+        };
+    }
+
     private static JsonObject CapturePrinciples(Player player)
     {
         var principles = new JsonObject();
@@ -102,6 +150,55 @@ internal sealed class DimensionalTravelerSnapshotContributor
         }
         return principles;
     }
+
+    private static JsonArray CaptureRelics(Player player)
+    {
+        var relics = new JsonArray();
+        foreach (var relic in player.Relics.OrderBy(static relic => relic.Id.Entry, StringComparer.Ordinal))
+        {
+            relics.Add(new JsonObject
+            {
+                ["id"] = relic.Id.Entry,
+                ["type"] = relic.GetType().Name,
+                ["rarity"] = relic.Rarity.ToString(),
+                ["isMelted"] = relic.IsMelted,
+            });
+        }
+        return relics;
+    }
+
+    private static JsonObject CaptureNativePotions(Player player)
+    {
+        var slots = new JsonArray();
+        for (var index = 0; index < player.PotionSlots.Count; index++)
+        {
+            var potion = player.PotionSlots[index];
+            slots.Add(potion is null
+                ? null
+                : new JsonObject
+                {
+                    ["index"] = index,
+                    ["id"] = potion.Id.Entry,
+                    ["type"] = potion.GetType().Name,
+                    ["rarity"] = potion.Rarity.ToString(),
+                });
+        }
+
+        return new JsonObject
+        {
+            ["maxCount"] = player.MaxPotionCount,
+            ["openSlotCount"] = player.PotionSlots.Count(static potion => potion is null),
+            ["slots"] = slots,
+        };
+    }
+
+    private static JsonObject CapturePlayer(Player player) => new()
+    {
+        ["gold"] = player.Gold,
+        ["currentHp"] = player.Creature.CurrentHp,
+        ["maxHp"] = player.Creature.MaxHp,
+        ["isAlive"] = player.Creature.IsAlive,
+    };
 
     private static JsonObject CapturePlayerCombat(Player player) => new()
     {
@@ -268,6 +365,15 @@ internal sealed class DimensionalTravelerSnapshotContributor
         ["latestOriginalPotion"] = CapturePotionResolution(turn.LatestOriginalPotion),
         ["productionFormulaFetchTriggered"] = turn.ProductionFormulaFetchTriggered,
         ["diffusionRewardTriggered"] = turn.DiffusionRewardTriggered,
+        ["relicTriggers"] = turn.RelicTriggers.ToString(),
+        ["pendingCatalysisPayment"] = turn.PendingCatalysisPayment is { } receipt
+            ? new JsonObject
+            {
+                ["cardNetId"] = receipt.CardNetId,
+                ["cardId"] = receipt.CardId,
+                ["amount"] = receipt.Amount,
+            }
+            : null,
     };
 
     private static JsonNode? CaptureProduction(ProductionSnapshot? production)

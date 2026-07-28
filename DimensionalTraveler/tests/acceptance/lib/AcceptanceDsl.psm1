@@ -4,12 +4,62 @@ $ErrorActionPreference = "Stop"
 $script:Endpoint = "http://127.0.0.1:9877/messages"
 $script:RequestId = 0
 $script:Results = [System.Collections.Generic.List[object]]::new()
+$script:ObservedGameProcess = $null
+$script:RuntimeLogPath = $null
+$script:RuntimeStartedAt = $null
+$script:RunId = $null
+$script:CaseReportPath = $null
 
 function Initialize-DtAcceptance {
-    param([Parameter(Mandatory)][string]$Endpoint)
+    param(
+        [Parameter(Mandatory)][string]$Endpoint,
+        [System.Diagnostics.Process]$ObservedGameProcess,
+        [string]$RuntimeLogPath,
+        [DateTimeOffset]$RuntimeStartedAt = [DateTimeOffset]::MinValue,
+        [string]$RunId,
+        [string]$CaseReportPath
+    )
     $script:Endpoint = $Endpoint
     $script:RequestId = 0
     $script:Results.Clear()
+    $script:ObservedGameProcess = $ObservedGameProcess
+    $script:RuntimeLogPath = $RuntimeLogPath
+    $script:RuntimeStartedAt = $RuntimeStartedAt
+    $script:RunId = $RunId
+    $script:CaseReportPath = $CaseReportPath
+}
+
+function Assert-DtGameHealthy {
+    if ($null -eq $script:ObservedGameProcess) {
+        return
+    }
+
+    try {
+        $script:ObservedGameProcess.Refresh()
+        $alive = $null -ne (Get-Process -Id $script:ObservedGameProcess.Id -ErrorAction SilentlyContinue)
+    }
+    catch {
+        $alive = $false
+    }
+    if ($alive -and -not $script:ObservedGameProcess.HasExited) {
+        return
+    }
+
+    $exitCode = "unknown"
+    try {
+        $exitCode = $script:ObservedGameProcess.ExitCode
+    }
+    catch {
+        $exitCode = "unknown"
+    }
+    $dump = Get-ChildItem "C:\Users\Administrator\AppData\Local\CrashDumps\SlayTheSpire2.exe*.dmp" `
+        -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTimeUtc -ge $script:RuntimeStartedAt.UtcDateTime } |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+    $dumpDetail = if ($null -eq $dump) { "无新的 CrashDump" } else { $dump.FullName }
+    $logDetail = if ([string]::IsNullOrWhiteSpace($script:RuntimeLogPath)) { "无本次运行日志" } else { $script:RuntimeLogPath }
+    throw "[game_process_crash] SlayTheSpire2 已退出；PID=$($script:ObservedGameProcess.Id)，ExitCode=$exitCode，CrashDump=$dumpDetail，RuntimeLog=$logDetail"
 }
 
 function Invoke-DtRpc {
@@ -18,6 +68,7 @@ function Invoke-DtRpc {
         [hashtable]$Params = @{},
         [int]$TimeoutSeconds = 30
     )
+    Assert-DtGameHealthy
     $script:RequestId += 1
     $body = @{
         jsonrpc = "2.0"
@@ -25,12 +76,19 @@ function Invoke-DtRpc {
         method = $Method
         params = $Params
     } | ConvertTo-Json -Depth 40 -Compress
-    $response = Invoke-RestMethod `
-        -Uri $script:Endpoint `
-        -Method Post `
-        -ContentType "application/json" `
-        -Body $body `
-        -TimeoutSec $TimeoutSeconds
+    try {
+        $response = Invoke-RestMethod `
+            -Uri $script:Endpoint `
+            -Method Post `
+            -ContentType "application/json" `
+            -Body $body `
+            -TimeoutSec $TimeoutSeconds
+    }
+    catch {
+        $rpcFailure = $_.Exception.Message
+        Assert-DtGameHealthy
+        throw "MCP RPC 通信失败：$rpcFailure"
+    }
     $errorProperty = $response.PSObject.Properties["error"]
     if ($null -ne $errorProperty -and $null -ne $errorProperty.Value) {
         throw "MCP RPC 失败：$($errorProperty.Value.message)"
@@ -64,10 +122,18 @@ function Invoke-DtTool {
 }
 
 function Wait-DtBridge {
-    param([int]$TimeoutSeconds = 90)
+    param(
+        [int]$TimeoutSeconds = 90,
+        [System.Diagnostics.Process]$ObservedProcess
+    )
+    if ($null -ne $ObservedProcess) {
+        $script:ObservedGameProcess = $ObservedProcess
+    }
+
     $healthUri = $script:Endpoint -replace '/messages$', '/health'
     $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
     do {
+        Assert-DtGameHealthy
         try {
             $health = Invoke-RestMethod -Uri $healthUri -TimeoutSec 2
             if ($health.status -eq "ok") {
@@ -76,8 +142,10 @@ function Wait-DtBridge {
             }
         }
         catch {
-            Start-Sleep -Milliseconds 500
+            # 连接失败是预期的启动态；进程退出必须优先结束等待并进入报告收口。
+            Assert-DtGameHealthy
         }
+        Start-Sleep -Milliseconds 500
     } while ([DateTimeOffset]::Now -lt $deadline)
     throw "KitLib MCP 未在 $TimeoutSeconds 秒内就绪：$healthUri"
 }
@@ -97,6 +165,7 @@ function Wait-DtMainMenuReady {
             }
         }
         catch {
+            Assert-DtGameHealthy
         }
         Start-Sleep -Milliseconds 500
     } while ([DateTimeOffset]::Now -lt $deadline)
@@ -208,6 +277,41 @@ function Wait-DtNextTurn {
     throw "战斗未在 $TimeoutSeconds 秒内进入下一玩家回合。"
 }
 
+function Wait-DtCardChoice {
+    param([int]$TimeoutSeconds = 20)
+
+    $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
+    do {
+        $choice = Invoke-DtTool -Name "dimensional_traveler_test_selection" -Arguments @{ action = "get" }
+        Assert-DtTrue $choice.ok "原生卡牌选择状态读取失败：$(Get-DtToolError $choice)"
+        if ($choice.selection.active -and $choice.selection.ready) {
+            return $choice.selection
+        }
+        Start-Sleep -Milliseconds 150
+    } while ([DateTimeOffset]::Now -lt $deadline)
+
+    throw "原生三选一卡牌界面未在 $TimeoutSeconds 秒内就绪。"
+}
+
+function Wait-DtStateMatch {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Predicate,
+        [int]$TimeoutSeconds = 20,
+        [string]$FailureMessage = "游戏状态未在限定时间内满足条件。"
+    )
+
+    $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
+    do {
+        $state = Get-DtState
+        if (& $Predicate $state) {
+            return $state
+        }
+        Start-Sleep -Milliseconds 150
+    } while ([DateTimeOffset]::Now -lt $deadline)
+
+    throw "$FailureMessage TimeoutSeconds=$TimeoutSeconds"
+}
+
 function Find-DtHandCardIndex {
     param(
         [Parameter(Mandatory)]$State,
@@ -271,16 +375,20 @@ function Invoke-DtCardWithSelection {
     } -ArgumentList $endpoint, $arguments, $TimeoutSeconds
 
     try {
+        Assert-DtGameHealthy
         $deadline = [DateTimeOffset]::Now.AddSeconds(20)
         $selectionState = $null
         do {
             Start-Sleep -Milliseconds 100
+            Assert-DtGameHealthy
             $selectionState = Invoke-DtTool -Name "get_selection_state"
             if ($selectionState.active) { break }
             if ($job.State -in @("Completed", "Failed", "Stopped")) { break }
         } while ([DateTimeOffset]::Now -lt $deadline)
+        Assert-DtGameHealthy
         Assert-DtTrue $selectionState.active "未进入标准卡牌选择界面。"
         Start-Sleep -Milliseconds 750
+        Assert-DtGameHealthy
 
         $selectionArgs = @{ action = "select" }
         if ($PSBoundParameters.ContainsKey("SelectionIndex")) {
@@ -309,6 +417,7 @@ function Invoke-DtCardWithSelection {
         Assert-DtTrue $selection.ok "标准卡牌选择失败：$(Get-DtToolError $selection)"
 
         $null = Wait-Job $job -Timeout $TimeoutSeconds
+        Assert-DtGameHealthy
         if ($job.State -ne "Completed") {
             throw "包含标准选择的出牌未完成，状态=$($job.State)。"
         }
@@ -362,13 +471,16 @@ function Invoke-DtCardWithBattleTarget {
     } -ArgumentList $endpoint, $cardIndex, $InitialTargetIndex, $InitialTargetSide
 
     try {
+        Assert-DtGameHealthy
         $deadline = [DateTimeOffset]::Now.AddSeconds(20)
         do {
             Start-Sleep -Milliseconds 100
+            Assert-DtGameHealthy
             $targetState = Invoke-DtTool -Name "dimensional_traveler_test_target" -Arguments @{ action = "get" }
             if ($targetState.targeting.active) { break }
             if ($job.State -in @("Completed", "Failed", "Stopped")) { break }
         } while ([DateTimeOffset]::Now -lt $deadline)
+        Assert-DtGameHealthy
         Assert-DtTrue $targetState.targeting.active "未进入追加战场目标选择。"
 
         $selection = Invoke-DtTool -Name "dimensional_traveler_test_target" -Arguments @{
@@ -426,6 +538,23 @@ function Assert-DtNotNull {
     if ($null -eq $Actual) { throw $Message }
 }
 
+function Write-DtCaseRecord {
+    param([Parameter(Mandatory)]$Record)
+    if ([string]::IsNullOrWhiteSpace($script:CaseReportPath)) {
+        return
+    }
+
+    $payload = [ordered]@{
+        runId = $script:RunId
+        recordedAt = [DateTimeOffset]::Now.ToString("o")
+        case = $Record
+    } | ConvertTo-Json -Depth 50 -Compress
+    [System.IO.File]::AppendAllText(
+        $script:CaseReportPath,
+        $payload + [Environment]::NewLine,
+        [System.Text.UTF8Encoding]::new($false))
+}
+
 function Invoke-DtCase {
     param(
         [Parameter(Mandatory)][string]$Suite,
@@ -434,7 +563,9 @@ function Invoke-DtCase {
     )
     $started = [DateTimeOffset]::Now
     try {
+        Assert-DtGameHealthy
         $evidence = & $Body
+        Assert-DtGameHealthy
         $record = [ordered]@{
             suite = $Suite; name = $Name; passed = $true
             durationMs = [int]([DateTimeOffset]::Now - $started).TotalMilliseconds
@@ -451,13 +582,15 @@ function Invoke-DtCase {
             snapshot = $snapshot
         }
     }
-    $script:Results.Add([pscustomobject]$record)
-    return [pscustomobject]$record
+    $caseRecord = [pscustomobject]$record
+    Write-DtCaseRecord -Record $caseRecord
+    $script:Results.Add($caseRecord)
+    return $caseRecord
 }
 
 function Get-DtResults { return @($script:Results) }
 
 Export-ModuleMember -Function Initialize-DtAcceptance, Invoke-DtRpc, Invoke-DtTool, Wait-DtBridge, Wait-DtMainMenuReady, `
-    Assert-DtTools, Get-DtState, Get-DtExtension, Get-DtToolError, Reset-DtScenario, Apply-DtFixture, Wait-DtPlayPhase, Wait-DtNextTurn, `
+    Assert-DtTools, Get-DtState, Get-DtExtension, Get-DtToolError, Reset-DtScenario, Apply-DtFixture, Wait-DtPlayPhase, Wait-DtNextTurn, Wait-DtCardChoice, Wait-DtStateMatch, `
     Find-DtHandCardIndex, Invoke-DtCard, Invoke-DtCardWithSelection, Invoke-DtSelection, Invoke-DtCardWithBattleTarget, `
     Get-DtCombatant, Get-DtPower, Assert-DtEqual, Assert-DtTrue, Assert-DtNotNull, Invoke-DtCase, Get-DtResults

@@ -1,6 +1,9 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
+using Godot;
 using DimensionalTraveler.Alchemy.Backpack;
 using DimensionalTraveler.Alchemy.Choices;
+using DimensionalTraveler.Alchemy.Extraction;
 using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Characters;
 using DimensionalTraveler.Content.Cards.Potions;
@@ -8,11 +11,22 @@ using DimensionalTraveler.Content.Pools;
 using DimensionalTraveler.Resources;
 using KitLib;
 using MegaCrit.Sts2.Core.Commands;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Entities.Actions;
+using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.GameActions;
+using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.PotionPools;
+using MegaCrit.Sts2.Core.Models.Potions;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Events;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using STS2RitsuLib.Combat.SecondaryResources;
@@ -30,11 +44,12 @@ internal static class ControlTool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["start_test_combat", "reset_scenario", "start_pseudo_coop", "inspect_players", "enter_pseudo_coop_test_combat", "apply_fixture", "apply_player_fixture", "play_player_card", "inspect_catalog", "set_principles", "clear_backpack", "brew_potion", "move_backpack_potion_to_hand", "reset_turn", "clear_payment_audit", "set_enemy_hp", "set_enemy_block"]
+              "enum": ["start_test_run", "enter_test_combat", "inspect_lan_lobby", "inspect_lan_run", "capture_lan_snapshot", "disable_lan_auto_driver", "proceed_lan_event", "select_lan_traveler_and_ready", "enter_lan_test_combat", "inspect_merchant_potion_price", "inspect_run_player_round_trip", "inspect_shared_potion_pool", "inspect_extraction_catalog", "grant_native_potion", "discard_native_potion", "extract_native_potion", "force_end_player_turn", "grant_run_relic", "set_run_player_hp", "start_test_combat", "reset_scenario", "start_pseudo_coop", "inspect_players", "enter_pseudo_coop_test_combat", "apply_fixture", "apply_player_fixture", "play_player_card", "grant_relic", "grant_player_relic", "grant_player_native_potion", "extract_player_native_potion", "inspect_catalog", "set_principles", "clear_backpack", "brew_potion", "move_backpack_potion_to_hand", "reset_turn", "clear_payment_audit", "clear_extraction_audit", "set_enemy_hp", "set_enemy_block"]
             },
             "seed": { "type": "string" },
             "player_net_id": { "type": "integer" },
             "card_id": { "type": "string" },
+            "relic_id": { "type": "string" },
             "target_combat_id": { "type": "integer" },
             "fixture": { "type": "object" },
             "principles": { "type": "object", "additionalProperties": { "type": "integer" } },
@@ -43,6 +58,8 @@ internal static class ControlTool
             "upgraded": { "type": "boolean" },
             "origin": { "type": "string" },
             "backpack_index": { "type": "integer" },
+            "potion_id": { "type": "string" },
+            "potion_slot_index": { "type": "integer" },
             "enemy_index": { "type": "integer" },
             "hp": { "type": "integer" },
             "block": { "type": "integer" }
@@ -54,6 +71,37 @@ internal static class ControlTool
     public static async Task<JsonNode> Execute(JsonObject args)
     {
         var action = args["action"]?.GetValue<string>()?.Trim().ToLowerInvariant();
+        if (action == "start_test_run")
+            return await StartTestRun(args);
+        if (action == "enter_test_combat")
+            return await EnterTestCombat();
+        if (action == "inspect_lan_lobby")
+            return InspectLanLobby();
+        if (action == "inspect_lan_run")
+            return InspectLanRun();
+        if (action == "capture_lan_snapshot")
+            return CaptureLanSnapshot();
+        if (action == "disable_lan_auto_driver")
+            return DisableLanAutoDriver();
+        if (action == "proceed_lan_event")
+            return await ProceedLanEvent();
+        if (action == "select_lan_traveler_and_ready")
+            return SelectLanTravelerAndReady();
+        if (action == "enter_lan_test_combat")
+            return await PseudoCoopControl.EnterTestCombat();
+        if (action == "inspect_merchant_potion_price")
+            return InspectMerchantPotionPrice();
+        if (action == "inspect_run_player_round_trip")
+            return InspectRunPlayerRoundTrip();
+        if (action == "inspect_shared_potion_pool")
+            return InspectSharedPotionPool();
+        if (action == "inspect_extraction_catalog")
+            return InspectExtractionCatalog();
+        if (action == "grant_run_relic")
+            return await GrantRunRelic(args);
+        if (action == "set_run_player_hp")
+            return SetRunPlayerHp(args);
+
         if (action is "start_test_combat" or "reset_scenario")
         {
             var started = await StartTestCombat(args);
@@ -76,6 +124,20 @@ internal static class ControlTool
             return await PseudoCoopControl.ApplyPlayerFixture(args);
         if (action == "play_player_card")
             return await PseudoCoopControl.PlayPlayerCard(args);
+        if (action == "grant_player_relic")
+            return await PseudoCoopControl.GrantPlayerRelic(args);
+        if (action == "grant_player_native_potion")
+        {
+            if (!PseudoCoopControl.IsActive)
+            {
+                return TestToolResult.Fail(
+                    "真实 LAN 不允许跨玩家直接注入药水；请由药水所有者调用 grant_native_potion。",
+                    "cross_owner_grant_forbidden");
+            }
+            return await PseudoCoopControl.GrantPlayerNativePotion(args);
+        }
+        if (action == "extract_player_native_potion")
+            return await PseudoCoopControl.ExtractPlayerNativePotion(args);
 
         if (!TryGetLocalTraveler(out var player, out var error))
             return error;
@@ -83,20 +145,312 @@ internal static class ControlTool
         return action switch
         {
             "apply_fixture" => await ScenarioFixture.Apply(player, args["fixture"] as JsonObject ?? new JsonObject()),
+            "grant_relic" => await RelicTestControl.Grant(player, args),
             "inspect_catalog" => InspectCatalog(),
+            "grant_native_potion" => await GrantNativePotion(player, args),
+            "discard_native_potion" => DiscardNativePotion(player, args),
+            "extract_native_potion" => await ExtractNativePotion(player, args),
+            "force_end_player_turn" => ForceEndPlayerTurn(player),
             "set_principles" => await SetPrinciples(player, args),
             "clear_backpack" => await ClearBackpack(player),
             "brew_potion" => await BrewPotion(player, args),
             "move_backpack_potion_to_hand" => await MoveBackpackPotionToHand(player, args),
             "reset_turn" => ResetTurn(player),
             "clear_payment_audit" => ClearPaymentAudit(),
+            "clear_extraction_audit" => ClearExtractionAudit(),
             "set_enemy_hp" => SetEnemyHp(player, args),
             "set_enemy_block" => SetEnemyBlock(player, args),
             _ => TestToolResult.Fail($"未知 action：{action ?? "<null>"}。", "invalid_action"),
         };
     }
 
+    private static JsonNode InspectLanLobby()
+    {
+        if (!TryGetLanCharacterSelect(out var screen, out var error))
+            return error;
+        return TestToolResult.Ok(CaptureLanLobby(screen));
+    }
+
+    private static JsonArray CaptureLanEventButtons(Node? eventRoom) =>
+        new(eventRoom is null
+            ? []
+            : Descendants(eventRoom)
+                .OfType<NEventOptionButton>()
+                .Select(button => (JsonNode?)new JsonObject
+                {
+                    ["textKey"] = button.Option.TextKey.ToString(),
+                    ["visible"] = button.Visible,
+                    ["visibleInTree"] = button.IsVisibleInTree(),
+                    ["enabled"] = button.IsEnabled,
+                    ["locked"] = button.Option.IsLocked,
+                    ["proceed"] = button.Option.IsProceed,
+                })
+                .ToArray());
+
+    private static int CountVisibleLanEventOptions()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        var eventRoom = tree?.Root.GetNodeOrNull("/root/Game/RootSceneContainer/Run/RoomContainer/EventRoom");
+        return eventRoom is null
+            ? 0
+            : Descendants(eventRoom)
+                .OfType<NEventOptionButton>()
+                .Count(button => button.IsVisibleInTree() && !button.Option.IsLocked);
+    }
+
+    private static JsonNode InspectLanRun()
+    {
+        var runManager = RunManager.Instance;
+        var state = runManager?.DebugOnlyGetState();
+        if (state is null || runManager?.IsInProgress != true)
+        {
+            var unavailable = TestToolResult.Fail("当前没有活动的 LAN 跑局。", "lan_run_unavailable");
+            unavailable["runInProgress"] = runManager?.IsInProgress ?? false;
+            unavailable["netType"] = runManager?.NetService?.Type.ToString();
+            unavailable["localNetId"] = runManager?.NetService?.NetId.ToString();
+            unavailable["netConnected"] = runManager?.NetService?.IsConnected ?? false;
+            unavailable["combatManagerInProgress"] = CombatManager.Instance?.IsInProgress ?? false;
+            unavailable["mapOpen"] = NMapScreen.Instance?.IsOpen ?? false;
+            return unavailable;
+        }
+
+        var localEvent = runManager.EventSynchronizer.Events
+            .FirstOrDefault(@event => @event.Owner?.NetId == runManager.NetService.NetId);
+        var eventOptions = new JsonArray(localEvent?.CurrentOptions
+            .Select((option, index) => (JsonNode?)new JsonObject
+            {
+                ["index"] = index,
+                ["textKey"] = option.TextKey.ToString(),
+            })
+            .ToArray() ?? []);
+
+        var eventRoom = (Engine.GetMainLoop() as SceneTree)?.Root
+            .GetNodeOrNull("/root/Game/RootSceneContainer/Run/RoomContainer/EventRoom");
+        var playerRelics = new JsonArray(state.Players
+            .OrderBy(static player => player.NetId)
+            .Select(player => (JsonNode?)new JsonObject
+            {
+                ["playerNetId"] = player.NetId.ToString(),
+                ["relicIds"] = new JsonArray(player.Relics
+                    .OrderBy(static relic => relic.Id.Entry, StringComparer.Ordinal)
+                    .Select(relic => (JsonNode?)relic.Id.Entry)
+                    .ToArray()),
+            })
+            .ToArray());
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["netType"] = runManager.NetService?.Type.ToString(),
+            ["localNetId"] = runManager.NetService?.NetId.ToString(),
+            ["roomType"] = state.CurrentRoom?.RoomType.ToString(),
+            ["playerRelics"] = playerRelics,
+            ["currentMapPoint"] = state.CurrentMapPointHistoryEntry?.ToString(),
+            ["visitedMapPointCount"] = state.VisitedMapCoords.Count,
+            ["mapOpen"] = NMapScreen.Instance?.IsOpen ?? false,
+            ["eventOptionCount"] = CountVisibleLanEventOptions(),
+            ["eventOptions"] = eventOptions,
+            ["eventButtons"] = CaptureLanEventButtons(eventRoom),
+            ["selection"] = CardSelectionControl.Capture(),
+            ["combatActive"] = state.Players.Any(static player => player.Creature.CombatState is not null),
+            ["autoDriver"] = new JsonObject
+            {
+                ["autoPlayEnabled"] = AiSessionSettings.AutoPlayEnabled,
+                ["mpAiTeammateEnabled"] = AiSessionSettings.MpAiTeammateEnabled,
+                ["mpAiTeammateDriveLiveEnet"] = AiSessionSettings.MpAiTeammateDriveLiveEnet,
+                ["mpAiTeammateAfkClient"] = AiSessionSettings.MpAiTeammateAfkClient,
+                ["syncBotEnabled"] = AiSessionSettings.SyncBotEnabled,
+            },
+        });
+    }
+
+    private static JsonNode CaptureLanSnapshot()
+    {
+        var runManager = RunManager.Instance;
+        var state = runManager?.DebugOnlyGetState();
+        if (state is null || runManager?.IsInProgress != true)
+        {
+            var unavailable = TestToolResult.Fail("当前没有可捕获快照的 LAN 跑局。", "lan_snapshot_unavailable");
+            unavailable["runInProgress"] = runManager?.IsInProgress ?? false;
+            unavailable["netConnected"] = runManager?.NetService?.IsConnected ?? false;
+            unavailable["combatManagerInProgress"] = CombatManager.Instance?.IsInProgress ?? false;
+            return unavailable;
+        }
+
+        var localPlayer = LocalContext.GetMe(state);
+        if (localPlayer is null)
+            return TestToolResult.Fail("当前 LAN 跑局没有本地玩家。", "lan_local_player_unavailable");
+
+        var snapshot = new JsonObject
+        {
+            ["roomType"] = state.CurrentRoom?.RoomType.ToString(),
+            ["mapOpen"] = NMapScreen.Instance?.IsOpen ?? false,
+            ["selection"] = CardSelectionControl.Capture(),
+            ["combat"] = new JsonObject
+            {
+                ["isPlayPhaseActive"] = localPlayer.PlayerCombatState?.Phase == PlayerTurnPhase.Play,
+            },
+        };
+        DimensionalTravelerSnapshotContributor.Instance.Enrich(snapshot, localPlayer, "LanDirect");
+        return TestToolResult.Ok(snapshot);
+    }
+
+    private static JsonNode DisableLanAutoDriver()
+    {
+        var runManager = RunManager.Instance;
+        if (runManager?.NetService is null || !runManager.NetService.IsConnected)
+            return TestToolResult.Fail("LAN 网络服务尚未连接。", "lan_not_connected");
+
+        LanAcceptanceAutoDriverGuard.Disable();
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["netType"] = runManager.NetService.Type.ToString(),
+            ["localNetId"] = runManager.NetService.NetId.ToString(),
+            ["autoDriverDisabled"] = true,
+            ["autoDriver"] = new JsonObject
+            {
+                ["autoPlayEnabled"] = AiSessionSettings.AutoPlayEnabled,
+                ["mpAiTeammateEnabled"] = AiSessionSettings.MpAiTeammateEnabled,
+                ["mpAiTeammateDriveLiveEnet"] = AiSessionSettings.MpAiTeammateDriveLiveEnet,
+                ["mpAiTeammateAfkClient"] = AiSessionSettings.MpAiTeammateAfkClient,
+                ["syncBotEnabled"] = AiSessionSettings.SyncBotEnabled,
+            },
+        });
+    }
+
+    private static async Task<JsonNode> ProceedLanEvent()
+    {
+        var tree = Engine.GetMainLoop() as SceneTree;
+        var eventRoom = tree?.Root.GetNodeOrNull("/root/Game/RootSceneContainer/Run/RoomContainer/EventRoom");
+        if (LanAcceptanceAutoDriverGuard.IsActive)
+        {
+            if (eventRoom is null)
+                return TestToolResult.Fail("当前没有活动的原生事件房间。", "event_room_unavailable");
+
+            await NEventRoom.Proceed();
+            return TestToolResult.Ok(new JsonObject
+            {
+                ["mapOpen"] = NMapScreen.Instance?.IsOpen ?? false,
+                ["proceeded"] = true,
+                ["skippedEventReward"] = true,
+            });
+        }
+
+        var proceed = eventRoom is null
+            ? null
+            : Descendants(eventRoom)
+                .OfType<NEventOptionButton>()
+                .FirstOrDefault(button =>
+                    button.IsVisibleInTree() &&
+                    !button.Option.IsLocked &&
+                    button.Option.IsProceed &&
+                    button.IsEnabled);
+        if (proceed is null)
+            return TestToolResult.Fail("当前没有可点击的原生事件继续按钮。", "event_proceed_unavailable");
+
+        // Neow 的完成页不经过 EventSynchronizer；其原生实现只调用 NEventRoom.Proceed() 打开本地地图 UI。
+        // 直接调用同一原生入口，避免自动化点击被输入动画/焦点状态吞掉。
+        await NEventRoom.Proceed();
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["mapOpen"] = NMapScreen.Instance?.IsOpen ?? false,
+            ["proceeded"] = true,
+        });
+    }
+
+    private static JsonNode SelectLanTravelerAndReady()
+    {
+        if (!TryGetLanCharacterSelect(out var screen, out var error))
+            return error;
+
+        var lobby = screen.Lobby;
+        if (lobby.Players.Count < 2)
+            return TestToolResult.Fail("LAN 角色选择名册尚未形成双玩家。", "lan_roster_incomplete");
+
+        var traveler = ModelDb.Character<Traveler>();
+        var button = Descendants(screen)
+            .OfType<NCharacterSelectButton>()
+            .FirstOrDefault(candidate => candidate.Character == traveler);
+        if (button is null)
+            return TestToolResult.Fail("LAN 角色选择界面找不到次元旅人按钮。", "traveler_button_unavailable");
+        if (button.IsLocked)
+            return TestToolResult.Fail("当前测试 profile 未解锁次元旅人。", "traveler_locked");
+
+        button.Select();
+        lobby.SetReady(ready: true);
+        var result = CaptureLanLobby(screen);
+        result["selectedCharacterId"] = traveler.Id.Entry;
+        return TestToolResult.Ok(result);
+    }
+
+    private static bool TryGetLanCharacterSelect(
+        out NCharacterSelectScreen screen,
+        out JsonNode error)
+    {
+        screen = null!;
+        var mainMenu = NGame.Instance?.MainMenu;
+        if (mainMenu is null || !GodotObject.IsInstanceValid(mainMenu))
+        {
+            error = TestToolResult.Fail("主菜单尚未加载。", "main_menu_unavailable");
+            return false;
+        }
+
+        screen = mainMenu.SubmenuStack.GetSubmenuType<NCharacterSelectScreen>();
+        if (!GodotObject.IsInstanceValid(screen) || screen.Lobby is null)
+        {
+            error = TestToolResult.Fail("当前尚未进入 LAN 角色选择大厅。", "lan_lobby_unavailable");
+            return false;
+        }
+        if (!screen.Lobby.NetService.IsConnected)
+        {
+            error = TestToolResult.Fail("LAN 角色选择网络服务尚未连接。", "lan_not_connected");
+            return false;
+        }
+
+        error = null!;
+        return true;
+    }
+
+    private static JsonObject CaptureLanLobby(NCharacterSelectScreen screen)
+    {
+        var lobby = screen.Lobby;
+        return new JsonObject
+        {
+            ["netType"] = lobby.NetService.Type.ToString(),
+            ["localNetId"] = lobby.NetService.NetId.ToString(),
+            ["connected"] = lobby.NetService.IsConnected,
+            ["playerCount"] = lobby.Players.Count,
+            ["players"] = new JsonArray(lobby.Players
+                .OrderBy(static player => player.id)
+                .Select(player => (JsonNode?)new JsonObject
+                {
+                    ["netId"] = player.id.ToString(),
+                    ["slotId"] = player.slotId,
+                    ["characterId"] = player.character.Id.Entry,
+                    ["ready"] = player.isReady,
+                    ["isLocal"] = player.id == lobby.NetService.NetId,
+                })
+                .ToArray()),
+        };
+    }
+
+    private static IEnumerable<Node> Descendants(Node root)
+    {
+        foreach (Node child in root.GetChildren())
+        {
+            yield return child;
+            foreach (var descendant in Descendants(child))
+                yield return descendant;
+        }
+    }
+
     private static async Task<JsonNode> StartTestCombat(JsonObject args)
+    {
+        var run = await StartTestRun(args);
+        if (run is not JsonObject runObject || runObject["ok"]?.GetValue<bool>() != true)
+            return run;
+        return await EnterTestCombat();
+    }
+
+    private static async Task<JsonNode> StartTestRun(JsonObject args)
     {
         var game = NGame.Instance;
         if (game is null)
@@ -119,6 +473,22 @@ internal static class ControlTool
             Array.Empty<ModifierModel>(),
             seed,
             GameMode.Standard);
+        var player = runState.Players.Single();
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["seed"] = seed,
+            ["characterId"] = player.Character.Id.Entry,
+            ["roomType"] = runState.CurrentRoom?.RoomType.ToString(),
+        });
+    }
+
+    private static async Task<JsonNode> EnterTestCombat()
+    {
+        var runManager = RunManager.Instance;
+        var runState = runManager.DebugOnlyGetState();
+        if (runState is null || !runManager.IsInProgress)
+            return TestToolResult.Fail("当前没有可进入战斗的测试跑局。", "run_unavailable");
+
         await runManager.EnterRoomDebug(
             RoomType.Monster,
             model: null,
@@ -131,10 +501,160 @@ internal static class ControlTool
 
         return TestToolResult.Ok(new JsonObject
         {
-            ["seed"] = seed,
             ["characterId"] = player.Character.Id.Entry,
             ["roomType"] = runState.CurrentRoom?.RoomType.ToString(),
             ["enemyCount"] = combatState.Enemies.Count,
+        });
+    }
+
+    private static JsonNode InspectMerchantPotionPrice()
+    {
+        if (!TryGetRunTraveler(out var player, out var error))
+            return error;
+
+        var canonical = ModelDb.PotionPool<SharedPotionPool>()
+            .AllPotions
+            .OrderBy(static potion => potion.Id.Entry, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (canonical is null)
+            return TestToolResult.Fail("共享原版药水池为空。", "potion_pool_unavailable");
+
+        // 仅保留 Hook 所需的运行时类型，避免 MerchantPotionEntry 构造器写入图鉴状态。
+        var entry = (MerchantPotionEntry)RuntimeHelpers.GetUninitializedObject(typeof(MerchantPotionEntry));
+        const decimal rawCost = 100m;
+        var effectiveCost = Hook.ModifyMerchantPrice(player.RunState, player, entry, rawCost);
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["potionId"] = canonical.Id.Entry,
+            ["rawCost"] = rawCost,
+            ["effectiveCost"] = effectiveCost,
+        });
+    }
+
+    private static JsonNode InspectSharedPotionPool()
+    {
+        var sharedPotions = ModelDb.PotionPool<SharedPotionPool>()
+            .AllPotions
+            .OrderBy(static potion => potion.Id.Entry, StringComparer.Ordinal)
+            .Select(static potion => (JsonNode)new JsonObject
+            {
+                ["id"] = potion.Id.Entry,
+                ["type"] = potion.GetType().Name,
+                ["rarity"] = potion.Rarity.ToString(),
+            })
+            .ToArray();
+
+        PotionModel[] specialPotionModels =
+        [
+            ModelDb.Potion<GlowwaterPotion>(),
+            ModelDb.Potion<FoulPotion>(),
+            ModelDb.Potion<PotionShapedRock>(),
+        ];
+        var specialPotions = specialPotionModels
+        .OrderBy(static potion => potion.Id.Entry, StringComparer.Ordinal)
+        .Select(static potion => (JsonNode)new JsonObject
+        {
+            ["id"] = potion.Id.Entry,
+            ["type"] = potion.GetType().Name,
+            ["rarity"] = potion.Rarity.ToString(),
+        })
+        .ToArray();
+
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["count"] = sharedPotions.Length,
+            ["potions"] = new JsonArray(sharedPotions),
+            ["specialPotions"] = new JsonArray(specialPotions),
+        });
+    }
+
+    private static JsonNode InspectExtractionCatalog()
+    {
+        var sharedIds = ModelDb.PotionPool<SharedPotionPool>()
+            .AllPotions
+            .Select(static potion => potion.Id.Entry)
+            .ToArray();
+        var validation = PotionExtractionCatalog.ValidateSharedPool(sharedIds);
+        var plans = PotionExtractionCatalog.All
+            .Select(static plan => (JsonNode)new JsonObject
+            {
+                ["potionId"] = plan.PotionId,
+                ["scope"] = plan.Scope.ToString(),
+                ["specialPrinciple"] = plan.SpecialPrinciple.ToString(),
+                ["basicPrinciple"] = plan.BasicPrinciple.ToString(),
+                ["basicAmount"] = plan.BasicAmount,
+                ["choiceMode"] = plan.ChoiceMode.ToString(),
+                ["gold"] = plan.Gold,
+                ["maxHp"] = plan.MaxHp,
+                ["rewards"] = new JsonArray(plan.PotionRewards
+                    .Select(static reward => (JsonNode)new JsonObject
+                    {
+                        ["family"] = reward.Family.ToString(),
+                        ["quality"] = reward.Quality.ToString(),
+                        ["upgraded"] = reward.IsUpgraded,
+                    })
+                    .ToArray()),
+            })
+            .ToArray();
+
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["plans"] = new JsonArray(plans),
+            ["validation"] = new JsonObject
+            {
+                ["valid"] = validation.IsValid,
+                ["missingPlans"] = new JsonArray(validation.MissingPlans.Select(static id => (JsonNode?)id).ToArray()),
+                ["staleSharedPlans"] = new JsonArray(validation.StaleSharedPlans.Select(static id => (JsonNode?)id).ToArray()),
+                ["invalidPlans"] = new JsonArray(validation.InvalidPlans.Select(static id => (JsonNode?)id).ToArray()),
+            },
+        });
+    }
+
+    private static JsonNode InspectRunPlayerRoundTrip()
+    {
+        if (!TryGetRunTraveler(out var player, out var error))
+            return error;
+
+        var saved = player.ToSerializable();
+        var restored = Player.FromSerializable(saved);
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["maxPotionCount"] = restored.MaxPotionCount,
+            ["openSlotCount"] = restored.PotionSlots.Count(static potion => potion is null),
+            ["backpackCapacity"] = AlchemyBackpack.GetCapacity(restored),
+            ["relicIds"] = new JsonArray(restored.Relics
+                .Select(static relic => (JsonNode?)relic.Id.Entry)
+                .ToArray()),
+        });
+    }
+
+    private static async Task<JsonNode> GrantRunRelic(JsonObject args)
+    {
+        if (!TryGetRunTraveler(out var player, out var error))
+            return error;
+        if (player.Creature.CombatState is not null)
+            return TestToolResult.Fail("grant_run_relic 只能在进入战斗前调用。", "combat_already_started");
+        return await RelicTestControl.Grant(player, args);
+    }
+
+    private static JsonNode SetRunPlayerHp(JsonObject args)
+    {
+        if (!TryGetRunTraveler(out var player, out var error))
+            return error;
+        if (player.Creature.CombatState is not null)
+            return TestToolResult.Fail("set_run_player_hp 只能在进入战斗前调用。", "combat_already_started");
+
+        var hp = args["hp"]?.GetValue<int>() ?? -1;
+        if (hp < 1 || hp > player.Creature.MaxHp)
+            return TestToolResult.Fail(
+                $"生命必须在 1..{player.Creature.MaxHp}。",
+                "invalid_hp");
+
+        player.Creature.SetCurrentHpInternal(hp);
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["currentHp"] = player.Creature.CurrentHp,
+            ["maxHp"] = player.Creature.MaxHp,
         });
     }
 
@@ -192,6 +712,111 @@ internal static class ControlTool
             });
         }
         return result;
+    }
+
+    private static async Task<JsonNode> GrantNativePotion(Player player, JsonObject args)
+    {
+        var potionId = args["potion_id"]?.GetValue<string>()?.Trim();
+        if (string.IsNullOrWhiteSpace(potionId))
+            return TestToolResult.Fail("grant_native_potion 需要 potion_id。", "missing_potion_id");
+        if (RunManager.Instance?.NetService?.Type == MegaCrit.Sts2.Core.Multiplayer.Game.NetGameType.Singleplayer)
+        {
+            var canonical = ModelDb.AllPotions.FirstOrDefault(potion =>
+                string.Equals(potion.Id.Entry, potionId, StringComparison.OrdinalIgnoreCase));
+            if (canonical is null)
+                return TestToolResult.Fail($"找不到原生药水 {potionId}。", "potion_not_found");
+
+            var result = await PotionCmd.TryToProcure(canonical.ToMutable(), player);
+            return result.success
+                ? TestToolResult.Ok(new JsonObject
+                {
+                    ["potionId"] = result.potion.Id.Entry,
+                    ["slotIndex"] = player.GetPotionSlotIndex(result.potion),
+                    ["status"] = "committed",
+                })
+                : TestToolResult.Fail($"原生药水 {potionId} 获得失败：{result.failureReason}。", "potion_procure_failed");
+        }
+
+        if (!TestPotionGrantAction.CanRequest(player, potionId, out var failureCode))
+            return TestToolResult.Fail($"原生药水 {potionId} 不可注入：{failureCode}。", failureCode);
+        if (!TestPotionGrantAction.Request(player, potionId))
+            return TestToolResult.Fail($"原生药水 {potionId} 的同步注入请求被拒绝。", "managed_action_request_rejected");
+
+        // MCP 调用运行在游戏主线程，不能在这里等待动作队列；调用方应从快照审计观察最终提交状态。
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["potionId"] = potionId,
+            ["status"] = "requested",
+        });
+    }
+
+    private static JsonNode DiscardNativePotion(Player player, JsonObject args)
+    {
+        var slotIndex = args["potion_slot_index"]?.GetValue<int>() ?? -1;
+        if (slotIndex < 0 || slotIndex >= player.PotionSlots.Count)
+        {
+            return TestToolResult.Fail(
+                $"potion_slot_index {slotIndex} 超出范围，槽位数为 {player.PotionSlots.Count}。",
+                "potion_slot_out_of_range");
+        }
+
+        var potion = player.PotionSlots[slotIndex];
+        if (potion is null)
+            return TestToolResult.Fail("指定原生药水槽位已为空。", "potion_unavailable");
+
+        potion.Discard();
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["potionId"] = potion.Id.Entry,
+            ["slotIndex"] = slotIndex,
+        });
+    }
+
+    private static async Task<JsonNode> ExtractNativePotion(Player player, JsonObject args)
+    {
+        var slotIndex = args["potion_slot_index"]?.GetValue<int>() ?? -1;
+        if (!ExtractionFlow.TryGetPlan(player, slotIndex, out var plan, out var failureCode))
+            return TestToolResult.Fail($"原生药水不可萃取：{failureCode}。", failureCode);
+        if (!ExtractionFlow.Enqueue(player, slotIndex, out failureCode))
+            return TestToolResult.Fail($"原生药水萃取请求被拒绝：{failureCode}。", failureCode);
+
+        if (plan.ChoiceMode == ExtractionChoiceMode.AttackPotion)
+        {
+            await Task.Delay(100);
+            return TestToolResult.Ok(new JsonObject
+            {
+                ["status"] = "awaiting_choice",
+                ["potionSlotIndex"] = slotIndex,
+            });
+        }
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(1);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (slotIndex >= player.PotionSlots.Count || player.PotionSlots[slotIndex] is null)
+            {
+                return TestToolResult.Ok(new JsonObject
+                {
+                    ["status"] = "completed",
+                    ["potionSlotIndex"] = slotIndex,
+                });
+            }
+            await Task.Delay(50);
+        }
+
+        return TestToolResult.Fail("受管萃取动作未在 1 秒内移除原生药水。", "action_timeout");
+    }
+
+    private static JsonNode ForceEndPlayerTurn(Player player)
+    {
+        var combat = CombatManager.Instance;
+        var turnNumber = player.PlayerCombatState?.TurnNumber;
+        PlayerCmd.EndTurn(player, canBackOut: false);
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["turnNumber"] = turnNumber,
+            ["readyToEndTurn"] = combat.IsPlayerReadyToEndTurn(player),
+        });
     }
 
     private static async Task<JsonNode> SetPrinciples(Player player, JsonObject args)
@@ -295,6 +920,12 @@ internal static class ControlTool
         return TestToolResult.Ok();
     }
 
+    private static JsonNode ClearExtractionAudit()
+    {
+        ExtractionAudit.Clear();
+        return TestToolResult.Ok();
+    }
+
     private static JsonNode SetEnemyHp(Player player, JsonObject args)
     {
         var combatState = player.Creature.CombatState;
@@ -358,6 +989,29 @@ internal static class ControlTool
         foreach (var definition in AlchemyPrinciples.All)
             result[definition.LocalId] = AlchemyPrinciples.Get(player, definition);
         return result;
+    }
+
+    private static bool TryGetRunTraveler(out Player player, out JsonNode error)
+    {
+        player = null!;
+        var state = RunManager.Instance?.DebugOnlyGetState();
+        var localPlayer = LocalContext.GetMe(state);
+        if (localPlayer is null)
+        {
+            error = TestToolResult.Fail("没有活动中的本地玩家。", "player_unavailable");
+            return false;
+        }
+        if (!AlchemyCombatState.IsTraveler(localPlayer))
+        {
+            error = TestToolResult.Fail(
+                $"本地角色不是次元旅人：{localPlayer.Character.Id.Entry}。",
+                "wrong_character");
+            return false;
+        }
+
+        player = localPlayer;
+        error = null!;
+        return true;
     }
 
     private static bool TryGetLocalTraveler(out Player player, out JsonNode error)

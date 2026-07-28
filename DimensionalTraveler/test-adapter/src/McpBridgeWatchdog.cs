@@ -1,38 +1,55 @@
-using System.Reflection;
 using Godot;
-using HarmonyLib;
 using KitLib.Host;
 
 namespace DimensionalTraveler.TestAdapter;
 
 internal static class McpBridgeWatchdog
 {
+    private const int MaxBootstrapAttempts = 120;
+
+    private static readonly int BridgePort = ResolveBridgePort();
     private static int _installed;
+    private static int _bootstrapAttempts;
+
+    private static int ResolveBridgePort() =>
+        int.TryParse(System.Environment.GetEnvironmentVariable("KITLIB_MCP_PORT"), out var port)
+        && port is > 0 and <= ushort.MaxValue
+            ? port
+            : 9877;
 
     public static void Install()
     {
         if (Interlocked.Exchange(ref _installed, 1) != 0)
             return;
 
-        Callable.From(EnsureBridgeStarted).CallDeferred();
+        var configuredPort = System.Environment.GetEnvironmentVariable("KITLIB_MCP_PORT") ?? "<unset>";
+        Bootstrap.Entry.Logger.Info(
+            $"[DimensionalTraveler.TestAdapter] MCP bootstrap scheduled: KITLIB_MCP_PORT={configuredPort}, port={BridgePort}.");
+        Callable.From(RequestBridgeBootstrap).CallDeferred();
     }
 
-    private static void EnsureBridgeStarted()
+    private static void RequestBridgeBootstrap()
     {
         try
         {
-            KitLibHost.TryRunDevBootstrap();
-            var contract = ResolveContract();
+            var contract = KitLibCompatibility.RequireMcpBridge();
             contract.StartCore.Invoke(null, null);
-            if (!ReadIsRunning(contract))
+            if (contract.IsRunning.Invoke(null, null) is true)
             {
-                Bootstrap.Entry.Logger.Error(
-                    "[DimensionalTraveler.TestAdapter] KitLib Dev bootstrap completed, but the MCP HTTP bridge did not start.");
+                Bootstrap.Entry.Logger.Info(
+                    $"[DimensionalTraveler.TestAdapter] KitLib MCP bridge is listening on port {BridgePort}.");
                 return;
             }
 
-            Bootstrap.Entry.Logger.Info(
-                "[DimensionalTraveler.TestAdapter] KitLib MCP bridge is ready for acceptance tests.");
+            _bootstrapAttempts += 1;
+            if (_bootstrapAttempts >= MaxBootstrapAttempts)
+            {
+                Bootstrap.Entry.Logger.Error(
+                    $"[DimensionalTraveler.TestAdapter] KitLib MCP bridge did not enter listening state after {MaxBootstrapAttempts} main-thread attempts on port {BridgePort}.");
+                return;
+            }
+
+            ScheduleRetry();
         }
         catch (Exception exception)
         {
@@ -41,25 +58,17 @@ internal static class McpBridgeWatchdog
         }
     }
 
-    private static McpBridgeContract ResolveContract()
+    private static void ScheduleRetry()
     {
-        var bridgeType = AccessTools.TypeByName("KitLib.Mcp.McpBridge")
-            ?? throw new TypeLoadException("KitLib.Dev is loaded without KitLib.Mcp.McpBridge.");
-        var isRunning = bridgeType.GetProperty(
-            "IsRunning",
-            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-        var startCore = AccessTools.Method(bridgeType, "StartCore", Type.EmptyTypes);
+        if (Engine.GetMainLoop() is not SceneTree tree)
+        {
+            Bootstrap.Entry.Logger.Error(
+                "[DimensionalTraveler.TestAdapter] Cannot schedule KitLib MCP bridge retry because SceneTree is unavailable.");
+            return;
+        }
 
-        if (isRunning?.PropertyType != typeof(bool) || isRunning.GetMethod is null)
-            throw new MissingMemberException(bridgeType.FullName, "IsRunning");
-        if (startCore?.ReturnType != typeof(void))
-            throw new MissingMethodException(bridgeType.FullName, "StartCore()");
-
-        return new McpBridgeContract(isRunning, startCore);
+        var timer = tree.CreateTimer(0.25);
+        timer.Timeout += RequestBridgeBootstrap;
     }
 
-    private static bool ReadIsRunning(McpBridgeContract contract) =>
-        contract.IsRunning.GetValue(null) as bool? == true;
-
-    private sealed record McpBridgeContract(PropertyInfo IsRunning, MethodInfo StartCore);
 }

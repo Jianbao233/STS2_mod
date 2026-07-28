@@ -15,6 +15,7 @@ namespace DimensionalTraveler.Alchemy.State;
 public sealed class AlchemyCombatStatePower : ModPowerTemplate
 {
     private AlchemyTurnState _turn = new();
+    private bool _firstFormulaPrincipleDiscountConsumed;
 
     public override PowerType Type => PowerType.None;
 
@@ -26,6 +27,8 @@ public sealed class AlchemyCombatStatePower : ModPowerTemplate
 
     public ulong PlayerNetId => Owner.Player?.NetId
         ?? throw new InvalidOperationException("炼金战斗状态只能附加到玩家生物。");
+
+    public bool FirstFormulaPrincipleDiscountConsumed => _firstFormulaPrincipleDiscountConsumed;
 
     public AlchemyTurnState Snapshot
     {
@@ -44,14 +47,25 @@ public sealed class AlchemyCombatStatePower : ModPowerTemplate
         RefreshDigest();
     }
 
+    public bool TryConsumeFirstFormulaPrincipleDiscount()
+    {
+        AssertDigest();
+        if (_firstFormulaPrincipleDiscountConsumed)
+            return false;
+
+        _firstFormulaPrincipleDiscountConsumed = true;
+        RefreshDigest();
+        return true;
+    }
+
     internal void InitializeDigest() => RefreshDigest();
 
     private void RefreshDigest() =>
-        SetAmount(_turn.CalculateStableDigest(), silent: true);
+        SetAmount(_turn.CalculateStableDigest(_firstFormulaPrincipleDiscountConsumed), silent: true);
 
     public void AssertDigest()
     {
-        var expected = _turn.CalculateStableDigest();
+        var expected = _turn.CalculateStableDigest(_firstFormulaPrincipleDiscountConsumed);
         if (Amount != expected)
         {
             throw new InvalidOperationException(

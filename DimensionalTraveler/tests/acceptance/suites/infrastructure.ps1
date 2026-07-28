@@ -144,6 +144,43 @@ Invoke-DtCase -Suite $suite -Name "narrative-localization-and-event-contract" -B
     return @{ tables = $expectedKeyCounts; ancients = $ancientIds.Count; eventId = "DIMENSIONAL_TRAVELER_EVENT_UNSEALED_RECORD" }
 }
 
+Invoke-DtCase -Suite $suite -Name "shared-potion-pool-contract" -Body {
+    $pool = Invoke-DtTool -Name "dimensional_traveler_test_control" -Arguments @{ action = "inspect_shared_potion_pool" }
+    Assert-DtTrue $pool.ok "共享药水池查询失败：$(Get-DtToolError $pool)"
+    Assert-DtEqual 45 ([int]$pool.count) "当前版本共享药水池数量错误"
+    Assert-DtEqual 45 @($pool.potions).Count "共享药水池快照数量错误"
+    Assert-DtEqual 45 @($pool.potions.id | Sort-Object -Unique).Count "共享药水池存在重复稳定 ID"
+    Assert-DtEqual 3 @($pool.specialPotions).Count "特殊药水目录快照数量错误"
+    Assert-DtEqual 3 @($pool.specialPotions.id | Sort-Object -Unique).Count "特殊药水目录存在重复稳定 ID"
+    return @{
+        sharedPotions = @($pool.potions | ForEach-Object { "$($_.id):$($_.type):$($_.rarity)" })
+        specialPotions = @($pool.specialPotions | ForEach-Object { "$($_.id):$($_.type):$($_.rarity)" })
+    }
+}
+
+Invoke-DtCase -Suite $suite -Name "extraction-catalog-covers-shared-pool-and-frozen-specials" -Body {
+    $catalog = Invoke-DtTool -Name "dimensional_traveler_test_control" -Arguments @{ action = "inspect_extraction_catalog" }
+    Assert-DtTrue $catalog.ok "萃取目录查询失败：$(Get-DtToolError $catalog)"
+    Assert-DtTrue $catalog.validation.valid "萃取目录与当前共享池不完整：$(($catalog.validation | ConvertTo-Json -Compress))"
+    Assert-DtEqual 48 @($catalog.plans).Count "萃取目录必须包含 45 瓶共享药水和 3 瓶冻结特例"
+    Assert-DtEqual 45 @($catalog.plans | Where-Object { $_.scope -eq "SharedPool" }).Count "共享药水萃取映射数量错误"
+    Assert-DtEqual 3 @($catalog.plans | Where-Object { $_.scope -eq "ExplicitSpecial" }).Count "冻结特殊药水映射数量错误"
+
+    $attack = @($catalog.plans | Where-Object { $_.potionId -eq "ATTACK_POTION" })
+    Assert-DtEqual 1 $attack.Count "攻击药水萃取计划缺失或重复"
+    Assert-DtEqual "AttackPotion" $attack[0].choiceMode "攻击药水未使用专属三选一计划"
+    Assert-DtEqual 0 @($attack[0].rewards).Count "攻击药水不应预先生成固定产物"
+
+    $dualRewards = @($catalog.plans | Where-Object { @($_.rewards).Count -eq 2 })
+    Assert-DtEqual 2 $dualRewards.Count "双产物药水数量错误"
+    Assert-DtEqual "FYSH_OIL`nPOTION_OF_BINDING" (($dualRewards.potionId | Sort-Object) -join "`n") "双产物药水 ID 错误"
+
+    $foul = @($catalog.plans | Where-Object { $_.potionId -eq "FOUL_POTION" })[0]
+    Assert-DtEqual 200 ([int]$foul.gold) "污浊药水金币收益错误"
+    Assert-DtEqual 3 ([int]$foul.maxHp) "污浊药水最大生命收益错误"
+    return @{ shared = 45; special = 3; attackChoice = $attack[0].choiceMode; dualRewards = $dualRewards.potionId }
+}
+
 Invoke-DtCase -Suite $suite -Name "target-tool-contract" -Body {
     $target = Invoke-DtTool -Name "dimensional_traveler_test_target" -Arguments @{ action = "get" }
     Assert-DtTrue $target.ok "目标查询命令失败"

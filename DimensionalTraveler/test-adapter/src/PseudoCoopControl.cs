@@ -1,14 +1,17 @@
 using System.Reflection;
 using System.Text.Json.Nodes;
+using DimensionalTraveler.Alchemy.Extraction;
 using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Characters;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Actions;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Potions;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -18,6 +21,8 @@ internal static class PseudoCoopControl
 {
     private const int ExpectedPlayerCount = 2;
     private const int LaunchTimeoutSeconds = 90;
+
+    public static bool IsActive { get; private set; }
 
     public static async Task<JsonNode> Start(JsonObject args)
     {
@@ -45,6 +50,8 @@ internal static class PseudoCoopControl
         var resultType = result.GetType();
         var ok = resultType.GetField("Item1")?.GetValue(result) as bool? ?? false;
         var error = resultType.GetField("Item2")?.GetValue(result) as string;
+        if (ok)
+            IsActive = true;
         return ok
             ? TestToolResult.Ok(new JsonObject { ["mode"] = "standard" })
             : TestToolResult.Fail(error ?? "KitLib 伪联机启动失败。", "pseudo_coop_launch_failed");
@@ -157,6 +164,86 @@ internal static class PseudoCoopControl
         if (!TryGetPlayer(args, "apply_player_fixture", out var player, out var error))
             return Task.FromResult(error);
         return ScenarioFixture.Apply(player, args["fixture"] as JsonObject ?? new JsonObject());
+    }
+
+    public static async Task<JsonNode> GrantPlayerRelic(JsonObject args)
+    {
+        if (!TryGetPlayer(args, "grant_player_relic", out var player, out var error))
+            return error;
+        return await RelicTestControl.Grant(player, args);
+    }
+
+    public static async Task<JsonNode> ExtractPlayerNativePotion(JsonObject args)
+    {
+        if (!TryGetPlayer(args, "extract_player_native_potion", out var player, out var error))
+            return error;
+
+        var slotIndex = args["potion_slot_index"]?.GetValue<int>() ?? -1;
+        if (!ExtractionFlow.TryGetPlan(player, slotIndex, out var plan, out var failureCode))
+        {
+            return TestToolResult.Fail(
+                $"NetId={player.NetId} 的原生药水不可萃取：{failureCode}。",
+                failureCode);
+        }
+        if (!ExtractionFlow.Enqueue(player, slotIndex, out failureCode))
+        {
+            return TestToolResult.Fail(
+                $"NetId={player.NetId} 的受管萃取请求被拒绝：{failureCode}。",
+                failureCode);
+        }
+
+        if (plan.ChoiceMode == ExtractionChoiceMode.AttackPotion)
+        {
+            await Task.Delay(100);
+            return TestToolResult.Ok(new JsonObject
+            {
+                ["playerNetId"] = player.NetId.ToString(),
+                ["potionSlotIndex"] = slotIndex,
+                ["state"] = "awaiting_choice",
+            });
+        }
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(1);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (slotIndex >= player.PotionSlots.Count || player.PotionSlots[slotIndex] is null)
+            {
+                return TestToolResult.Ok(new JsonObject
+                {
+                    ["playerNetId"] = player.NetId.ToString(),
+                    ["potionSlotIndex"] = slotIndex,
+                    ["state"] = "Finished",
+                });
+            }
+            await Task.Delay(50);
+        }
+
+        return TestToolResult.Fail("伪联机受管萃取未在 1 秒内移除原生药水。", "action_timeout");
+    }
+
+    public static async Task<JsonNode> GrantPlayerNativePotion(JsonObject args)
+    {
+        if (!TryGetPlayer(args, "grant_player_native_potion", out var player, out var error))
+            return error;
+
+        var potionId = args["potion_id"]?.GetValue<string>()?.Trim();
+        if (string.IsNullOrWhiteSpace(potionId))
+            return TestToolResult.Fail("grant_player_native_potion 需要 potion_id。", "missing_potion_id");
+        var canonical = ModelDb.AllPotions.FirstOrDefault(potion =>
+            string.Equals(potion.Id.Entry, potionId, StringComparison.OrdinalIgnoreCase));
+        if (canonical is null)
+            return TestToolResult.Fail($"找不到原生药水 {potionId}。", "potion_not_found");
+
+        var result = await PotionCmd.TryToProcure(canonical.ToMutable(), player);
+        if (!result.success)
+            return TestToolResult.Fail($"原生药水获得失败：{result.failureReason}。", "potion_procure_failed");
+
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["playerNetId"] = player.NetId.ToString(),
+            ["potionId"] = result.potion.Id.Entry,
+            ["slotIndex"] = player.GetPotionSlotIndex(result.potion),
+        });
     }
 
     public static async Task<JsonNode> PlayPlayerCard(JsonObject args)

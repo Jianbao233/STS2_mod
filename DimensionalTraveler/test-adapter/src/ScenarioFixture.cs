@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Alchemy.Extraction;
 using DimensionalTraveler.Alchemy.State;
 using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Content.Cards.System;
@@ -39,6 +40,7 @@ internal static class ScenarioFixture
             await AddBackpackPotions(player, plan.Backpack);
             PaymentAudit.Clear();
             ChoiceAudit.Clear();
+            ExtractionAudit.Clear();
 
             return TestToolResult.Ok(new JsonObject
             {

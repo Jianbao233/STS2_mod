@@ -15,6 +15,7 @@ public enum PotionOrigin
 {
     Original,
     EchoDerived,
+    Extracted,
 }
 
 public enum DiffusionMode
@@ -24,7 +25,24 @@ public enum DiffusionMode
     WholeSide,
 }
 
+[Flags]
+public enum RelicTurnTrigger
+{
+    None = 0,
+    BrewDraw = 1 << 0,
+    QualityRefund = 1 << 1,
+    OriginalPotionRefund = 1 << 2,
+    CatalysisRefund = 1 << 3,
+    DiffusionRefund = 1 << 4,
+    EchoGain = 1 << 5,
+}
+
 public readonly record struct ResourceProduction(string ResourceId, int Amount);
+
+public readonly record struct CatalysisPaymentReceipt(
+    uint CardNetId,
+    string CardId,
+    int Amount);
 
 public sealed record ProductionSnapshot(
     IReadOnlyList<ResourceProduction> Resources,
@@ -75,6 +93,10 @@ public sealed class AlchemyTurnState
 
     public bool DiffusionRewardTriggered { get; set; }
 
+    public RelicTurnTrigger RelicTriggers { get; set; }
+
+    public CatalysisPaymentReceipt? PendingCatalysisPayment { get; set; }
+
     public bool HasBrewedOrUsedOriginalPotion =>
         (Experiments & (ExperimentRecord.BrewedOriginalPotion | ExperimentRecord.UsedOriginalPotion)) != 0;
 
@@ -96,6 +118,8 @@ public sealed class AlchemyTurnState
         LatestOriginalPotion = null;
         ProductionFormulaFetchTriggered = false;
         DiffusionRewardTriggered = false;
+        RelicTriggers = RelicTurnTrigger.None;
+        PendingCatalysisPayment = null;
     }
 
     public AlchemyTurnState Copy() => new()
@@ -109,9 +133,11 @@ public sealed class AlchemyTurnState
         LatestOriginalPotion = LatestOriginalPotion?.Copy(),
         ProductionFormulaFetchTriggered = ProductionFormulaFetchTriggered,
         DiffusionRewardTriggered = DiffusionRewardTriggered,
+        RelicTriggers = RelicTriggers,
+        PendingCatalysisPayment = PendingCatalysisPayment,
     };
 
-    public int CalculateStableDigest()
+    public int CalculateStableDigest(bool firstFormulaPrincipleDiscountConsumed = false)
     {
         var hash = new StableDigest();
         hash.Add((int)Experiments);
@@ -121,6 +147,9 @@ public sealed class AlchemyTurnState
         hash.Add(PendingDiffusion);
         hash.Add(ProductionFormulaFetchTriggered);
         hash.Add(DiffusionRewardTriggered);
+        hash.Add(RelicTriggers);
+        hash.Add(firstFormulaPrincipleDiscountConsumed);
+        hash.Add(PendingCatalysisPayment);
         hash.Add(LatestProduction);
         hash.Add(LatestOriginalPotion);
         return hash.Value;
@@ -186,6 +215,17 @@ public sealed class AlchemyTurnState
                 }
             }
             Add(0xffu);
+        }
+
+        public void Add(CatalysisPaymentReceipt? receipt)
+        {
+            Add(receipt.HasValue);
+            if (!receipt.HasValue)
+                return;
+
+            Add(receipt.Value.CardNetId);
+            Add(receipt.Value.CardId);
+            Add(receipt.Value.Amount);
         }
 
         public void Add(ProductionSnapshot? snapshot)

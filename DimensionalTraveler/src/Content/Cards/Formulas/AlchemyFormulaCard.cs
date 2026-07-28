@@ -47,6 +47,9 @@ public abstract class AlchemyFormulaCard : ModCardTemplate, IAlchemyFormulaCard
 
     public PotionQuality ProductQuality { get; }
 
+    public int MainPrincipleCost => _costs.Single(cost =>
+        string.Equals(cost.ResourceId, PotionMainPrinciples.For(PotionFamily).Id, StringComparison.Ordinal)).Amount;
+
     [SavedProperty]
     public bool IsTemporaryCopy { get; protected set; }
 
@@ -71,8 +74,9 @@ public abstract class AlchemyFormulaCard : ModCardTemplate, IAlchemyFormulaCard
             Owner,
             PotionFamily,
             ProductQuality,
-            upgraded: IsUpgraded);
+            upgraded: IsUpgraded,
+            source: this);
         if (potion is not null)
-            Owner.GetRelic<FirstFormulaPrincipleDiscount>()?.ConsumeAfterSuccessfulBrew(this);
+            Owner.GetRelic<FirstFormulaPrincipleDiscount>()?.ConsumeAfterSuccessfulBrew(this, cardPlay);
     }
 }

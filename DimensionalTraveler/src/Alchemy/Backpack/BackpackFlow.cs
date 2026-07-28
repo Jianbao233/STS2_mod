@@ -56,7 +56,7 @@ public static class BackpackFlow
                     && !potion.IsUpgraded
                     && (!requireAffordable
                         || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 1)),
-                static (_, potion) => AlchemyBackpack.CommitPurification(potion)),
+                static (_, potion) => AlchemyBackpack.CommitPurification(_, potion)),
             [BackpackTransition.Sublimate] = new(
                 static (player, _, requireAffordable) => AlchemyBackpack.GetPotions(player)
                     .Where(potion =>
@@ -69,7 +69,7 @@ public static class BackpackFlow
                     && potion.Quality == PotionQuality.Normal
                     && (!requireAffordable
                         || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 2)),
-                static (_, potion) => AlchemyBackpack.CommitSublimation(potion)),
+                static (source, potion) => AlchemyBackpack.CommitSublimation(source, potion)),
             [BackpackTransition.Masterpiece] = new(
                 static (player, _, requireAffordable) => AlchemyBackpack.GetPotions(player)
                     .Where(potion =>
@@ -82,7 +82,7 @@ public static class BackpackFlow
                     && potion.Quality == PotionQuality.Refined
                     && (!requireAffordable
                         || Resources.AlchemyPrinciples.CanPay(player, potion.MainPrinciple, 4)),
-                static (_, potion) => AlchemyBackpack.CommitMasterpiece(potion)),
+                static (source, potion) => AlchemyBackpack.CommitMasterpiece(source, potion)),
         };
 
     public static bool CanStart(

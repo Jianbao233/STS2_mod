@@ -21,10 +21,11 @@ public static class PotionResolution
         var state = AlchemyCombatState.Require(potion.Owner);
         var turn = state.Snapshot;
         var origin = potion.Origin;
-        var diffusion = origin == PotionOrigin.Original
+        var isOriginalPotion = origin != PotionOrigin.EchoDerived;
+        var diffusion = isOriginalPotion
             ? turn.PendingDiffusion
             : DiffusionMode.None;
-        if (origin == PotionOrigin.Original)
+        if (isOriginalPotion)
             state.Update(static turnState => turnState.PendingDiffusion = DiffusionMode.None);
 
         IReadOnlyList<uint> frozenIds;
@@ -77,7 +78,7 @@ public static class PotionResolution
             frozenSnapshot,
             resolvedSnapshot,
             diffusion);
-        if (origin == PotionOrigin.Original)
+        if (isOriginalPotion)
         {
             state.Update(turnState =>
             {

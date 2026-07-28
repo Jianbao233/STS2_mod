@@ -5,6 +5,7 @@ using STS2RitsuLib;
 using STS2RitsuLib.Interop;
 using DimensionalTraveler.Alchemy;
 using DimensionalTraveler.Alchemy.Backpack;
+using DimensionalTraveler.Alchemy.Extraction;
 using DimensionalTraveler.Content.Cards.Potions;
 using DimensionalTraveler.Resources;
 using DimensionalTraveler.Progression;
@@ -29,6 +30,7 @@ public static class Entry
         AlchemyTargetTypes.Register();
         AlchemyBackpack.Register();
         AlchemyPrinciples.Register();
+        ExtractionFlow.Register();
         PotionCatalog.ValidateCompleteness();
         Logger.Info("[DimensionalTraveler] 内容程序集、叙事时间线、进度规则、炼金原理与运行时补丁已注册。");
     }

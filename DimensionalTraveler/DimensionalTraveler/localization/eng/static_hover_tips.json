@@ -14,6 +14,18 @@
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.title": "Potion Backpack",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.description": "Stores brewed potions that have not yet been retrieved during this combat.",
   "DIMENSIONAL_TRAVELER_CARDPILE_BACKPACK.empty": "The Potion Backpack is empty.",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.title": "Extract",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.preview.title": "Extract {Potion}",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.preview.description": "Permanently consume this potion to gain 1 {Special}, {Amount} {Basic}, and {Rewards}{Gold:plural:| plus {Gold} Gold}{MaxHp:plural:| plus {MaxHp} Max HP}.",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Vitality": "Vitality Principle",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Volatility": "Volatility Principle",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Corruption": "Corruption Principle",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Catalysis": "Catalysis Principle",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Diffusion": "Diffusion Principle",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.principle.Echo": "Echo Principle",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.reward.none": "no potion card",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.reward.attack_choice": "a choice of 1 normal attack-alchemy potion from 3 candidates",
+  "DIMENSIONAL_TRAVELER_EXTRACTION.reward.list": "{Items}",
   "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.title": "Experiment Record",
   "DIMENSIONAL_TRAVELER_EXPERIMENT_RECORD.description": "Record 1 for each different alchemical step completed this turn: brew an original potion; successfully purify, sublimate, or transform an existing potion in the Satchel; use an original potion. Repeating the same step does not add another record. Echo replays and Echo-derived potions do not count."
 }

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
@@ -19,7 +20,7 @@ internal static class CardSelectionControl
         {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["get", "select"] },
+            "action": { "type": "string", "enum": ["get", "select", "cancel"] },
             "candidate_index": { "type": "integer" },
             "card_id": { "type": "string" }
           },
@@ -32,6 +33,9 @@ internal static class CardSelectionControl
 
     private static readonly MethodInfo? SelectHolderMethod =
         AccessTools.Method(typeof(NChooseACardSelectionScreen), "SelectHolder", [typeof(NCardHolder)]);
+
+    private static readonly MethodInfo? SkipMethod =
+        AccessTools.Method(typeof(NChooseACardSelectionScreen), "OnSkipButtonReleased");
 
     private static readonly FieldInfo? CompletionSourceField =
         AccessTools.Field(typeof(NChooseACardSelectionScreen), "_completionSource");
@@ -48,6 +52,8 @@ internal static class CardSelectionControl
         var screen = TryGetScreen();
         if (action == "get")
             return TestToolResult.Ok(new JsonObject { ["selection"] = Capture(screen) });
+        if (action == "cancel")
+            return Cancel(screen);
         if (action != "select")
             return TestToolResult.Fail($"未知 action：{action ?? "<null>"}。", "invalid_action");
         if (screen is null)
@@ -125,11 +131,39 @@ internal static class CardSelectionControl
         });
     }
 
+    private static JsonObject Cancel(NChooseACardSelectionScreen? screen)
+    {
+        if (screen is null)
+            return TestToolResult.Fail("当前没有活动的 NChooseACardSelectionScreen。", "selection_inactive");
+        if (SkipMethod is null)
+            return TestToolResult.Fail("当前游戏版本缺少原生选择跳过方法。", "selection_skip_incompatible");
+
+        var completion = CompletionSourceField?.GetValue(screen);
+        var taskBefore = GetCompletionTask(completion);
+        SkipMethod.Invoke(screen, [null]);
+        var taskAfter = GetCompletionTask(completion);
+        return TestToolResult.Ok(new JsonObject
+        {
+            ["completionTaskFound"] = taskBefore is not null,
+            ["taskCompletedBefore"] = taskBefore?.IsCompleted,
+            ["taskCompletedAfter"] = taskAfter?.IsCompleted,
+            ["completionPath"] = "native_skip",
+        });
+    }
+
     public static JsonObject Capture(NChooseACardSelectionScreen? screen = null)
     {
         screen ??= TryGetScreen();
         if (screen is null)
-            return new JsonObject { ["active"] = false, ["candidates"] = new JsonArray() };
+        {
+            return new JsonObject
+            {
+                ["active"] = false,
+                ["candidates"] = new JsonArray(),
+                ["selectors"] = CaptureSelectorState(),
+                ["overlayNodeTypes"] = CaptureOverlayTypes(),
+            };
+        }
 
         var candidates = new JsonArray();
         var holders = GetCandidates(screen);
@@ -150,11 +184,42 @@ internal static class CardSelectionControl
             ["ready"] = GetAgeMs(screen) > 350,
             ["ageMs"] = GetAgeMs(screen),
             ["candidates"] = candidates,
+            ["selectors"] = CaptureSelectorState(),
+            ["overlayNodeTypes"] = CaptureOverlayTypes(),
         };
     }
 
-    private static NChooseACardSelectionScreen? TryGetScreen() =>
-        NOverlayStack.Instance?.Peek() as NChooseACardSelectionScreen;
+    private static NChooseACardSelectionScreen? TryGetScreen()
+    {
+        var overlays = NOverlayStack.Instance;
+        if (overlays is null)
+            return null;
+
+        return Descendants(overlays)
+            .OfType<NChooseACardSelectionScreen>()
+            .FirstOrDefault(GodotObject.IsInstanceValid);
+    }
+
+    private static JsonArray CaptureOverlayTypes()
+    {
+        var overlays = NOverlayStack.Instance;
+        if (overlays is null)
+            return new JsonArray();
+
+        return new JsonArray(Descendants(overlays)
+            .Where(GodotObject.IsInstanceValid)
+            .Select(node => node.GetType().FullName)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static typeName => typeName, StringComparer.Ordinal)
+            .Select(static typeName => (JsonNode?)typeName)
+            .ToArray());
+    }
+
+    private static JsonObject CaptureSelectorState() => new()
+    {
+        ["selectorType"] = CardSelectCmd.Selector?.GetType().FullName,
+        ["localSelectorType"] = CardSelectCmd.LocalSelector?.GetType().FullName,
+    };
 
     private static ulong GetAgeMs(NChooseACardSelectionScreen screen)
     {
