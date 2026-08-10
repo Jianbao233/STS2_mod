@@ -1,5 +1,7 @@
 # MP Save Player Remover / 多人存档移除玩家工具
 
+> ⚠️ **已废弃**（2026-08-10 标注）：本项目停止维护，仅保留历史参考。不再构建与发布。
+
 Standalone tool to remove disconnected or leaving players from STS2 multiplayer save files. **Host-only** — run before loading the game when someone drops.
 
 多人联机时若有玩家掉线或不玩了，可在读档前用本工具修改存档，移除该玩家并调整人数。**仅房主使用**，无需其他人安装。

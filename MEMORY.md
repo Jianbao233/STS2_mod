@@ -1,5 +1,7 @@
 # STS2_mod · 工作区总记忆
 
+> ⚠️ **本文件已停更（2026-08-10 标注）**：当前状态与规则以根目录 `AGENTS.md` + `工作区台账.md` 为准；本文保留历史决策与细节，仅作参考。标注后新增/变更不写回本文件。
+>
 > 本文件为 `STS2_mod/` 工作区的唯一主记忆，每次新对话开始时请先阅读本文。
 > 旧的分段记忆（VC_SESSION_MEMORY.md）已合并至本文档，按时间顺序记录在末尾。
 
@@ -36,6 +38,18 @@
 | **DimensionalTraveler** | `DimensionalTraveler\` | 独立仓库；次元旅人炼金协作角色，正式运行时仅依赖 RitsuLib；测试适配器仅限本地开发 |
 | **AutoModSubscriber** | `AutoModSubscriber\` | 联机进房时遇到 mod 不一致，弹双区块对话框：一键订阅工坊缺失 mod + 勾选禁用本机多余 mod。Workshop 3750485606（public）。本仓直接维护，独立 Git 仓库 `https://github.com/Jianbao233/AutoModSubscriber` |
 
+**补充登记（2026-08-10，原清单缺失）**：
+
+| 模组 | 路径 | 功能 |
+|------|------|------|
+| **MerchantBlacklist** | `MerchantBlacklist\` | 本机商店遗物/药水黑名单过滤器。**独立 Git 仓库**。workspace `ShopBlacklist`（历史遗留） |
+| **MultiplayerTools** | `MultiplayerTools\` | 多人存档/角色模板/备份面板类工具。工坊 3747498878 |
+| **UpgradeBugRestore** | `UpgradeBugRestore\` | 恢复火堆升级多选 UI。工坊 3750854057 |
+| **ShopCatalog** | `ShopCatalog\` | 商店总览（私人定制，客户：南鸢离梦） |
+| **SharedConfig** | `SharedConfig\` | 共享配置框架库（非独立 mod），见其 README |
+
+**已废弃（2026-08-10 标注，明细以根 AGENTS.md 为准）**：`ControlPanel`、`HostPriority`、`RichPing`、`MP_PlayerManager_v1`、`MP_PlayerManager_v2`、`MP_SavePlayerRemover`、`MP_SaveSlotsNative`、`_废弃_Manifest格式修复`。废弃 README 均已在头部标注。
+
 ---
 
 ## 三项独立仓迁移记录（2026-06-12）
@@ -61,7 +75,8 @@
 | **STS2_mod/** | `STS2_mod\` | 所有 Mod 源码（git 管理） |
 | **Manager/** | `Manager\` | 皮皮模组管理器 v2.3.1 |
 | **Tools/** | `Tools\` | 反编译/解包/提取工具集 |
-| **SL2_v0.109.0/** | `SL2_v0.109.0\` | **当前游戏 v0.109.0 的 GDRE 还原 Godot 项目**。2026-07-24 解包，资源/场景审计与 UI 复用首选区；详见 §3.2。 |
+| **SL2_v0.110.1/** | `SL2_v0.110.1\` | **当前游戏 v0.110.1 的 GDRE 还原 Godot 项目**。2026-07-31 解包，当前源码/资源基线；详见 §3.2。 |
+| **SL2_v0.109.0/** | `SL2_v0.109.0\` | 上一代 GDRE 快照（2026-07-24 解包），仅用于版本差异对照（2026-08-10 起）。 |
 | **SL2_v0.108/** | `SL2_v0.108\` | 最近上一版完整快照，仅用于版本差异对照。 |
 | **Godot_v4.5.1/** | `Godot_v4.5.1\` | Godot 4.5.1 安装包 |
 | **GDRE_tools-*/** | `GDRE_tools-*/` | Godot 资源提取工具 |
