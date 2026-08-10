@@ -42,3 +42,7 @@ ErrorPopupHintPlan_0.103.2/
 
 # Deprecated local-only project (do not upload)
 /MP_SaveSlotsNative/
+
+# Private docs staging (docs should live in STS2_PrivateDocs repo)
+/docs/_私有/
+
