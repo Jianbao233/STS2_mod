@@ -46,3 +46,7 @@ ErrorPopupHintPlan_0.103.2/
 # Private docs staging (docs should live in STS2_PrivateDocs repo)
 /docs/_私有/
 
+
+# Private custom mod (independent local repo, no remote yet)
+/ShopCatalog/
+
