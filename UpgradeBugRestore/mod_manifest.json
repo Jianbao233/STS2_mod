@@ -1,11 +1,11 @@
 {
   "id": "UpgradeBugRestore",
   "pck_name": "UpgradeBugRestore",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "升级bug恢复 / Upgrade Bug Restore",
   "author": "@Bilibili我叫煎包",
   "description": "恢复官方已修复的火堆升级 UI Bug：允许在休息点铁匠 (Smith) / 升级类卡牌选择面板里一次选择多张卡牌升级。原版在弹出升级预览面板时禁用了卡牌网格的焦点路由，本 mod 把这条限制还原，玩家可以连续点选多张牌并一次性升级。\nRestores the previously patched campfire upgrade UI bug. Re-enables card grid focus while the upgrade preview is open, so you can select and upgrade multiple cards at a rest site smith in one go.",
   "has_pck": false,
   "has_dll": true,
-  "affects_gameplay": true
+  "affects_gameplay": false
 }
