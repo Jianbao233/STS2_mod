@@ -22,6 +22,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 | **RefreshShop** | 商店免费无限刷新；源码为独立仓库 | [Repo](https://github.com/Jianbao233/RefreshShop) |
 | **DimensionalTraveler** | 次元旅人炼金协作角色；源码为独立仓库 | [Repo](https://github.com/Jianbao233/STS2-DimensionalTraveler) |
 | **AutoModSubscriber** | 联机时自动订阅房主有但本机缺失的工坊 mod；本地保留于本仓 | [README](AutoModSubscriber/README.md) · [Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3750485606) |
+| **StandardSeedHost** | 标准模式多人房/单机选人界面指定种子（空则随机），客机只读同步；主仓内项目，未发布 | [README](StandardSeedHost/README.md) |
 
 主仓库继续保存未迁移小 mod 源码；`ModListHider`、`LoadOrderManager`、`PVP_ParallelTurn`、`RefreshShop`、`DimensionalTraveler` 位于本地工作区内，但由各自独立仓库管理，`STS2_mod` 主仓只在根 README/MEMORY 中保留跳转说明。
 
@@ -45,6 +46,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 |------|------|------|
 | 主仓内 Mod（NoClientCheats、ControlPanel、RichPing、RunHistoryAnalyzer） | `cd 项目` → `.\build.ps1` | .NET 8、Godot 4.5.1 Mono |
 | 独立仓 Mod（ModListHider、LoadOrderManager、PVP_ParallelTurn） | 到对应独立仓库执行构建脚本 | 以独立仓库 README 为准 |
+| StandardSeedHost | `cd StandardSeedHost` → `.\build.ps1` | .NET 9、Godot 4.5.1 Mono（引用游戏 sts2.dll，v0.111.0） |
 | MP_PlayerManager | `cd MP_PlayerManager` → `.\build_exe.bat` 或 `pyinstaller ... manage_players.py` | Python 3.8+、PyInstaller |
 | ~~MP_SavePlayerRemover~~ | ~~已废弃，使用 MP_PlayerManager~~ | ~~Python 3.8+、PyInstaller~~ |
 
