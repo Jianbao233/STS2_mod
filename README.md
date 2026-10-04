@@ -1,4 +1,4 @@
-# 杀戮尖塔2 Mod 制作 | Slay the Spire 2 Mods
+﻿# 杀戮尖塔2 Mod 制作 | Slay the Spire 2 Mods
 
 Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarantees. The author has zero programming background; all projects are created with AI assistance (Cursor / claude-4.6-sonnet).
 
@@ -15,6 +15,7 @@ Mods for Slay the Spire 2. Built with **vibe coding** — pure chaos, no guarant
 | **MP_PlayerManager** | 多人存档玩家管理：夺舍/添加/移除玩家 | [README](MP_PlayerManager/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **RunHistoryAnalyzer** | 历史记录异常检测：守恒定律+来源追溯，检测作弊 | [README](RunHistoryAnalyzer/README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ControlPanel** | F7 控制面板：卡牌/药水/遗物/战斗快捷 | [README](ControlPanel/README.md) |
+| **SpireInstrument** | 尖塔乐器：游戏内多乐器演奏浮窗，队友能实时听到（工坊 [3813268898](https://steamcommunity.com/sharedfiles/filedetails/?id=3813268898)） | [README](SpireInstrument/README.md) |
 | **RichPing** | 自定义联机 Ping 文本（存活催促/死亡调侃） | [README](RichPing/VC_RICH_PING_README.md) · [Releases](https://github.com/Jianbao233/STS2_mod/releases) |
 | **ModListHider** | 联机时隐藏 Mod 列表 / 原版模式；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/ModListHider) · [Releases](https://github.com/Jianbao233/ModListHider/releases) |
 | **LoadOrderManager** | 手动调整 Mod 加载顺序；源码已迁移到独立仓库 | [Repo](https://github.com/Jianbao233/STS2-LoadOrderManager) · [Releases](https://github.com/Jianbao233/STS2-LoadOrderManager/releases) |
