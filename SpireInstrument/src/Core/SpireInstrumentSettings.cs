@@ -64,8 +64,8 @@ public sealed class SpireInstrumentSettings
     /// <summary>面板与字号缩放百分比（100–200，默认 130）。高分屏上太小就往上调。</summary>
     public int UiScalePercent { get; set; } = 115;
 
-    /// <summary>我在战斗中时自动静音队友演奏（默认开：不打扰自己打牌）。</summary>
-    public bool MuteAudienceInCombat { get; set; } = true;
+    /// <summary>我在战斗中时自动静音队友演奏（默认关；设置页可开）。</summary>
+    public bool MuteAudienceInCombat { get; set; }
 
     /// <summary>把取值收进合法范围，并修正无法识别的枚举名。</summary>
     public SpireInstrumentSettings Normalize()
@@ -97,4 +97,13 @@ public sealed class SpireInstrumentSettings
         if (plus >= 0 && plus + 1 < s.Length) s = s.Substring(plus + 1).Trim();
         return s.Length == 0 ? "P" : s;
     }
+}
+
+
+/// <summary>浮窗尺寸档位（对应 UI 上的 迷你 / 标准 / 大）。</summary>
+public enum PanelSize
+{
+    Mini,
+    Standard,
+    Large,
 }

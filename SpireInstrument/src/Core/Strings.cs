@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SpireInstrument.Core;
@@ -79,6 +79,12 @@ public static class Strings
         ["口风琴"] = "Melodica",
         ["管风琴"] = "Organ",
         ["弦乐"] = "Strings",
+        ["电钢琴"] = "Electric Piano",
+        ["古筝"] = "Guzheng",
+        ["吉他"] = "Guitar",
+        ["长笛"] = "Flute",
+        ["鼓组"] = "Drum Kit",
+        ["沙锤"] = "Shaker",
 
         // 曲目区
         ["曲目"] = "Song",

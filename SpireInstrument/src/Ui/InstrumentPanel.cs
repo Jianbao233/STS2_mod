@@ -34,6 +34,12 @@ public partial class InstrumentPanel : Control
     private readonly Net.InstrumentNet _net;
     private readonly Dictionary<(ulong Sender, int Midi), VoiceHandle> _remoteVoices = new();
 
+    // ---- 队友分轨（按 senderId）----
+    private readonly Dictionary<ulong, int> _peerNotes = new();
+    private readonly HashSet<ulong> _mutedPeers = new();
+    private readonly Dictionary<ulong, Button> _peerButtons = new();
+    private HBoxContainer _peerRow = null!;
+
     private PanelContainer _window = null!;
     private Control _root = null!;
     private PanelContainer _header = null!;
@@ -114,6 +120,22 @@ public partial class InstrumentPanel : Control
     private Core.PanelSize _appliedSize = Core.PanelSize.Standard;
     private int _appliedScale;
 
+    // ---- 录音 / 回放 ----
+    private readonly List<Songs.SongNote> _recording = new();
+    private bool _isRecording;
+    private double _recStart;
+    private Button _recButton = null!;
+    private Button _playRecButton = null!;
+    private Label _recLabel = null!;
+
+    // ---- 节拍器 ----
+    private CheckButton _metroToggle = null!;
+    private HSlider _metroBpm = null!;
+    private Label _metroLabel = null!;
+    private bool _metroOn;
+    private double _metroNext;
+    private int _metroBeat;
+
     public InstrumentPanel(InstrumentAudio audio, Songs.SongPlayer player, Net.InstrumentNet net)
     {
         _audio = audio;
@@ -129,7 +151,13 @@ public partial class InstrumentPanel : Control
         var def = InstrumentLibrary.Get(ModSettings.InstrumentId);
         int midi = message.KeyIndex;
         // 观众侧：按"队友演奏音量"缩放；静音时只做视觉提示，不出声
+        // 分轨统计与静音：每位队友单独计数、可单独静音
+        _peerNotes.TryGetValue(senderId, out int seen);
+        _peerNotes[senderId] = seen + 1;
+        RefreshPeerRow();
+
         float audience = ModSettings.AudienceVolume;
+        if (_mutedPeers.Contains(senderId)) audience = 0f;
         // 观众侧礼让：我在战斗房间里时自动不出声（只影响"我听别人"，自己弹不受影响）
         if (ModSettings.MuteAudienceInCombat && IsInCombat()) audience = 0f;
         float vel = message.Velocity / 127f * audience;
@@ -431,6 +459,63 @@ public partial class InstrumentPanel : Control
         }
         host.AddChild(modes);
 
+        // 节拍器：给自由弹一个节奏底座（用鼓组的踩镲音色打点，首拍重音）
+        var metroRow = new HBoxContainer();
+        metroRow.AddThemeConstantOverride("separation", 6);
+        _metroToggle = new CheckButton { Text = Core.Strings.Pick("节拍器", "Metronome") };
+        _metroToggle.Toggled += on =>
+        {
+            _metroOn = on;
+            _metroBeat = 0;
+            _metroNext = 0;   // 立即从第一拍开始
+            UpdateMetroLabel();
+        };
+        metroRow.AddChild(_metroToggle);
+
+        _metroBpm = new HSlider
+        {
+            MinValue = 40, MaxValue = 200, Step = 5, Value = 90,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            TooltipText = Core.Strings.Pick("每分钟拍数", "Beats per minute"),
+        };
+        _metroBpm.ValueChanged += v => { UpdateMetroLabel(); };
+        metroRow.AddChild(_metroBpm);
+
+        _metroLabel = new Label { Text = "90" };
+        _metroLabel.AddThemeColorOverride("font_color", ColInkDim);
+        _metroLabel.AddThemeFontSizeOverride("font_size", Fs(11));
+        metroRow.AddChild(_metroLabel);
+        host.AddChild(metroRow);
+
+        // 录音 / 回放：录下自己的演奏，回放时复用曲目播放器（录音 → 一首 Song）
+        var recRow = new HBoxContainer();
+        recRow.AddThemeConstantOverride("separation", 6);
+        _recButton = new Button
+        {
+            Text = Core.Strings.Pick("● 录音", "● Rec"),
+            ToggleMode = true,
+            CustomMinimumSize = new Vector2(0, 26),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _recButton.Toggled += on => ToggleRecording(on);
+        recRow.AddChild(_recButton);
+
+        _playRecButton = new Button
+        {
+            Text = Core.Strings.Pick("▶ 回放录音", "▶ Replay"),
+            CustomMinimumSize = new Vector2(0, 26),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            Disabled = true,
+        };
+        _playRecButton.Pressed += ReplayRecording;
+        recRow.AddChild(_playRecButton);
+
+        _recLabel = new Label { Text = "—" };
+        _recLabel.AddThemeColorOverride("font_color", ColInkDim);
+        _recLabel.AddThemeFontSizeOverride("font_size", Fs(10));
+        recRow.AddChild(_recLabel);
+        host.AddChild(recRow);
+
         _songInfo = new Label { Text = "未选择曲目", AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _songInfo.AddThemeColorOverride("font_color", ColInkDim);
         _songInfo.AddThemeFontSizeOverride("font_size", Fs(10));
@@ -521,13 +606,7 @@ public partial class InstrumentPanel : Control
             ? $"{MusicScale.NoteName(notes[0])} ~ {MusicScale.NoteName(notes[notes.Count - 1])}"
             : "—";
 
-        bool en = Core.Strings.UseEnglish;
-        _songInfo.Text = (en
-                             ? $"Notes {song.MelodyCount} · {song.Duration:F1}s · Range {range}"
-                             : $"音符 {song.MelodyCount} · 时长 {song.Duration:F1}s · 音域 {range}")
-                         + (song.Snapped > 0 ? (en ? $"\nSnapped {song.Snapped}" : $"\n五声吸附 {song.Snapped} 处") : "")
-                         + (song.Folded > 0 ? (en ? $"\nOctave-folded {song.Folded}" : $"\n八度折叠 {song.Folded} 处") : "")
-                         + (song.Imported ? (en ? "\n(imported MIDI)" : "\n（导入的 MIDI）") : "");
+        _songInfo.Text = Core.PanelText.SongInfo(song.MelodyCount, song.Duration, range, song.Snapped, song.Folded, song.Imported, Core.Strings.UseEnglish);
     }
 
     private void TogglePlay()
@@ -799,11 +878,89 @@ public partial class InstrumentPanel : Control
         muteRow.AddChild(_muteAudience);
         right.AddChild(muteRow);
 
+        // 队友分轨开关（收到第一个音符后自动出现）
+        _peerRow = new HBoxContainer();
+        _peerRow.AddThemeConstantOverride("separation", 4);
+        right.AddChild(_peerRow);
+
         _netInfo = new Label { Text = "", AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _netInfo.AddThemeColorOverride("font_color", ColInkDim);
         _netInfo.AddThemeFontSizeOverride("font_size", Fs(10));
         right.AddChild(_netInfo);
         UpdateNetInfo();
+    }
+
+    /// <summary>开始/停止录音。停止后若录到了音符，回放按钮可用。</summary>
+    private void ToggleRecording(bool on)
+    {
+        _isRecording = on;
+        if (on)
+        {
+            _recording.Clear();
+            _recStart = Time.GetTicksMsec() / 1000.0;
+            _recButton.Text = Core.Strings.Pick("■ 停止录音", "■ Stop rec");
+        }
+        else
+        {
+            _recButton.Text = Core.Strings.Pick("● 录音", "● Rec");
+        }
+        _playRecButton.Disabled = _recording.Count == 0;
+        UpdateRecLabel();
+    }
+
+    /// <summary>把录音转成一首 Song 交给曲目播放器回放（复用前视调度，不需要新播放器）。</summary>
+    private void ReplayRecording()
+    {
+        if (_recording.Count == 0) return;
+
+        var song = Songs.SongBuilder.FromRecording(_recording, Core.Strings.Pick("我的录音", "My recording"));
+
+        Songs.SongBuilder.FoldToKeyboard(song, ModSettings.ScaleSnap, ModSettings.Octave);
+        _loadedSong = song;
+        _player.Start(song, Songs.PlayMode.Auto, ModSettings.InstrumentId, 0.3);
+        _playButton.Text = Core.Strings.Pick("■ 停止", "■ Stop");
+        UpdateStatus(Core.Strings.Pick($"回放录音：{song.MelodyCount} 个音", $"Replaying {song.MelodyCount} notes"));
+    }
+
+    private void UpdateRecLabel()
+    {
+        if (_recLabel == null) return;
+        _recLabel.Text = _isRecording
+            ? Core.Strings.Pick($"● {_recording.Count}", $"● {_recording.Count}")
+            : (_recording.Count > 0 ? Core.Strings.Pick($"{_recording.Count} 音", $"{_recording.Count} notes") : "—");
+    }
+
+    private void UpdateMetroLabel()
+    {
+        if (_metroLabel != null) _metroLabel.Text = ((int)_metroBpm.Value) + " BPM";
+    }
+
+    /// <summary>为每位出现过的队友建一个静音开关（最多 6 个，按 senderId 分轨）。</summary>
+    private void RefreshPeerRow()
+    {
+        if (_peerRow == null || !GodotObject.IsInstanceValid(_peerRow)) return;
+
+        foreach (var kv in _peerNotes)
+        {
+            if (_peerButtons.ContainsKey(kv.Key) || _peerButtons.Count >= 6) continue;
+
+            var b = new Button
+            {
+                Text = Core.Strings.Pick($"队友{_peerButtons.Count + 1}", $"P{_peerButtons.Count + 1}"),
+                ToggleMode = true,
+                CustomMinimumSize = new Vector2(0, 26),
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                TooltipText = Core.Strings.Pick("静音这位队友的演奏", "Mute this teammate"),
+            };
+            ulong id = kv.Key;
+            b.Toggled += on =>
+            {
+                if (on) _mutedPeers.Add(id); else _mutedPeers.Remove(id);
+                UpdateNetInfo();
+            };
+            _peerRow.AddChild(b);
+            _peerButtons[id] = b;
+        }
     }
 
     /// <summary>联机与观众侧状态（只在文字变化时写，避免每帧刷 UI）。</summary>
@@ -817,8 +974,10 @@ public partial class InstrumentPanel : Control
             ? Core.Strings.Pick("静音", "muted")
             : ModSettings.Data.AudienceVolumePercent + "%";
         string text = Core.Strings.Pick(
-            $"联机：{conn}\n队友音量：{vol}\n收到音符：{_net.ReceivedNotes} · 发出：{_net.SentNotes}",
-            $"Network: {conn}\nTeammate volume: {vol}\nNotes in: {_net.ReceivedNotes} · out: {_net.SentNotes}");
+            $"联机：{conn}\n队友音量：{vol}\n队友 {_peerNotes.Count} 人 · 收到音符 {_net.ReceivedNotes} · 发出 {_net.SentNotes}" +
+            (_mutedPeers.Count > 0 ? $" · 已静音 {_mutedPeers.Count}" : ""),
+            $"Network: {conn}\nTeammate volume: {vol}\nTeammates {_peerNotes.Count} · notes in {_net.ReceivedNotes} · out {_net.SentNotes}" +
+            (_mutedPeers.Count > 0 ? $" · muted {_mutedPeers.Count}" : ""));
         if (_netInfo.Text != text) _netInfo.Text = text;
     }
 
@@ -1051,6 +1210,18 @@ public partial class InstrumentPanel : Control
         UpdateReadout();
         _net.SendNote(true, midi, 0.85f);
 
+        if (_isRecording)
+        {
+            _recording.Add(new Songs.SongNote
+            {
+                Time = Time.GetTicksMsec() / 1000.0 - _recStart,
+                Midi = midi,
+                Duration = 0.4,
+                Velocity = 0.85f,
+            });
+            UpdateRecLabel();
+        }
+
         // 跟弹模式：把这次按键交给判定
         if (_mode == Songs.PlayMode.Learn && _player.IsPlaying)
         {
@@ -1187,12 +1358,9 @@ public partial class InstrumentPanel : Control
         _appliedScale = Core.ModSettings.UiScalePercent;
         var viewport = GetViewportRect().Size;
         // 键盘改为通栏后：宽度给足（键宽接近真钢琴比例），高度按内容自然高度收紧
-        Vector2 target = size switch
-        {
-            PanelSize.Mini => new Vector2(Math.Min(700 * _ui, viewport.X - 40), Fs(112)),
-            PanelSize.Large => new Vector2(Math.Min(1320 * _ui, viewport.X - 60), Math.Min(600 * _ui, viewport.Y - 100)),
-            _ => new Vector2(Math.Min(1080 * _ui, viewport.X - 60), Math.Min(524 * _ui, viewport.Y - 120)),
-        };
+        // 尺寸计算下沉到纯函数（Core.PanelLayout），可被离线自检覆盖
+        var (tw, th) = Core.PanelLayout.TargetSize(size, _ui, viewport.X, viewport.Y, Fs(112));
+        Vector2 target = new(tw, th);
         _appliedSize = size;
         _appliedScale = Core.ModSettings.UiScalePercent;
         _window.CustomMinimumSize = target;
@@ -1525,6 +1693,21 @@ public partial class InstrumentPanel : Control
             return;
         }
         UpdateNetInfo();
+
+        // 节拍器打点（首拍重音：低音=重音，高音=弱拍）
+        if (_metroOn)
+        {
+            double nowSec = Time.GetTicksMsec() / 1000.0;
+            if (_metroNext <= 0 || nowSec >= _metroNext)
+            {
+                if (_metroNext <= 0) _metroNext = nowSec;
+                bool accent = _metroBeat % 4 == 0;
+                var drumDef = InstrumentLibrary.Get("drum");
+                _audio.PlayPreview(accent ? 48 : 60, accent ? 0.85f : 0.5f, drumDef, 0.3);
+                _metroBeat++;
+                _metroNext += 60.0 / Math.Max(40, (int)_metroBpm.Value);
+            }
+        }
 
         // 曲目播放：进度条 + 跟弹轨道 + 成绩
         if (_player.IsPlaying)

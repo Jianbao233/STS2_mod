@@ -19,7 +19,7 @@
     <Compile Include="..\..\src\Audio\PcmRenderer.cs" />
     <Compile Include="..\..\src\Audio\InstrumentLibrary.cs" />
     <Compile Include="..\..\src\Core\ScaleMath.cs" />
-    <Compile Include="..\..\src\Core\SpireInstrumentSettings.cs" /><Compile Include="..\..\src\Core\Strings.cs" />
+    <Compile Include="..\..\src\Core\SpireInstrumentSettings.cs" /><Compile Include="..\..\src\Core\Strings.cs" /><Compile Include="..\..\src\Core\PanelLayout.cs" /><Compile Include="..\..\src\Core\PanelText.cs" />
     <Compile Include="..\..\src\Songs\SongModel.cs" />
     <Compile Include="..\..\src\Songs\SongLibrary.cs" />
     <Compile Include="..\..\src\Songs\MidiFileParser.cs" />

@@ -21,6 +21,9 @@ public enum SynthKind
 
     /// <summary>可无缝循环的稳态波形（延音类；循环段取整数个基频周期）。</summary>
     Sustain,
+
+    /// <summary>打击乐：噪声瞬态 + 音高下滑的衰减音（鼓类）。音高映射鼓件。</summary>
+    Percussion,
 }
 
 /// <summary>
@@ -149,7 +152,61 @@ public static class InstrumentLibrary
             ClickAmount = 0.08, ClickFreqRatio = 14.0, Duration = 4.5,
         },
 
+        new InstrumentDef
+        {
+            Id = "epiano", Name = "电钢琴", Icon = "🎹", Tag = "EPiano",
+            Gain = 0.92,
+            // 电钢琴：基频 + 略带失谐的高次泛音（音叉感），衰减比大钢琴短
+            Partials = new[] { 1.0, 2.0, 3.02, 4.05, 6.1 },
+            Gains    = new[] { 0.95, 0.30, 0.22, 0.10, 0.04 },
+            Decay = 2.6, DecayExp = 0.80, Attack = 0.003, Stretch = 1.0,
+            ClickAmount = 0.12, ClickFreqRatio = 8.0, Duration = 2.6,
+        },
+        new InstrumentDef
+        {
+            Id = "guzheng", Name = "古筝", Icon = "🪕", Tag = "Pluck2",
+            Gain = 1.15,
+            // 拨弦变体：比竖琴更亮、衰减更快（短促清脆）
+            Synth = SynthKind.Pluck,
+            Damping = 0.9975, Brightness = 0.72, Duration = 2.4,
+            ClickAmount = 0.16, ClickFreqRatio = 11.0, Attack = 0.001,
+        },
+        new InstrumentDef
+        {
+            Id = "drum", Name = "鼓组", Icon = "🥁", Tag = "Drum",
+            // 打击乐：Decay=衰减时间常数；ClickAmount=噪声占比；Brightness=音高下滑程度
+            Synth = SynthKind.Percussion,
+            Decay = 0.14, ClickAmount = 0.42, Brightness = 0.9, Duration = 0.7,
+        },
+        new InstrumentDef
+        {
+            Id = "shaker", Name = "沙锤", Icon = "🪇", Tag = "Shaker",
+            // 沙锤：几乎纯噪声、极短衰减
+            Synth = SynthKind.Percussion,
+            Decay = 0.06, ClickAmount = 0.95, Brightness = 0.1, Duration = 0.3,
+        },
+
+        new InstrumentDef
+        {
+            Id = "guitar", Name = "吉他", Icon = "🎸", Tag = "Guitar",
+            // 拨弦变体：比竖琴更暖（低亮度）、余音更长
+            Synth = SynthKind.Pluck,
+            Damping = 0.9988, Brightness = 0.45, Duration = 3.0,
+            ClickAmount = 0.12, ClickFreqRatio = 6.0, Attack = 0.002,
+        },
         // ============ 延音型音色（按住持续、松键淡出）============
+        new InstrumentDef
+        {
+            Id = "flute", Name = "长笛", Icon = "🪈", Tag = "Flute",
+            Gain = 0.65,
+            Kind = InstrumentKind.Sustain, Synth = SynthKind.Sustain,
+            // 长笛：以基频为主、少量泛音，慢起音带气声感
+            Partials = new[] { 1.0, 2.0, 3.0, 4.0 },
+            Gains    = new[] { 0.88, 0.14, 0.05, 0.02 },
+            Attack = 0.06, SustainSeconds = 0.7,
+            ClickAmount = 0.06, ClickFreqRatio = 2.5,
+        },
+
         new InstrumentDef
         {
             Id = "melodica", Name = "口风琴", Icon = "🎺", Tag = "Reed",

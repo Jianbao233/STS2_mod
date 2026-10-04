@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Godot.NET.Sdk/4.5.1">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -19,7 +19,7 @@
     <!-- RitsuLib 参考程序集根目录（工坊安装目录，含 RitsuLib.References.props 与 compat/<version>/） -->
     <RitsuLibRoot Condition="'$(RitsuLibRoot)' == ''">F:\Steam\steamapps\workshop\content\2868840\3747602295</RitsuLibRoot>
     <!-- 编译所对的 RitsuLib 兼容目标；正式版分支用 0.107.1，beta 用 0.111.0 -->
-    <RitsuLibReferenceTarget Condition="'$(RitsuLibReferenceTarget)' == ''">0.111.0</RitsuLibReferenceTarget>
+    <RitsuLibReferenceTarget Condition="'$(RitsuLibReferenceTarget)' == ''">0.107.1</RitsuLibReferenceTarget>
   </PropertyGroup>
 
   <!-- RitsuLib 官方引用方式：STS2-RitsuLib / .Runtime / .Shared / .Ui / .Settings -->

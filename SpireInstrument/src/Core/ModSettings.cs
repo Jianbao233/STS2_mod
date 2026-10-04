@@ -3,14 +3,6 @@ using Godot;
 
 namespace SpireInstrument.Core;
 
-/// <summary>浮窗尺寸档位（对应 UI 上的 迷你 / 标准 / 大）。</summary>
-public enum PanelSize
-{
-    Mini,
-    Standard,
-    Large,
-}
-
 /// <summary>
 /// 运行时设置：**门面**（façade）—— 对外仍是 <c>ModSettings.ScaleSnap</c> 这样的简单属性，
 /// 内部读写可存盘的数据模型，并做防抖落盘。

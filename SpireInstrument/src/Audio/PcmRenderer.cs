@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace SpireInstrument.Audio;
 
@@ -52,6 +52,13 @@ public static class PcmRenderer
                 // 所以让它顶到峰值上限（0.98）为止 —— 稳态仍比持续音低约 5dB，这是拨弦的物理特性。
                 NormalizeRms(buf, 0.45 * def.Gain, 0.98f);
                 FadeTail(buf, 0.006, mixRate);
+                return new RenderResult(buf, 0, 0);
+            }
+            case SynthKind.Percussion:
+            {
+                var buf = RenderPercussion(def, midi, mixRate, freq);
+                Normalize(buf, peakTarget * (float)def.Gain);
+                FadeTail(buf, 0.004, mixRate);
                 return new RenderResult(buf, 0, 0);
             }
             case SynthKind.Sustain:
@@ -319,6 +326,35 @@ public static class PcmRenderer
     /// </summary>
     public static float PolyphonyGain(int activeVoices)
         => Math.Max(0.15f, 1f / Math.Max(1, activeVoices));
+
+    /// <summary>
+    /// 打击乐渲染：噪声瞬态 + 音高下滑的衰减音。
+    /// 音高决定鼓件（低音=底鼓、中音=通鼓、高音=军鼓/踩镲）；
+    /// Decay=衰减时间常数、ClickAmount=噪声占比、Brightness=音高下滑程度。
+    /// </summary>
+    private static float[] RenderPercussion(InstrumentDef def, int midi, int mixRate, double freq)
+    {
+        int n = Math.Max(16, (int)(def.Duration * mixRate));
+        var buf = new float[n];
+        var rnd = new Random(unchecked(StableHash(def.Id) + midi * 131));
+
+        double decay = Math.Max(0.01, def.Decay);
+        double noiseMix = Math.Clamp(def.ClickAmount, 0, 1);
+        double drop = Math.Clamp(def.Brightness, 0, 1);
+
+        for (int i = 0; i < n; i++)
+        {
+            double t = (double)i / mixRate;
+            double env = Math.Exp(-t / decay);
+            // 鼓皮特征：起音瞬间音高偏高，随后迅速落回
+            double f = freq * (1.0 + drop * Math.Exp(-t / (decay * 0.3)));
+            double tone = Math.Sin(2 * Math.PI * f * t);
+            double noise = rnd.NextDouble() * 2.0 - 1.0;
+            buf[i] = (float)(env * ((1.0 - noiseMix) * tone + noiseMix * noise));
+        }
+        RemoveDc(buf);   // 噪声瞬态均值不为零 —— 自检实测直流偏移 4.09E-003，必须去掉
+        return buf;
+    }
 
     private static void RemoveDc(float[] buf)
     {

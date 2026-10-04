@@ -1,4 +1,4 @@
-namespace SpireInstrument.Songs;
+﻿namespace SpireInstrument.Songs;
 
 /// <summary>
 /// 内置曲库。
@@ -61,6 +61,56 @@ public static class SongLibrary
                 "C5:1 G4:1 A4:1 E4:1 F4:1 C4:1 F4:1 G4:1 " +
                 "C5:1 G4:1 A4:1 E4:1 F4:1 C4:1 F4:1 G4:1 " +
                 "C5:1 G4:1 A4:1 E4:1 F4:1 C4:1 F4:1 G4:1 C4:4",
+        },
+        new SongDefinition
+        {
+            Id = "frere", Name = "两只老虎", Bpm = 104, PublicDomain = true,
+            Credit = "法国童谣《Frère Jacques》，公有领域",
+            Melody =
+                "C4:1 D4:1 E4:1 C4:1 C4:1 D4:1 E4:1 C4:1 " +
+                "E4:1 F4:1 G4:2 E4:1 F4:1 G4:2 " +
+                "G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4:1 C4:1 G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4:1 C4:1 " +
+                "C4:1 G3:1 C4:2 C4:1 G3:1 C4:2",
+        },
+        new SongDefinition
+        {
+            Id = "mary", Name = "玛丽有只小羊羔", Bpm = 104, PublicDomain = true,
+            Credit = "美国童谣（1830 年代），公有领域",
+            Melody =
+                "E4:1 D4:1 C4:1 D4:1 E4:1 E4:1 E4:2 " +
+                "D4:1 D4:1 D4:2 E4:1 G4:1 G4:2 " +
+                "E4:1 D4:1 C4:1 D4:1 E4:1 E4:1 E4:1 E4:1 " +
+                "D4:1 D4:1 E4:1 D4:1 C4:4",
+        },
+        new SongDefinition
+        {
+            Id = "greensleeves", Name = "绿袖子", Bpm = 92, PublicDomain = true,
+            Credit = "英格兰传统民谣《Greensleeves》，公有领域",
+            Melody =
+                "A4:1 C5:2 D5:1 E5:1.5 F5:0.5 E5:1 D5:2 " +
+                "B4:1 G4:1 A4:1 B4:1 C5:1.5 A4:0.5 A4:2 " +
+                "A4:1 C5:2 D5:1 E5:1.5 F5:0.5 E5:1 D5:2 " +
+                "B4:1 G4:1 A4:1 B4:1 C5:1.5 A4:0.5 A4:2",
+        },
+        new SongDefinition
+        {
+            Id = "birthday", Name = "生日快乐", Bpm = 108, PublicDomain = true,
+            Credit = "《Happy Birthday to You》（1935 年版权已于 2016 年判定失效，公有领域）",
+            Melody =
+                "G4:0.5 G4:0.5 A4:1 G4:1 C5:1 B4:2 " +
+                "G4:0.5 G4:0.5 A4:1 G4:1 D5:1 C5:2 " +
+                "G4:0.5 G4:0.5 G5:1 E5:1 C5:1 B4:1 A4:2 " +
+                "F5:0.5 F5:0.5 E5:1 C5:1 D5:1 C5:2",
+        },
+        new SongDefinition
+        {
+            Id = "londonbridge", Name = "伦敦桥", Bpm = 112, PublicDomain = true,
+            Credit = "英格兰传统童谣《London Bridge Is Falling Down》，公有领域",
+            Melody =
+                "G4:1.5 A4:0.5 G4:1 F4:1 E4:1 F4:1 G4:1 " +
+                "D4:1 E4:1 F4:2 E4:1 F4:1 G4:1 " +
+                "G4:1.5 A4:0.5 G4:1 F4:1 E4:1 F4:1 G4:1 " +
+                "D4:2 G4:2 E4:1 C4:1",
         },
         new SongDefinition
         {

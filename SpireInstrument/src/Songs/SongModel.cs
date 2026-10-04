@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using SpireInstrument.Core;
 
@@ -114,6 +114,24 @@ public static class SongBuilder
 
         int midi = baseSemi + acc + (octave + 1) * 12;
         return midi is >= 0 and <= 127 ? midi : -1;
+    }
+
+    /// <summary>
+    /// 把一段录音（按键记录）转成可播放的 <see cref="Song"/>。
+    /// **纯逻辑，可离线自检** —— 回放复用曲目播放器，所以这里只需保证时间有序、时长为正。
+    /// </summary>
+    public static Song FromRecording(System.Collections.Generic.IReadOnlyList<SongNote> notes, string name)
+    {
+        var song = new Song { Name = name };
+        if (notes == null || notes.Count == 0) { song.Duration = 0; return song; }
+
+        foreach (var n in notes) song.Notes.Add(n);
+        song.Notes.Sort((a, b) => a.Time.CompareTo(b.Time));
+
+        double last = 0;
+        foreach (var n in song.Notes) if (n.Time > last) last = n.Time;
+        song.Duration = last + 1.2;
+        return song;
     }
 
     /// <summary>把紧凑记谱展开成绝对时间的音符序列。</summary>
