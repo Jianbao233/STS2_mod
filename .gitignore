@@ -12,6 +12,8 @@ project.godot.lock
 /MerchantBlacklist/
 /MerchantBlacklist-customer/
 /DimensionalTraveler/
+/PhoneticEnglish/
+/StandardSeedHost/
 
 # Local release/history archives
 torelease/
@@ -49,4 +51,7 @@ ErrorPopupHintPlan_0.103.2/
 
 # Private custom mod (independent local repo, no remote yet)
 /ShopCatalog/
+
+# Workshop upload workspaces (rule: 创意工坊/01-上传流程.md §8 — 不进 git，但 mod_id.txt 必须永久留在本地)
+/_workshop_workspaces/
 
