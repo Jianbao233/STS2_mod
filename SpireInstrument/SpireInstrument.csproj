@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Godot.NET.Sdk/4.5.1">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SpireInstrument</RootNamespace>
+    <AssemblyName>SpireInstrument</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Version>0.1.0</Version>
+    <FileVersion>0.1.0</FileVersion>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+
+    <!-- 游戏参考程序集目录（默认＝本机在装游戏；换机或换分支时用 /p:Sts2DataDir=... 覆盖） -->
+    <Sts2DataDir Condition="'$(Sts2DataDir)' == ''">F:\Steam\steamapps\common\Slay the Spire 2\data_sts2_windows_x86_64</Sts2DataDir>
+
+    <!-- RitsuLib 参考程序集根目录（工坊安装目录，含 RitsuLib.References.props 与 compat/<version>/） -->
+    <RitsuLibRoot Condition="'$(RitsuLibRoot)' == ''">F:\Steam\steamapps\workshop\content\2868840\3747602295</RitsuLibRoot>
+    <!-- 编译所对的 RitsuLib 兼容目标；正式版分支用 0.107.1，beta 用 0.111.0 -->
+    <RitsuLibReferenceTarget Condition="'$(RitsuLibReferenceTarget)' == ''">0.111.0</RitsuLibReferenceTarget>
+  </PropertyGroup>
+
+  <!-- RitsuLib 官方引用方式：STS2-RitsuLib / .Runtime / .Shared / .Ui / .Settings -->
+  <Import Project="$(RitsuLibRoot)\RitsuLib.References.props" />
+
+  <ItemGroup>
+    <!-- 离线自检工程不参与 mod 本体编译 -->
+    <Compile Remove="tests\**\*.cs" />
+    <None Remove="tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="sts2">
+      <HintPath>$(Sts2DataDir)\sts2.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="GodotSharp">
+      <HintPath>$(Sts2DataDir)\GodotSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(Sts2DataDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateGameReferences" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(Sts2DataDir)\sts2.dll')"
+           Text="在 Sts2DataDir='$(Sts2DataDir)' 下找不到 sts2.dll。用 /p:Sts2DataDir=&lt;游戏 data_sts2_windows_x86_64 目录&gt; 指定。" />
+    <Error Condition="!Exists('$(Sts2DataDir)\GodotSharp.dll')"
+           Text="在 Sts2DataDir='$(Sts2DataDir)' 下找不到 GodotSharp.dll。" />
+  </Target>
+</Project>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  离线自检工程：不引用 Godot、不引用游戏程序集，
+  直接把 mod 里"纯逻辑"的源文件编进来跑断言。
+  用法：见项目根目录 build.ps1 的 -SelfTest 开关。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SpireInstrument.Tests</RootNamespace>
+    <AssemblyName>SpireInstrument.Tests</AssemblyName>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\Audio\PcmRenderer.cs" />
+    <Compile Include="..\..\src\Audio\InstrumentLibrary.cs" />
+    <Compile Include="..\..\src\Core\ScaleMath.cs" />
+    <Compile Include="..\..\src\Core\SpireInstrumentSettings.cs" /><Compile Include="..\..\src\Core\Strings.cs" />
+    <Compile Include="..\..\src\Songs\SongModel.cs" />
+    <Compile Include="..\..\src\Songs\SongLibrary.cs" />
+    <Compile Include="..\..\src\Songs\MidiFileParser.cs" />
+    <Compile Include="..\..\src\Songs\LearnJudge.cs" />
+  </ItemGroup>
+</Project>

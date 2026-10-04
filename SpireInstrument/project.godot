@@ -1,0 +1,12 @@
+; Engine configuration file.
+; 仅为让 Godot.NET.Sdk 正常解析工程；本 mod 不打包 pck（has_pck=false），
+; 全部 UI 由 C# 代码在运行时构建。
+
+config_version=5
+
+[application]
+config/name="SpireInstrument"
+config/features=PackedStringArray("4.5", "C#")
+
+[dotnet]
+project/assembly_name="SpireInstrument"

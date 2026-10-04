@@ -1,0 +1,18 @@
+{
+  "id": "SpireInstrument",
+  "pck_name": "SpireInstrument",
+  "version": "0.1.0",
+  "name": "尖塔乐器 / Spire Instrument",
+  "author": "@Bilibili我叫煎包",
+  "description": "游戏内可演奏的多乐器浮窗：按 P 唤出，可自由演奏、导入 MIDI 自动演奏或跟着亮键跟弹，队友能同步听到你的演奏。\nAn in-game multi-instrument floating panel: play freely, auto-play an imported MIDI, or follow the highlighted keys — your co-op partners hear it too.",
+  "has_pck": false,
+  "has_dll": true,
+  "affects_gameplay": false,
+  "min_game_version": "0.107.1",
+  "dependencies": [
+    {
+      "id": "STS2-RitsuLib",
+      "minVersion": "0.6.0"
+    }
+  ]
+}
